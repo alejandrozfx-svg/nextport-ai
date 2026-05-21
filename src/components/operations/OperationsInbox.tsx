@@ -213,157 +213,176 @@ function StatCard({ label, value, sub, color, active, onClick }: {
   );
 }
 
-function AIWorkflowPanel({ onStartScan }: { onStartScan: () => void }) {
-  const [activeKey, setActiveKey] = useState<WorkflowKey>("detected");
-  const active = workflowSteps.find((step) => step.key === activeKey) ?? workflowSteps[0];
-  const activeIndex = workflowSteps.findIndex((step) => step.key === active.key);
-
+function EvidencePackLinks() {
   return (
-    <section className="glass-panel overflow-hidden">
-      <div className="p-5 border-b" style={{ borderColor: "var(--hair)" }}>
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="chip chip-brand"><span className="dot" />PRD flow</span>
-              <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
-                Human-in-the-loop
-              </span>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      {sampleDocuments.map((doc) => (
+        <a
+          key={doc.name}
+          href={doc.href}
+          target="_blank"
+          rel="noreferrer"
+          className="glass-panel-tight px-2.5 py-2 transition-all hover:bg-white/[0.05]"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-7 rounded-[4px] border flex items-center justify-center flex-shrink-0" style={{ borderColor: "var(--hair-2)", color: "var(--brand)", background: "rgba(255,255,255,0.04)" }}>
+              <Icon name="file" size={12} />
             </div>
-            <h2 className="text-[19px] font-semibold" style={{ color: "white" }}>AI workflow</h2>
-            <p className="text-[12.5px] mt-1 max-w-3xl" style={{ color: "var(--ink-3)" }}>
-              Nextport AI converts messy document intake into structured data, risk explanations and a human-approved handoff package.
-            </p>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11.5px] truncate" style={{ color: "white" }}>{doc.label}</div>
+              <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--ink-4)" }}>{doc.type}</div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="btn btn-sm" onClick={() => setActiveKey("detected")}>
-              <Icon name="inbox" size={13} /> Connect inbox
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={onStartScan}>
-              <Icon name="upload" size={13} /> Run sample workflow
-            </button>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function WorkflowRibbon() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+      {workflowSteps.map((step, index) => {
+        const color = toneColor(step.statusTone);
+        return (
+          <div key={step.key} className="glass-panel-tight p-3">
+            <div className="flex items-start gap-2.5">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ color, background: `${color}18`, border: `1px solid ${color}55` }}
+              >
+                <Icon name={step.icon} size={15} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono" style={{ color: "var(--ink-4)" }}>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] rounded-full px-1.5 py-0.5 border" style={{ color, borderColor: `${color}66`, background: `${color}12` }}>
+                    {step.status}
+                  </span>
+                </div>
+                <div className="text-[12px] font-medium mt-1 truncate" style={{ color: "white" }}>{step.title}</div>
+                <div className="text-[10.8px] leading-snug mt-0.5 line-clamp-2" style={{ color: "var(--ink-4)" }}>{step.summary}</div>
+              </div>
+            </div>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AIWorkflowPanel({ onStartScan }: { onStartScan: () => void }) {
+  return (
+    <section className="grid grid-cols-1 xl:grid-cols-[minmax(360px,0.86fr)_minmax(520px,1.14fr)] gap-3">
+      <div className="glass-panel p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="chip chip-brand"><span className="dot" />Incoming trigger</span>
+          <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
+            Product story
+          </span>
+        </div>
+        <h2 className="text-[19px] font-semibold" style={{ color: "white" }}>New operation incoming</h2>
+        <p className="text-[12.5px] leading-relaxed mt-1" style={{ color: "var(--ink-3)" }}>
+          Nextport watches broker emails, shared folders and manual uploads, then turns loose evidence into a ready-to-review import operation.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          {[
+            { icon: "mail", label: "Broker email detected", value: "Gmail / Outlook source matched shipment data", tone: "brand" as const },
+            { icon: "upload", label: "Document pack attached", value: "6 PDFs: invoice, BL, packing list, pedimento and MVE", tone: "ok" as const },
+            { icon: "inbox", label: "Operation injected", value: "Creates or updates NP-2026-001848 automatically", tone: "warn" as const },
+          ].map((item) => {
+            const color = toneColor(item.tone);
+            return (
+              <div key={item.label} className="glass-panel-tight p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ color, background: `${color}18`, border: `1px solid ${color}55` }}>
+                  <Icon name={item.icon} size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[12.5px] font-medium" style={{ color: "white" }}>{item.label}</div>
+                  <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--ink-4)" }}>{item.value}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="mt-4 grid gap-2 md:grid-cols-3">
-          {[
-            { label: "Gmail / Outlook", value: "New broker email detected", color: "var(--brand)" },
-            { label: "Manual upload", value: "6 PDFs ready to process", color: "var(--ok)" },
-            { label: "Operation result", value: "Creates or updates NP-2026-001848", color: "var(--warn)" },
-          ].map((item) => (
-            <div key={item.label} className="glass-panel-tight px-3 py-2.5">
-              <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--ink-4)" }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: item.color, boxShadow: `0 0 8px ${item.color}` }} />
-                {item.label}
-              </div>
-              <div className="text-[12.5px] mt-1 truncate" style={{ color: "white" }}>{item.value}</div>
-            </div>
-          ))}
+        <div className="mt-4 flex items-center gap-2">
+          <button className="btn btn-primary btn-sm" onClick={onStartScan}>
+            <Icon name="upload" size={13} /> Run sample workflow
+          </button>
+          <button className="btn btn-sm">
+            <Icon name="inbox" size={13} /> Connect inbox
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
-        <div className="p-4 border-b xl:border-b-0 xl:border-r" style={{ borderColor: "var(--hair)" }}>
-          <div className="space-y-2">
-            {workflowSteps.map((step, index) => {
-              const activeStep = step.key === active.key;
-              const completed = index < activeIndex;
-              const color = toneColor(step.statusTone);
-              return (
-                <button
-                  key={step.key}
-                  type="button"
-                  onClick={() => setActiveKey(step.key)}
-                  className="w-full text-left rounded-xl border px-3 py-3 transition-all"
-                  style={{
-                    borderColor: activeStep ? color : "var(--hair)",
-                    background: activeStep ? `${color}18` : completed ? "rgba(255,255,255,0.035)" : "rgba(255,255,255,0.018)",
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{
-                        color,
-                        background: activeStep ? `${color}24` : "rgba(255,255,255,0.055)",
-                        border: `1px solid ${activeStep ? color : "var(--hair-2)"}`,
-                      }}
-                    >
-                      <Icon name={step.icon} size={18} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13.5px] font-medium truncate" style={{ color: "white" }}>{step.title}</span>
-                        <span className="text-[10.5px] rounded-full px-2 py-0.5 border" style={{ color, borderColor: `${color}66`, background: `${color}14` }}>
-                          {step.status}
-                        </span>
-                      </div>
-                      <p className="text-[11.8px] mt-1 leading-relaxed" style={{ color: "var(--ink-4)" }}>{step.summary}</p>
-                    </div>
-                    <Icon name="arrow_right" size={14} />
-                  </div>
-                </button>
-              );
-            })}
+      <div className="glass-panel p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="chip chip-ok"><span className="dot" />Auto-prep</span>
+              <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
+                Human approval stays in control
+              </span>
+            </div>
+            <h2 className="text-[18px] font-semibold" style={{ color: "white" }}>From evidence to review queue</h2>
+            <p className="text-[12.5px] leading-relaxed mt-1 max-w-2xl" style={{ color: "var(--ink-3)" }}>
+              The system does the prep work: classify, extract, validate and explain. The team still decides before ERP or broker handoff.
+            </p>
+          </div>
+          <div className="text-[11px] font-mono tabular" style={{ color: "var(--ink-4)" }}>
+            {sampleDocuments.length} evidence files
           </div>
         </div>
 
-        <div className="p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>Selected step</div>
-              <h3 className="text-[17px] font-semibold mt-1" style={{ color: "white" }}>{active.title}</h3>
-            </div>
-            <div className="text-[11px] font-mono tabular" style={{ color: "var(--ink-4)" }}>
-              {activeIndex + 1} / {workflowSteps.length}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-2">
-            {[
-              ["Objective", active.objective],
-              ["How it works", active.how],
-              ["Expected input", active.input],
-              ["Expected result", active.output],
-              ["User value", active.value],
-            ].map(([label, text]) => (
-              <div key={label} className="glass-panel-tight px-3 py-2.5">
-                <div className="text-[10.5px] uppercase tracking-[0.12em]" style={{ color: "var(--ink-4)" }}>{label}</div>
-                <div className="text-[12.3px] leading-relaxed mt-1" style={{ color: "var(--ink-2)" }}>{text}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[12px] font-medium" style={{ color: "white" }}>Evidence pack used in this demo</div>
-              <span className="text-[11px] font-mono" style={{ color: "var(--ink-4)" }}>{sampleDocuments.length} files</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {sampleDocuments.map((doc) => (
-                <a
-                  key={doc.name}
-                  href={doc.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="glass-panel-tight px-3 py-2.5 transition-all hover:bg-white/[0.05]"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-8 rounded-[4px] border flex items-center justify-center" style={{ borderColor: "var(--hair-2)", color: "var(--brand)", background: "rgba(255,255,255,0.04)" }}>
-                      <Icon name="file" size={13} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12px] truncate" style={{ color: "white" }}>{doc.label}</div>
-                      <div className="text-[10.5px] mt-0.5 truncate" style={{ color: "var(--ink-4)" }}>
-                        {doc.type} - {doc.confidence} - {doc.fields} fields
-                      </div>
-                    </div>
-                    <Icon name="link" size={12} />
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
+        <div className="mt-4">
+          <WorkflowRibbon />
         </div>
+
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--hair)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[12px] font-medium" style={{ color: "white" }}>Evidence pack</div>
+            <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>Click any file to inspect the source</div>
+          </div>
+          <EvidencePackLinks />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AutoInjectedOperationsHeader({ counts }: { counts: Record<TabKey, number> }) {
+  return (
+    <section className="glass-panel-tight p-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="chip chip-brand"><span className="dot" />Live inbox</span>
+          <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
+            Auto-injected operations
+          </span>
+        </div>
+        <h2 className="text-[17px] font-semibold" style={{ color: "white" }}>Current operations created or updated from incoming evidence</h2>
+        <p className="text-[12px] mt-1 max-w-3xl" style={{ color: "var(--ink-3)" }}>
+          These are the records the team works now: documents were detected, classified and linked without manually building the expediente first.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full xl:w-auto xl:min-w-[420px]">
+        {[
+          { label: "Injected", value: counts.all, tone: "brand" as const },
+          { label: "Needs human review", value: counts.risk + counts.review, tone: "warn" as const },
+          { label: "Ready for handoff", value: counts.ready, tone: "ok" as const },
+        ].map((item) => {
+          const color = toneColor(item.tone);
+          return (
+            <div key={item.label} className="rounded-lg border px-3 py-2" style={{ borderColor: `${color}55`, background: `${color}10` }}>
+              <div className="text-[18px] font-semibold leading-none" style={{ color }}>{item.value}</div>
+              <div className="text-[10.5px] mt-1" style={{ color: "var(--ink-4)" }}>{item.label}</div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -433,6 +452,8 @@ export function OperationsInbox() {
       </div>
 
       <AIWorkflowPanel onStartScan={() => setOpenUpload(true)} />
+
+      <AutoInjectedOperationsHeader counts={counts} />
 
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 glass-panel-tight p-1">
