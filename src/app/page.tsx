@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -14,6 +15,13 @@ import {
 } from "lucide-react";
 
 const VIDEO_SOURCES = ["/assets/tracker.mp4"];
+
+const MARKETING_ROUTES = {
+  platform: "/platform",
+  compliance: "/compliance",
+  integrations: "/integrations",
+  pricing: "/pricing",
+} as const;
 
 const LANGS = [
   ["en", "EN"],
@@ -291,13 +299,13 @@ export default function LandingPage() {
 
             <div className="hidden items-center gap-7 text-[13px] md:flex">
               {(["platform", "compliance", "integrations", "pricing"] as const).map((item) => (
-                <a
+                <Link
                   key={item}
-                  href="#landing"
+                  href={MARKETING_ROUTES[item]}
                   className="cursor-pointer text-white/75 transition-colors hover:text-white"
                 >
                   {t(lang, item)}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
