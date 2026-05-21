@@ -14,6 +14,7 @@ const translations = {
     invalidCredentials: "Invalid credentials. Try demo@nextport.ai / demo123",
     // Nav
     operations: "Operations",
+    pipeline: "Pipeline",
     documents: "Documents",
     intelligence: "Intelligence",
     integrations: "Integrations",
@@ -114,8 +115,14 @@ const translations = {
     activityLabel: "Activity",
     fieldsLabel: "Fields",
     aiSummary: "AI Summary",
+    // Pipeline page
+    pipelineHeader: "Operation intake pipeline",
+    pipelineSubtitle: "How operations flow into the system — from broker email or upload, through AI classification, extraction and cross-validation, into the human review queue.",
+    viewAllOperations: "View all operations",
+    pipelineSeeQueue: "See the live review queue",
     // TopBar page titles
     pageTitleOperations: "Operations",
+    pageTitlePipeline: "Pipeline",
     pageTitleDocuments: "Documents",
     pageTitleIntelligence: "Intelligence",
     pageTitleIntegrations: "Integrations",
@@ -135,6 +142,7 @@ const translations = {
     signingIn: "Iniciando sesión…",
     invalidCredentials: "Credenciales inválidas. Usa demo@nextport.ai / demo123",
     operations: "Operaciones",
+    pipeline: "Pipeline",
     documents: "Documentos",
     intelligence: "Inteligencia",
     integrations: "Integraciones",
@@ -227,8 +235,14 @@ const translations = {
     activityLabel: "Actividad",
     fieldsLabel: "Campos",
     aiSummary: "Resumen IA",
+    // Pipeline page
+    pipelineHeader: "Pipeline de entrada de operaciones",
+    pipelineSubtitle: "Cómo entran las operaciones al sistema — desde el correo del agente o carga manual, pasando por clasificación, extracción y cruce de la IA, hasta la cola de revisión humana.",
+    viewAllOperations: "Ver todas las operaciones",
+    pipelineSeeQueue: "Ver la cola de revisión activa",
     // TopBar page titles
     pageTitleOperations: "Operaciones",
+    pageTitlePipeline: "Pipeline",
     pageTitleDocuments: "Documentos",
     pageTitleIntelligence: "Inteligencia",
     pageTitleIntegrations: "Integraciones",
@@ -247,6 +261,7 @@ const translations = {
     signingIn: "登录中…",
     invalidCredentials: "凭据无效。请使用 demo@nextport.ai / demo123",
     operations: "运营",
+    pipeline: "工作流",
     documents: "文件",
     intelligence: "情报",
     integrations: "集成",
@@ -339,8 +354,14 @@ const translations = {
     activityLabel: "活动",
     fieldsLabel: "字段",
     aiSummary: "AI摘要",
+    // Pipeline page
+    pipelineHeader: "运营接入工作流",
+    pipelineSubtitle: "运营如何进入系统 — 从报关行邮件或上传，经过AI分类、提取和交叉验证，进入人工审核队列。",
+    viewAllOperations: "查看所有运营",
+    pipelineSeeQueue: "查看实时审核队列",
     // TopBar page titles
     pageTitleOperations: "运营",
+    pageTitlePipeline: "工作流",
     pageTitleDocuments: "文件",
     pageTitleIntelligence: "情报",
     pageTitleIntegrations: "集成",

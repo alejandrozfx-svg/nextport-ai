@@ -12,6 +12,7 @@ import {
   Settings,
   Bot,
   ChevronRight,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -46,6 +47,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
 
   const navItems = [
     { href: "/console/operations",   labelKey: "operations"   as const, icon: Inbox },
+    { href: "/console/pipeline",     labelKey: "pipeline"     as const, icon: Workflow },
     { href: "/console/documents",    labelKey: "documents"    as const, icon: FileText },
     { href: "/console/intelligence", labelKey: "intelligence" as const, icon: BarChart3 },
     { href: "/console/integrations", labelKey: "integrations" as const, icon: Plug },

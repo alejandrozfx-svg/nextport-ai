@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { t, type Lang } from "@/lib/i18n";
 
-const PAGE_TITLE_KEYS: Record<string, "pageTitleOperations" | "pageTitleDocuments" | "pageTitleIntelligence" | "pageTitleIntegrations" | "pageTitleSecurity" | "pageTitleAcademy" | "pageTitleSettings"> = {
+const PAGE_TITLE_KEYS: Record<string, "pageTitleOperations" | "pageTitlePipeline" | "pageTitleDocuments" | "pageTitleIntelligence" | "pageTitleIntegrations" | "pageTitleSecurity" | "pageTitleAcademy" | "pageTitleSettings"> = {
   "/console/operations":   "pageTitleOperations",
+  "/console/pipeline":     "pageTitlePipeline",
   "/console/documents":    "pageTitleDocuments",
   "/console/intelligence": "pageTitleIntelligence",
   "/console/integrations": "pageTitleIntegrations",
