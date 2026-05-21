@@ -136,30 +136,18 @@ export function PipelinePage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-1 gap-4">
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="chip chip-brand"><span className="dot" />{lang === "es" ? "Disparador entrante" : lang === "zh" ? "进入触发器" : "Incoming trigger"}</span>
-            <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
-              {lang === "es" ? "Pipeline" : lang === "zh" ? "工作流" : "Pipeline"}
-            </span>
-          </div>
           <h1 className="text-[22px] font-semibold" style={{ color: "white" }}>{t("pipelineHeader", lang)}</h1>
           <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "var(--ink-3)" }}>
             {t("pipelineSubtitle", lang)}
           </p>
         </div>
-        <Link href="/console/operations" className="btn btn-primary btn-sm flex-shrink-0">
-          {t("viewAllOperations", lang)} <Icon name="arrow_right" size={13} />
-        </Link>
       </div>
 
       {/* Auto-injected operations summary (the 3 KPIs about pipeline output) */}
       <section className="glass-panel-tight p-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="chip chip-brand"><span className="dot" />{lang === "es" ? "Bandeja en vivo" : lang === "zh" ? "实时收件箱" : "Live inbox"}</span>
-            <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
-              {lang === "es" ? "Operaciones auto-inyectadas" : lang === "zh" ? "自动注入运营" : "Auto-injected operations"}
-            </span>
+            <span className="chip chip-brand"><span className="dot" />{t("pipelineOutput", lang)}</span>
           </div>
           <h2 className="text-[17px] font-semibold" style={{ color: "white" }}>
             {lang === "es" ? "Salida del pipeline en este momento" : lang === "zh" ? "当前工作流输出" : "Pipeline output right now"}

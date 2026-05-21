@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { DemoOperation } from "@/lib/demo-data";
 import { useLang } from "@/lib/lang-context";
-import { t } from "@/lib/i18n";
+import { t, type TranslationKey } from "@/lib/i18n";
 
 /* ── icons ──────────────────────────────────────────────── */
 function Icon({ name, size = 14, style }: { name: string; size?: number; style?: React.CSSProperties }) {
@@ -105,6 +105,8 @@ function ExceptionCard({ flag, active, onClick }: {
 
 /* ── NextBestAction ─────────────────────────────────────── */
 function NextBestAction({ action }: { action: NonNullable<DemoOperation["recommendedAction"]> }) {
+  const { lang } = useLang();
+
   return (
     <div className="glass-panel p-4" style={{
       background: "linear-gradient(180deg, oklch(0.78 0.09 235 / 0.10), rgba(255,255,255,0.02))",
@@ -114,17 +116,17 @@ function NextBestAction({ action }: { action: NonNullable<DemoOperation["recomme
         <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)" }}>
           <Icon name="sparkle" size={11} style={{ color: "var(--brand)" }} />
         </div>
-        <div className="text-[11px] tracking-[0.12em] uppercase" style={{ color: "var(--ink-3)" }}>Recommended next action</div>
+        <div className="text-[11px] tracking-[0.12em] uppercase" style={{ color: "var(--ink-3)" }}>{t("recommendedAction", lang)}</div>
       </div>
-      <div className="text-[14px] leading-snug mb-1.5" style={{ color: "white" }}>{action.title}</div>
-      <div className="text-[12px] leading-snug mb-3" style={{ color: "var(--ink-3)" }}>{action.why}</div>
+      <div className="text-[14px] leading-snug mb-1.5" style={{ color: "white" }}>{t(action.titleKey, lang)}</div>
+      <div className="text-[12px] leading-snug mb-3" style={{ color: "var(--ink-3)" }}>{t(action.whyKey, lang)}</div>
       <button className="btn btn-primary w-full justify-center mb-2">
         <Icon name="arrow_right" size={13} />
-        {action.primary}
+        {t(action.primary, lang)}
       </button>
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${action.secondary.length}, 1fr)` }}>
         {action.secondary.map((s) => (
-          <button key={s} className="btn btn-sm justify-center" style={{ fontSize: 11, padding: "5px 8px" }}>{s}</button>
+          <button key={s} className="btn btn-sm justify-center" style={{ fontSize: 11, padding: "5px 8px" }}>{t(s, lang)}</button>
         ))}
       </div>
     </div>
@@ -399,6 +401,12 @@ function DocPreview({ kind, op, highlightedFields }: { kind: string; op: DemoOpe
   return <GenericDocPreview kind={kind} op={op} />;
 }
 
+function academyRecommendation(status: DemoOperation["status"]): { id: string; titleKey: TranslationKey } {
+  if (status === "risk") return { id: "11", titleKey: "lessonValueDiscrepancyExceptions" };
+  if (status === "review") return { id: "06", titleKey: "lessonCrossValidationExceptions" };
+  return { id: "12", titleKey: "lessonHumanLoopApproval" };
+}
+
 /* ── Main component ─────────────────────────────────────── */
 interface OperationDetailProps {
   op: DemoOperation;
@@ -415,6 +423,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
   const highlightedDocs   = new Set<string>(focused ? focused.docs : []);
 
   const currentDoc = op.docs[activeDoc] ?? op.docs[0];
+  const academyLesson = academyRecommendation(op.status);
 
   // When exception is clicked, jump to related doc
   useEffect(() => {
@@ -639,13 +648,13 @@ export function OperationDetail({ op }: OperationDetailProps) {
 
           {/* Academy link */}
           {op.status !== "ready" && (
-            <Link href="/console/academy" className="glass-panel p-3 w-full flex items-center gap-3 transition-colors hover:bg-white/[0.03]">
+            <Link href={`/console/academy/${academyLesson.id}`} className="glass-panel p-3 w-full flex items-center gap-3 transition-colors hover:bg-white/[0.03]">
               <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)" }}>
                 <Icon name="sparkle" size={12} style={{ color: "var(--brand)" }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11.5px]" style={{ color: "white" }}>{lang === "es" ? "Abrir Academia · Módulo 14.2" : lang === "zh" ? "打开学院 · 模块 14.2" : "Open Academy · Module 14.2"}</div>
-                <div className="text-[10.5px]" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Lección: cómo resolver esta excepción" : lang === "zh" ? "课程：如何解决此异常" : "Lesson: how to resolve this exception"}</div>
+                <div className="text-[11.5px]" style={{ color: "white" }}>{t("openAcademy", lang)} · {t(academyLesson.titleKey, lang)}</div>
+                <div className="text-[10.5px]" style={{ color: "var(--ink-3)" }}>{t("relatedAcademyModule", lang)} {academyLesson.id}</div>
               </div>
               <Icon name="arrow_right" size={12} style={{ opacity: 0.6 }} />
             </Link>

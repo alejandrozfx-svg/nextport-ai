@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { FileText, ScanLine, CheckCircle2, Clock, Scan, Upload, X } from "lucide-react";
 import { RiskChip } from "@/components/ui/RiskChip";
 import { formatDate } from "@/lib/utils";
+import { useLang } from "@/lib/lang-context";
+import { t, type TranslationKey } from "@/lib/i18n";
 
 interface DocumentItem {
   id: string;
@@ -32,15 +34,23 @@ const statusColor: Record<string, string> = {
   ready: "var(--ok)",
 };
 
-const docTypeLabel: Record<string, string> = {
-  pedimento: "Pedimento",
-  invoice: "Invoice",
-  bl: "Bill of Lading",
-  packing_list: "Packing List",
-  mve: "MVE",
-  cfdi: "CFDI",
-  coo: "Certificate of Origin",
-  carta_porte: "Carta Porte",
+const docTypeKeys: Record<string, TranslationKey> = {
+  pedimento: "pedimento",
+  invoice: "invoice",
+  bl: "bl",
+  packing_list: "packing_list",
+  mve: "mve",
+  cfdi: "cfdi",
+  coo: "coo",
+  carta_porte: "carta_porte",
+};
+
+const statusKeys: Record<string, TranslationKey> = {
+  uploaded: "statusUploaded",
+  classified: "statusClassified",
+  extracted: "statusExtracted",
+  validated: "statusValidated",
+  ready: "statusReady",
 };
 
 const DEMO_DOCUMENTS: DocumentItem[] = [
@@ -57,6 +67,7 @@ const DEMO_DOCUMENTS: DocumentItem[] = [
 ];
 
 export function DocumentsPage() {
+  const { lang } = useLang();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -108,10 +119,10 @@ export function DocumentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>
-            Document Library
+            {t("documentLibrary", lang)}
           </h2>
           <p className="text-sm" style={{ color: "var(--ink-4)" }}>
-            {documents.length} documents · AI-classified
+            {documents.length} {t("documentsClassified", lang)}
           </p>
         </div>
         <button
@@ -120,31 +131,31 @@ export function DocumentsPage() {
           style={{ background: "var(--brand)", color: "#0A0D12" }}
         >
           <ScanLine size={14} />
-          Scan Document
+          {t("scanDocumentBtn", lang)}
         </button>
       </div>
 
       {/* Type filter */}
       <div className="flex flex-wrap gap-1.5">
-        {["all", "pedimento", "invoice", "bl", "packing_list", "mve", "cfdi", "coo", "carta_porte"].map((t) => (
+        {["all", "pedimento", "invoice", "bl", "packing_list", "mve", "cfdi", "coo", "carta_porte"].map((typeKey) => (
           <button
-            key={t}
-            onClick={() => setFilter(t)}
+            key={typeKey}
+            onClick={() => setFilter(typeKey)}
             className="px-3 py-1 rounded-full text-xs font-medium transition-all"
             style={
-              filter === t
+              filter === typeKey
                 ? { background: "var(--brand-soft)", color: "var(--brand)", border: "1px solid oklch(0.78 0.09 235 / 0.3)" }
                 : { background: "var(--hair)", color: "var(--ink-4)", border: "1px solid transparent" }
             }
           >
-            {t === "all" ? "All types" : (docTypeLabel[t] ?? t)}
+            {typeKey === "all" ? t("allTypes", lang) : t(docTypeKeys[typeKey] ?? "documentsLabel", lang)}
           </button>
         ))}
       </div>
 
       {/* Documents grid */}
       {loading ? (
-        <div className="p-12 text-center" style={{ color: "var(--ink-4)" }}>Loading documents…</div>
+        <div className="p-12 text-center" style={{ color: "var(--ink-4)" }}>{t("loadingDocuments", lang)}</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((doc) => {
@@ -161,7 +172,7 @@ export function DocumentsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium" style={{ color: "var(--ink)" }}>
-                        {docTypeLabel[doc.type] ?? doc.type}
+                        {t(docTypeKeys[doc.type] ?? "documentsLabel", lang)}
                       </p>
                       <p className="text-xs font-mono truncate max-w-[120px]" style={{ color: "var(--ink-4)" }}>
                         {doc.filename}
@@ -170,14 +181,14 @@ export function DocumentsPage() {
                   </div>
                   <div className="flex items-center gap-1 text-xs" style={{ color }}>
                     {statusIcon[doc.status]}
-                    <span className="capitalize">{doc.status}</span>
+                    <span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
                   </div>
                 </div>
 
                 {/* Confidence bar */}
                 <div>
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs" style={{ color: "var(--ink-4)" }}>Confidence</span>
+                    <span className="text-xs" style={{ color: "var(--ink-4)" }}>{t("confidence", lang)}</span>
                     <span className="text-xs font-mono" style={{ color }}>
                       {Math.round(doc.confidence * 100)}%
                     </span>
@@ -192,14 +203,14 @@ export function DocumentsPage() {
 
                 <div className="flex items-center justify-between text-xs" style={{ color: "var(--ink-4)" }}>
                   <span className="font-mono">{doc.operation.id}</span>
-                  <span>{formatDate(doc.uploadedAt)}</span>
+                  <span>{formatDate(doc.uploadedAt, lang)}</span>
                 </div>
               </div>
             );
           })}
           {filtered.length === 0 && (
             <div className="col-span-3 p-12 text-center" style={{ color: "var(--ink-4)" }}>
-              No documents found.
+              {t("noDocumentsFound", lang)}
             </div>
           )}
         </div>
@@ -210,24 +221,24 @@ export function DocumentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }}>
           <div className="glass-panel p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold" style={{ color: "var(--ink)" }}>Scan Document</h3>
+              <h3 className="text-base font-semibold" style={{ color: "var(--ink)" }}>{t("scanDocumentModal", lang)}</h3>
               <button onClick={() => setScanOpen(false)}>
                 <X size={16} style={{ color: "var(--ink-4)" }} />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs mb-1.5 block" style={{ color: "var(--ink-4)" }}>Filename</label>
+                <label className="text-xs mb-1.5 block" style={{ color: "var(--ink-4)" }}>{t("filename", lang)}</label>
                 <input
                   value={scanFilename}
                   onChange={(e) => setScanFilename(e.target.value)}
-                  placeholder="e.g. invoice-lumitech-001.pdf"
+                  placeholder={t("scanFilenamePlaceholder", lang)}
                   className="w-full px-3 py-2 rounded-lg text-sm outline-none"
                   style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
                 />
               </div>
               <div>
-                <label className="text-xs mb-1.5 block" style={{ color: "var(--ink-4)" }}>Operation ID</label>
+                <label className="text-xs mb-1.5 block" style={{ color: "var(--ink-4)" }}>{t("operationId", lang)}</label>
                 <input
                   value={scanOpId}
                   onChange={(e) => setScanOpId(e.target.value)}
@@ -242,7 +253,7 @@ export function DocumentsPage() {
                 className="flex-1 py-2 rounded-lg text-sm"
                 style={{ border: "1px solid var(--hair-2)", color: "var(--ink-3)" }}
               >
-                Cancel
+                {t("cancel", lang)}
               </button>
               <button
                 onClick={handleScan}
@@ -250,7 +261,7 @@ export function DocumentsPage() {
                 className="flex-1 py-2 rounded-lg text-sm font-medium disabled:opacity-60"
                 style={{ background: "var(--brand)", color: "#0A0D12" }}
               >
-                {scanning ? "Scanning…" : "Scan & Classify"}
+                {scanning ? t("scanning", lang) : t("scanClassify", lang)}
               </button>
             </div>
           </div>

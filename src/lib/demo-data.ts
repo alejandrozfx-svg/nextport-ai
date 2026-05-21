@@ -16,6 +16,22 @@ export interface DemoTimeline {
   who: string;
 }
 
+export type RecommendedActionKey =
+  | "requestCorrection"
+  | "assignBroker"
+  | "approveWithException"
+  | "exportEvidence"
+  | "requestDocs"
+  | "comment";
+
+export type RecommendedActionCopyKey =
+  | "actionTitleSendBrokerCorrection"
+  | "actionWhyValueMismatch"
+  | "actionTitleRequestMissingCfdi"
+  | "actionWhyMissingCfdi"
+  | "actionTitleObtainNom"
+  | "actionWhyNom";
+
 export interface DemoOperation {
   id: string;
   supplier: string;
@@ -38,10 +54,10 @@ export interface DemoOperation {
   hsBucket: string;
   flags: DemoFlag[];
   recommendedAction?: {
-    title: string;
-    why: string;
-    primary: string;
-    secondary: string[];
+    titleKey: RecommendedActionCopyKey;
+    whyKey: RecommendedActionCopyKey;
+    primary: RecommendedActionKey;
+    secondary: RecommendedActionKey[];
   };
   summary: string;
   timeline: DemoTimeline[];
@@ -95,10 +111,10 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
       },
     ],
     recommendedAction: {
-      title: "Send correction request to customs broker",
-      why: "Discrepancia bloqueante de USD 5,330 entre factura comercial y valor en aduana. Resolver antes de pago de pedimento.",
-      primary: "Request correction",
-      secondary: ["Assign to broker", "Approve with exception", "Export evidence"],
+      titleKey: "actionTitleSendBrokerCorrection",
+      whyKey: "actionWhyValueMismatch",
+      primary: "requestCorrection",
+      secondary: ["assignBroker", "approveWithException", "exportEvidence"],
     },
     summary:
       "Esta operación está marcada en riesgo. La IA detectó una diferencia de USD 5,330 entre la factura comercial y el valor declarado en el pedimento A1, además de inconsistencias menores de peso entre BL y lista de empaque. Se recomienda regresar al agente aduanal antes de la liberación, o aprobar manualmente con justificación documentada.",
@@ -141,10 +157,10 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
       },
     ],
     recommendedAction: {
-      title: "Request missing CFDI from broker",
-      why: "Falta el CFDI de honorarios del agente aduanal para cerrar el expediente.",
-      primary: "Request correction",
-      secondary: ["Assign to broker", "Export evidence"],
+      titleKey: "actionTitleRequestMissingCfdi",
+      whyKey: "actionWhyMissingCfdi",
+      primary: "requestCorrection",
+      secondary: ["assignBroker", "exportEvidence"],
     },
     summary:
       "Documentación casi completa. Falta el CFDI de honorarios del agente aduanal para liberar la operación. El resto de los campos clave (BL, packing, MVE) están consistentes entre sí.",
@@ -275,10 +291,10 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
       },
     ],
     recommendedAction: {
-      title: "Obtain NOM-050 compliance certificate",
-      why: "La operación no puede liberarse sin evidencia de NOM-050. Riesgo de retención en aduana.",
-      primary: "Request correction",
-      secondary: ["Assign to broker", "Export evidence"],
+      titleKey: "actionTitleObtainNom",
+      whyKey: "actionWhyNom",
+      primary: "requestCorrection",
+      secondary: ["assignBroker", "exportEvidence"],
     },
     summary:
       "Operación bloqueada por NOM-050. La IA detectó que la fracción arancelaria requiere certificado de cumplimiento normativo no encontrado en el expediente.",

@@ -16,6 +16,8 @@ import {
 } from "recharts";
 import { FileText, Cpu, CheckCheck, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/operations/StatCard";
+import { useLang } from "@/lib/lang-context";
+import { t } from "@/lib/i18n";
 
 interface KPIs {
   documentsClassified: number;
@@ -56,6 +58,7 @@ const DEMO_INTEL: IntelData = {
 };
 
 export function IntelligencePage() {
+  const { lang } = useLang();
   const [data, setData] = useState<IntelData>(DEMO_INTEL);
 
   useEffect(() => {
@@ -72,16 +75,16 @@ export function IntelligencePage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>Data & Intelligence</h2>
-        <p className="text-sm" style={{ color: "var(--ink-4)" }}>AI performance metrics and compliance analytics</p>
+        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("dataIntelligence", lang)}</h2>
+        <p className="text-sm" style={{ color: "var(--ink-4)" }}>{t("aiPerformanceSubtitle", lang)}</p>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Documents Classified" value={kpis.documentsClassified} icon={<FileText size={14} />} color="var(--brand)" />
-        <StatCard label="Fields Extracted" value={kpis.fieldsExtracted} icon={<Cpu size={14} />} color="var(--brand)" />
-        <StatCard label="Validations Run" value={kpis.validationsRun} icon={<CheckCheck size={14} />} color="var(--ok)" />
-        <StatCard label="Avg Confidence" value={`${(kpis.avgConfidence * 100).toFixed(1)}%`} icon={<TrendingUp size={14} />} color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"} sub={`${(kpis.passRate * 100).toFixed(1)}% pass rate`} />
+        <StatCard label={t("kpiDocumentsClassified", lang)} value={kpis.documentsClassified} icon={<FileText size={14} />} color="var(--brand)" />
+        <StatCard label={t("kpiFieldsExtracted", lang)} value={kpis.fieldsExtracted} icon={<Cpu size={14} />} color="var(--brand)" />
+        <StatCard label={t("kpiValidationsRun", lang)} value={kpis.validationsRun} icon={<CheckCheck size={14} />} color="var(--ok)" />
+        <StatCard label={t("kpiAvgConfidence", lang)} value={`${(kpis.avgConfidence * 100).toFixed(1)}%`} icon={<TrendingUp size={14} />} color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"} sub={`${(kpis.passRate * 100).toFixed(1)}${t("passRateSuffix", lang)}`} />
       </div>
 
       {/* Charts */}
@@ -89,10 +92,10 @@ export function IntelligencePage() {
         {/* Operations by status pie */}
         <div className="glass-panel p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>
-            Operations by Status
+            {t("chartOpsByStatus", lang)}
           </h3>
           {operationsByStatus.length === 0 ? (
-            <p className="text-xs text-center py-8" style={{ color: "var(--ink-4)" }}>No data</p>
+            <p className="text-xs text-center py-8" style={{ color: "var(--ink-4)" }}>{t("noData", lang)}</p>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
@@ -124,7 +127,7 @@ export function IntelligencePage() {
                   style={{ background: STATUS_COLORS[s.status] ?? "var(--brand)" }}
                 />
                 <span className="text-xs capitalize" style={{ color: "var(--ink-3)" }}>
-                  {s.status} ({s.count})
+                  {(s.status === "risk" ? t("atRisk", lang) : s.status === "review" ? t("needsReview", lang) : t("statusReady", lang))} ({s.count})
                 </span>
               </div>
             ))}
@@ -134,10 +137,10 @@ export function IntelligencePage() {
         {/* Docs over time */}
         <div className="glass-panel p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>
-            Documents Over Time
+            {t("chartDocsOverTime", lang)}
           </h3>
           {docsByDay.length === 0 ? (
-            <p className="text-xs text-center py-8" style={{ color: "var(--ink-4)" }}>No data</p>
+            <p className="text-xs text-center py-8" style={{ color: "var(--ink-4)" }}>{t("noData", lang)}</p>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={docsByDay}>
@@ -156,10 +159,10 @@ export function IntelligencePage() {
         {/* Confidence distribution */}
         <div className="glass-panel p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>
-            Confidence Distribution
+            {t("chartConfidenceDist", lang)}
           </h3>
           {confidenceDistribution.every((c) => c.count === 0) ? (
-            <p className="text-xs text-center py-8" style={{ color: "var(--ink-4)" }}>No data</p>
+            <p className="text-xs text-center py-8" style={{ color: "var(--ink-4)" }}>{t("noData", lang)}</p>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={confidenceDistribution}>

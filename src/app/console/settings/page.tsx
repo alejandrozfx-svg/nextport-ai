@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, User, Bell, Globe, Database, Shield } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
-import type { Lang } from "@/lib/i18n";
+import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 
 export default function SettingsPage() {
   const { lang, setLang } = useLang();
@@ -11,7 +11,27 @@ export default function SettingsPage() {
   const [name, setName] = useState("Alejandro Reyes");
   const [saved, setSaved] = useState(false);
 
+  // Load saved user from localStorage (populated by landing-page sign-in or previous Save).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = localStorage.getItem("np_user");
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as { name?: string; email?: string };
+      if (parsed.name)  setName(parsed.name);
+      if (parsed.email) setEmail(parsed.email);
+    } catch {}
+  }, []);
+
   function handleSave() {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("np_user");
+        const prev = stored ? (JSON.parse(stored) as Record<string, unknown>) : {};
+        const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AR";
+        localStorage.setItem("np_user", JSON.stringify({ ...prev, name, email, initials }));
+      } catch {}
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -19,12 +39,12 @@ export default function SettingsPage() {
   const sections = [
     {
       id: "profile",
-      label: "Profile",
+      label: t("profile", lang),
       icon: User,
       content: (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>Full Name</label>
+            <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>{t("fullName", lang)}</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -33,7 +53,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>Email</label>
+            <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>{t("email", lang)}</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -47,12 +67,12 @@ export default function SettingsPage() {
     },
     {
       id: "preferences",
-      label: "Preferences",
+      label: t("preferences", lang),
       icon: Globe,
       content: (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>Language</label>
+            <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>{t("language", lang)}</label>
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as Lang)}
@@ -69,16 +89,16 @@ export default function SettingsPage() {
     },
     {
       id: "notifications",
-      label: "Notifications",
+      label: t("notifications", lang),
       icon: Bell,
       content: (
         <div className="space-y-3">
           {[
-            "New operations assigned to me",
-            "Exception alerts (Risk level)",
-            "Approval required reminders",
-            "ETA changes (>24h delay)",
-            "Integration sync failures",
+            "notificationNewOps",
+            "notificationExceptions",
+            "notificationApprovals",
+            "notificationEta",
+            "notificationIntegrations",
           ].map((item) => (
             <label key={item} className="flex items-center gap-3 cursor-pointer">
               <div
@@ -90,7 +110,7 @@ export default function SettingsPage() {
                   style={{ background: "#0A0D12" }}
                 />
               </div>
-              <span className="text-sm" style={{ color: "var(--ink-2)" }}>{item}</span>
+              <span className="text-sm" style={{ color: "var(--ink-2)" }}>{t(item as TranslationKey, lang)}</span>
             </label>
           ))}
         </div>
@@ -98,12 +118,12 @@ export default function SettingsPage() {
     },
     {
       id: "database",
-      label: "Database",
+      label: t("database", lang),
       icon: Database,
       content: (
         <div className="space-y-3">
           <p className="text-sm" style={{ color: "var(--ink-3)" }}>
-            Configure your PostgreSQL connection. Compatible with Neon, Vercel Postgres, and Supabase.
+            {t("databaseDesc", lang)}
           </p>
           <div>
             <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>DATABASE_URL</label>
@@ -115,7 +135,7 @@ export default function SettingsPage() {
             />
           </div>
           <p className="text-xs" style={{ color: "var(--ink-4)" }}>
-            Update this in your .env file and restart the server. Run <code className="font-mono">npm run db:push</code> to push the schema.
+            {t("databaseHelp", lang)}
           </p>
         </div>
       ),
@@ -126,8 +146,8 @@ export default function SettingsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>Settings</h2>
-          <p className="text-sm" style={{ color: "var(--ink-4)" }}>Manage your account and workspace preferences</p>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("settingsTitle", lang)}</h2>
+          <p className="text-sm" style={{ color: "var(--ink-4)" }}>{t("settingsSubtitle", lang)}</p>
         </div>
         <button
           onClick={handleSave}
@@ -135,7 +155,7 @@ export default function SettingsPage() {
           style={{ background: saved ? "var(--ok)" : "var(--brand)", color: "#0A0D12" }}
         >
           <Save size={13} />
-          {saved ? "Saved!" : "Save changes"}
+          {saved ? t("saved", lang) : t("saveChanges", lang)}
         </button>
       </div>
 
@@ -161,17 +181,17 @@ export default function SettingsPage() {
           style={{ borderBottom: "1px solid oklch(0.70 0.16 25 / 0.2)", background: "var(--risk-soft)" }}
         >
           <Shield size={14} style={{ color: "var(--risk)" }} />
-          <h3 className="text-sm font-semibold" style={{ color: "var(--risk)" }}>Danger Zone</h3>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--risk)" }}>{t("dangerZone", lang)}</h3>
         </div>
         <div className="p-4 space-y-2">
           <p className="text-sm" style={{ color: "var(--ink-3)" }}>
-            Destructive actions that cannot be undone.
+            {t("destructiveActions", lang)}
           </p>
           <button
             className="px-3 py-2 rounded-lg text-sm font-medium"
             style={{ border: "1px solid oklch(0.70 0.16 25 / 0.35)", color: "var(--risk)" }}
           >
-            Clear all demo data
+            {t("clearDemoData", lang)}
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import type { AuditEventData } from "@/types";
 
 interface AuditTimelineProps {
   events: AuditEventData[];
+  lang?: string;
 }
 
 const eventColors: Record<string, string> = {
@@ -16,7 +17,7 @@ const eventColors: Record<string, string> = {
   validated: "var(--warn)",
 };
 
-export function AuditTimeline({ events }: AuditTimelineProps) {
+export function AuditTimeline({ events, lang = "en" }: AuditTimelineProps) {
   if (events.length === 0) {
     return <p className="text-xs" style={{ color: "var(--ink-4)" }}>No audit events yet.</p>;
   }
@@ -54,7 +55,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                 </p>
               )}
               <p className="text-xs mt-1 font-mono" style={{ color: "var(--ink-4)" }}>
-                {formatDateTime(ev.createdAt)}
+                {formatDateTime(ev.createdAt, lang)}
               </p>
             </div>
           </div>

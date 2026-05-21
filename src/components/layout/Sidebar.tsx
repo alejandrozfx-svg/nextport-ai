@@ -117,13 +117,17 @@ export function Sidebar({ onAiClick }: SidebarProps) {
         })}
       </nav>
 
-      {/* Integration status */}
-      <div className="px-4 py-3 space-y-2" style={{ borderTop: "1px solid var(--hair)" }}>
-        <p className="text-xs font-medium mb-2" style={{ color: "var(--ink-4)" }}>
+      {/* Integration status — clickable, goes to Integrations page */}
+      <div className="px-4 py-3 space-y-1" style={{ borderTop: "1px solid var(--hair)" }}>
+        <p className="text-xs font-medium mb-1.5" style={{ color: "var(--ink-4)" }}>
           {t("integrationsSection", lang)}
         </p>
         {integrationStatus.map(({ name, status }) => (
-          <div key={name} className="flex items-center gap-2">
+          <Link
+            key={name}
+            href="/console/integrations"
+            className="flex items-center gap-2 px-1.5 py-1 -mx-1.5 rounded transition-colors hover:bg-white/[0.04]"
+          >
             <span
               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{
@@ -138,7 +142,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
             <span className="text-xs truncate" style={{ color: "var(--ink-3)" }}>
               {name}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
 

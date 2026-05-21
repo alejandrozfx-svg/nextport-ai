@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Shield, CheckCircle2, Clock, User, AlertCircle } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+import { t, type TranslationKey } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/utils";
 
 interface AuditEvent {
@@ -14,19 +16,29 @@ interface AuditEvent {
   user: { name: string; initials: string } | null;
 }
 
-const roles = [
-  { role: "Admin", permissions: ["Full access", "User management", "Audit log", "Settings", "Approvals"] },
-  { role: "Manager", permissions: ["Approve operations", "View audit log", "Intelligence", "Read all"] },
-  { role: "Analyst", permissions: ["Review documents", "Flag exceptions", "Academy", "Read operations"] },
-  { role: "Coordinator", permissions: ["Upload documents", "Track ETAs", "View operations"] },
+const roles: Array<{ roleKey: TranslationKey; permissions: TranslationKey[] }> = [
+  { roleKey: "roleAdmin", permissions: ["permFullAccess", "permUserMgmt", "permAuditLog", "permSettings", "permApprovals"] },
+  { roleKey: "roleManager", permissions: ["permApproveOps", "permViewAudit", "permIntelligence", "permReadAll"] },
+  { roleKey: "roleAnalyst", permissions: ["permReviewDocs", "permFlagExceptions", "permAcademy", "permReadOps"] },
+  { roleKey: "roleCoordinator", permissions: ["permUploadDocs", "permTrackEtas", "permViewOps"] },
 ];
 
 const complianceBadges = [
-  { label: "SOC 2 Type II", status: "In Progress", color: "var(--warn)" },
-  { label: "ISO 27001", status: "In Progress", color: "var(--warn)" },
-  { label: "GDPR", status: "Compliant", color: "var(--ok)" },
-  { label: "SAT NOM-151", status: "Compliant", color: "var(--ok)" },
-];
+  { label: "SOC 2 Type II", statusKey: "complianceInProgress", color: "var(--warn)" },
+  { label: "ISO 27001", statusKey: "complianceInProgress", color: "var(--warn)" },
+  { label: "GDPR", statusKey: "complianceCompliant", color: "var(--ok)" },
+  { label: "SAT NOM-151", statusKey: "complianceCompliant", color: "var(--ok)" },
+] satisfies Array<{ label: string; statusKey: TranslationKey; color: string }>;
+
+const eventLabels: Record<string, TranslationKey> = {
+  approved: "auditEventApproved",
+  correction_requested: "auditEventCorrectionRequested",
+  escalated: "auditEventEscalated",
+  exported: "auditEventExported",
+  uploaded: "auditEventUploaded",
+  classified: "auditEventClassified",
+  exception_detected: "auditEventExceptionDetected",
+};
 
 const DEMO_AUDIT_EVENTS: AuditEvent[] = [
   { id: "ev-001", actor: "Mariana López",     event: "approved",             detail: "Aprobación de cumplimiento sobre NP-2026-001844 con 2 excepciones revisadas.", createdAt: "2026-05-21T09:42:00Z", operationId: "NP-2026-001844", user: { name: "Mariana López", initials: "ML" } },
@@ -42,6 +54,7 @@ const DEMO_AUDIT_EVENTS: AuditEvent[] = [
 ];
 
 export function SecurityPage() {
+  const { lang } = useLang();
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -82,9 +95,9 @@ export function SecurityPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>Security & Audit</h2>
+        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("securityAuditTitle", lang)}</h2>
         <p className="text-sm" style={{ color: "var(--ink-4)" }}>
-          Immutable audit trail · Role-based access control · Compliance readiness
+          {t("securitySubtitle", lang)}
         </p>
       </div>
 
@@ -101,7 +114,7 @@ export function SecurityPage() {
               className="text-xs px-2 py-0.5 rounded-full"
               style={{ background: b.color + "22", color: b.color }}
             >
-              {b.status}
+              {t(b.statusKey, lang)}
             </span>
           </div>
         ))}
@@ -114,24 +127,24 @@ export function SecurityPage() {
           style={{ borderBottom: "1px solid var(--hair)", background: "rgba(255,255,255,0.015)" }}
         >
           <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
-            Role Permission Matrix
+            {t("rolePermMatrix", lang)}
           </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--hair)" }}>
-                <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: "var(--ink-4)" }}>Role</th>
-                <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: "var(--ink-4)" }}>Permissions</th>
+                <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: "var(--ink-4)" }}>{t("tableRole", lang)}</th>
+                <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: "var(--ink-4)" }}>{t("tablePermissions", lang)}</th>
               </tr>
             </thead>
             <tbody>
               {roles.map((r) => (
-                <tr key={r.role} style={{ borderBottom: "1px solid var(--hair)" }}>
+                <tr key={r.roleKey} style={{ borderBottom: "1px solid var(--hair)" }}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <User size={13} style={{ color: "var(--brand)" }} />
-                      <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>{r.role}</span>
+                      <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>{t(r.roleKey, lang)}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -143,7 +156,7 @@ export function SecurityPage() {
                           style={{ background: "var(--hair)", color: "var(--ink-3)" }}
                         >
                           <CheckCircle2 size={9} style={{ color: "var(--ok)" }} />
-                          {p}
+                          {t(p, lang)}
                         </span>
                       ))}
                     </div>
@@ -162,16 +175,16 @@ export function SecurityPage() {
           style={{ borderBottom: "1px solid var(--hair)", background: "rgba(255,255,255,0.015)" }}
         >
           <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
-            Audit Trail ({total} events)
+            {t("auditTrail", lang)} ({total} {t("eventsLower", lang)})
           </h3>
           <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--ok)" }}>
             <CheckCircle2 size={11} />
-            Tamper-proof log
+            {t("tamperProof", lang)}
           </div>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-sm" style={{ color: "var(--ink-4)" }}>Loading…</div>
+          <div className="p-8 text-center text-sm" style={{ color: "var(--ink-4)" }}>{t("loading", lang)}</div>
         ) : (
           <>
             <div className="divide-y" style={{ borderColor: "var(--hair)" }}>
@@ -192,7 +205,7 @@ export function SecurityPage() {
                           className="text-xs px-1.5 py-0.5 rounded font-mono"
                           style={{ background: "var(--hair)", color }}
                         >
-                          {ev.event}
+                          {eventLabels[ev.event] ? t(eventLabels[ev.event], lang) : ev.event}
                         </span>
                         {ev.operationId && (
                           <span className="text-xs font-mono" style={{ color: "var(--ink-4)" }}>
@@ -205,7 +218,7 @@ export function SecurityPage() {
                       )}
                     </div>
                     <span className="text-xs font-mono flex-shrink-0" style={{ color: "var(--ink-4)" }}>
-                      {formatDateTime(ev.createdAt)}
+                      {formatDateTime(ev.createdAt, lang)}
                     </span>
                   </div>
                 );
@@ -221,10 +234,10 @@ export function SecurityPage() {
                   className="px-3 py-1 rounded-lg text-xs disabled:opacity-40"
                   style={{ border: "1px solid var(--hair-2)", color: "var(--ink-3)" }}
                 >
-                  Previous
+                  {t("paginationPrev", lang)}
                 </button>
                 <span className="px-3 py-1 text-xs" style={{ color: "var(--ink-4)" }}>
-                  Page {page}
+                  {t("paginationPage", lang)} {page}
                 </span>
                 <button
                   onClick={() => setPage((p) => p + 1)}
@@ -232,7 +245,7 @@ export function SecurityPage() {
                   className="px-3 py-1 rounded-lg text-xs disabled:opacity-40"
                   style={{ border: "1px solid var(--hair-2)", color: "var(--ink-3)" }}
                 >
-                  Next
+                  {t("paginationNext", lang)}
                 </button>
               </div>
             )}

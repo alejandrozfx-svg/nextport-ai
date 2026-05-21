@@ -72,6 +72,31 @@ export function OperationsInbox() {
     setSearch(q);
   }, [searchParams]);
 
+  // Restore filter (and search if URL didn't carry one) from sessionStorage
+  // when returning from operation detail.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = sessionStorage.getItem("np_ops_state");
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as { filter?: TabKey; search?: string };
+      if (parsed.filter && ["all", "risk", "review", "ready"].includes(parsed.filter)) {
+        setFilter(parsed.filter);
+      }
+      // URL ?q= wins over sessionStorage so deep-links keep working.
+      if (!initialQuery && typeof parsed.search === "string") {
+        setSearch(parsed.search);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist current filter+search so the back navigation can restore it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("np_ops_state", JSON.stringify({ filter, search }));
+  }, [filter, search]);
+
   const filtered = useMemo(() => {
     return OPERATIONS.filter((op) => {
       if (filter !== "all" && op.status !== filter) return false;
@@ -128,9 +153,6 @@ export function OperationsInbox() {
         </div>
         <div className="flex items-center gap-2">
           <button className="btn btn-sm"><Icon name="search" size={13} /> {t("filter", lang)}</button>
-          <button className="btn btn-primary btn-sm" onClick={() => setOpenUpload(true)}>
-            <Icon name="upload" size={13} /> {t("scanDocs", lang)}
-          </button>
         </div>
       </div>
 
@@ -139,7 +161,7 @@ export function OperationsInbox() {
         <StatCard label={t("atRisk", lang)} value={counts.risk} sub={lang === "es" ? "Discrepancia bloqueante" : lang === "zh" ? "阻断性差异" : "Blocking mismatch"} color="var(--risk)" active={filter === "risk"} onClick={() => setFilter("risk")} />
         <StatCard label={t("needsReview", lang)} value={counts.review} sub={lang === "es" ? "Documento faltante" : lang === "zh" ? "缺少文件" : "Missing document"} color="var(--warn)" active={filter === "review"} onClick={() => setFilter("review")} />
         <StatCard label={t("readyForHandoff", lang)} value={counts.ready} sub={t("closedExpediente", lang)} color="var(--ok)" active={filter === "ready"} onClick={() => setFilter("ready")} />
-        <StatCard label={t("customsValueToday", lang)} value={`$${(totalValue / 1000).toFixed(0)}k`} sub="USD" />
+        <StatCard label={t("customsValueToday", lang)} value={`$${(totalValue / 1000).toFixed(0)}k`} sub={t("usdEquivalent", lang)} />
       </div>
 
       <div className="flex items-center gap-3">
@@ -148,7 +170,7 @@ export function OperationsInbox() {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className="px-3 py-1.5 rounded-lg text-[12.5px] transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] transition-all"
               style={{
                 background: filter === tab.key ? "rgba(255,255,255,0.08)" : "transparent",
                 color: filter === tab.key ? (tab.color ?? "white") : "var(--ink-4)",
@@ -156,7 +178,7 @@ export function OperationsInbox() {
               }}
             >
               {tab.label}
-              <span className="ml-1.5 text-[11px] tabular" style={{ color: "var(--ink-4)" }}>
+              <span className="text-[11px] tabular" style={{ color: "var(--ink-4)" }}>
                 {counts[tab.key]}
               </span>
             </button>

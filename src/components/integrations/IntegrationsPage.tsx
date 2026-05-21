@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, Clock, AlertCircle, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/utils";
 
 interface Integration {
@@ -16,14 +18,38 @@ interface Integration {
   errorMessage: string | null;
 }
 
-const statusConfig = {
-  connected: { icon: CheckCircle2, color: "var(--ok)", label: "Connected" },
-  pending: { icon: Clock, color: "var(--warn)", label: "Pending" },
-  error: { icon: AlertCircle, color: "var(--risk)", label: "Error" },
-  disconnected: { icon: WifiOff, color: "var(--ink-4)", label: "Not connected" },
-};
+function getStatusConfig(lang: Lang) {
+  return {
+    connected: { icon: CheckCircle2, color: "var(--ok)", label: t("connected", lang) },
+    pending: { icon: Clock, color: "var(--warn)", label: t("pending", lang) },
+    error: { icon: AlertCircle, color: "var(--risk)", label: t("error", lang) },
+    disconnected: { icon: WifiOff, color: "var(--ink-4)", label: t("disconnected", lang) },
+  };
+}
 
 const categoryOrder = ["Communication", "Storage", "ERP", "BI & Reporting", "Government", "Customs & Logistics"];
+
+const categoryKeys: Record<string, TranslationKey> = {
+  Communication: "catCommunication",
+  Storage: "catStorage",
+  ERP: "catERP",
+  "BI & Reporting": "catBIReporting",
+  Government: "catGovernment",
+  "Customs & Logistics": "catCustomsLogistics",
+};
+
+const dataTypeKeys: Record<string, TranslationKey> = {
+  pedimento: "dataTypePedimento",
+  cfdi: "dataTypeCfdi",
+  purchase_order: "dataTypePurchaseOrder",
+  invoice: "dataTypeInvoice",
+  bl: "dataTypeBl",
+  payment: "dataTypePayment",
+  notifications: "dataTypeNotifications",
+  documents: "dataTypeDocuments",
+  analytics: "dataTypeAnalytics",
+  tracking: "dataTypeTracking",
+};
 
 const DEMO_INTEGRATIONS: Integration[] = [
   { id: "1",  name: "SAT · VUCEM",          slug: "sat-vucem",    category: "Government",           status: "connected",    lastSyncAt: "2026-05-21T09:14:00Z", syncHealth: "healthy", dataTypes: ["pedimento", "cfdi"],         errorMessage: null },
@@ -43,9 +69,11 @@ const DEMO_INTEGRATIONS: Integration[] = [
 ];
 
 export function IntegrationsPage() {
+  const { lang } = useLang();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const statusConfig = getStatusConfig(lang);
 
   useEffect(() => {
     setIntegrations(DEMO_INTEGRATIONS);
@@ -89,14 +117,14 @@ export function IntegrationsPage() {
   return (
     <div className="p-6 space-y-8">
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>Integrations</h2>
+        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("integrations", lang)}</h2>
         <p className="text-sm" style={{ color: "var(--ink-4)" }}>
-          {integrations.filter((i) => i.status === "connected").length} of {integrations.length} connected
+          {integrations.filter((i) => i.status === "connected").length} {t("of", lang)} {integrations.length} {t("connectedLower", lang)}
         </p>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center" style={{ color: "var(--ink-4)" }}>Loading integrations…</div>
+        <div className="p-12 text-center" style={{ color: "var(--ink-4)" }}>{t("loadingIntegrations", lang)}</div>
       ) : (
         orderedCategories.map((category) => (
           <div key={category}>
@@ -104,7 +132,7 @@ export function IntegrationsPage() {
               className="text-xs font-semibold uppercase tracking-wider mb-3"
               style={{ color: "var(--ink-4)" }}
             >
-              {category}
+              {categoryKeys[category] ? t(categoryKeys[category], lang) : category}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {byCategory[category].map((integration) => {
@@ -139,7 +167,7 @@ export function IntegrationsPage() {
                           className="text-xs px-2 py-0.5 rounded-full"
                           style={{ background: "var(--hair)", color: "var(--ink-4)" }}
                         >
-                          {dt}
+                          {dataTypeKeys[dt] ? t(dataTypeKeys[dt], lang) : dt}
                         </span>
                       ))}
                     </div>
@@ -147,14 +175,14 @@ export function IntegrationsPage() {
                     {/* Last sync */}
                     {integration.lastSyncAt && (
                       <p className="text-xs" style={{ color: "var(--ink-4)" }}>
-                        Last sync: {formatDateTime(integration.lastSyncAt)}
+                        {t("lastSync", lang)}: {formatDateTime(integration.lastSyncAt, lang)}
                       </p>
                     )}
 
                     {/* Error */}
                     {integration.errorMessage && (
                       <p className="text-xs" style={{ color: "var(--risk)" }}>
-                        {integration.errorMessage}
+                        {integration.errorMessage === "Auth token expired" ? t("integrationTokenExpired", lang) : integration.errorMessage}
                       </p>
                     )}
 
@@ -167,7 +195,7 @@ export function IntegrationsPage() {
                         style={{ border: "1px solid var(--hair-2)", color: "var(--ink-3)" }}
                       >
                         <RefreshCw size={11} className={isSyncing ? "animate-spin" : ""} />
-                        {isSyncing ? "Syncing…" : integration.status === "connected" ? "Test connection" : "Connect"}
+                        {isSyncing ? t("syncing", lang) : integration.status === "connected" ? t("testConnection", lang) : t("connectIntegration", lang)}
                       </button>
                     </div>
                   </div>

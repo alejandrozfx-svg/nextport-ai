@@ -38,7 +38,13 @@ export function TopBar({ onScan }: TopBarProps) {
   const titleKey = Object.entries(PAGE_TITLE_KEYS).find(
     ([k]) => pathname === k || pathname.startsWith(k + "/")
   )?.[1];
-  const title = titleKey ? t(titleKey, lang) : "Console";
+  // Dynamic title for operation detail pages: show the operation ID.
+  const opDetailMatch = pathname.match(/^\/console\/operations\/(NP-\d{4}-\d{6})/);
+  const title = opDetailMatch
+    ? `${lang === "es" ? "Operación" : lang === "zh" ? "运营" : "Operation"} ${opDetailMatch[1]}`
+    : titleKey
+    ? t(titleKey, lang)
+    : "Console";
 
   // Close bell dropdown on outside click
   useEffect(() => {

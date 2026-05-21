@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot, Sparkles } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 import { AssistantMessage } from "./AssistantMessage";
 
 interface Message {
@@ -12,14 +14,23 @@ interface Message {
   suggestedAction?: string;
 }
 
-const quickPrompts = [
-  "What is MVE and how does it affect my import?",
-  "Why does BL weight matter for customs?",
-  "Explain commercial vs customs value",
-  "When should I escalate an operation?",
-  "What documents are required for a pedimento?",
-  "How does country of origin affect duties?",
-];
+const quickPromptKeys = [
+  "promptMve",
+  "promptBlWeight",
+  "promptCustomsValue",
+  "promptEscalate",
+  "promptPedimentoDocs",
+  "promptOriginDuties",
+] satisfies TranslationKey[];
+
+function buildWelcome(lang: Lang): Message {
+  return {
+    id: "welcome",
+    role: "assistant",
+    content: t("tutorWelcome", lang),
+    relatedLessons: ["mod-01"],
+  };
+}
 
 interface AssistantPanelProps {
   onClose: () => void;
@@ -27,15 +38,8 @@ interface AssistantPanelProps {
 }
 
 export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Hello! I'm the **Nextport Tutor**, your AI guide for Mexican import compliance. I can help you understand pedimento requirements, HS classification, SAT regulations, and more. What would you like to know?",
-      relatedLessons: ["mod-01"],
-    },
-  ]);
+  const { lang } = useLang();
+  const [messages, setMessages] = useState<Message[]>(() => [buildWelcome(lang)]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -43,6 +47,10 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    setMessages((prev) => (prev.length === 1 && prev[0]?.id === "welcome" ? [buildWelcome(lang)] : prev));
+  }, [lang]);
 
   async function sendMessage(text?: string) {
     const messageText = text ?? input.trim();
@@ -78,7 +86,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "Sorry, I couldn't process that request. Please try again.",
+          content: t("tutorError", lang),
         },
       ]);
     } finally {
@@ -112,7 +120,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
             Nextport Tutor
           </p>
           <p className="text-xs" style={{ color: "var(--ink-4)" }}>
-            Trade Compliance AI
+            {t("tutorSubtitle", lang)}
           </p>
         </div>
         <button
@@ -132,7 +140,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
             style={{ background: "var(--brand-soft)", color: "var(--brand)" }}
           >
             <Sparkles size={10} />
-            Context: {context}
+            {t("contextLabel", lang)}: {context}
           </span>
         </div>
       )}
@@ -163,19 +171,22 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
       {messages.length <= 1 && (
         <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: "1px solid var(--hair)" }}>
           <p className="text-xs mb-2 font-medium" style={{ color: "var(--ink-4)" }}>
-            QUICK PROMPTS
+            {t("quickPrompts", lang)}
           </p>
           <div className="space-y-1.5">
-            {quickPrompts.slice(0, 4).map((p) => (
-              <button
-                key={p}
-                onClick={() => sendMessage(p)}
-                className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-all hover:opacity-80"
-                style={{ background: "var(--hair)", color: "var(--ink-3)", border: "1px solid var(--hair-2)" }}
-              >
-                {p}
-              </button>
-            ))}
+            {quickPromptKeys.slice(0, 4).map((promptKey) => {
+              const prompt = t(promptKey, lang);
+              return (
+                <button
+                  key={promptKey}
+                  onClick={() => sendMessage(prompt)}
+                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-all hover:opacity-80"
+                  style={{ background: "var(--hair)", color: "var(--ink-3)", border: "1px solid var(--hair-2)" }}
+                >
+                  {prompt}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -195,7 +206,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
                 sendMessage();
               }
             }}
-            placeholder="Ask about import compliance…"
+            placeholder={t("typeQuestion", lang)}
             rows={2}
             className="flex-1 bg-transparent text-sm outline-none resize-none"
             style={{ color: "var(--ink)", caretColor: "var(--brand)" }}
