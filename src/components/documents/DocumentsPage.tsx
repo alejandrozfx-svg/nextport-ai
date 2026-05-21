@@ -43,6 +43,19 @@ const docTypeLabel: Record<string, string> = {
   carta_porte: "Carta Porte",
 };
 
+const DEMO_DOCUMENTS: DocumentItem[] = [
+  { id: "d1",  type: "pedimento",    filename: "Pedimento_A1_26-47-3145-6002847.pdf", status: "ready",      confidence: 0.998, source: "broker_upload", uploadedAt: "2026-05-21T09:14:00Z", operation: { id: "NP-2026-001847", supplier: { shortName: "Lumitech Optics" } } },
+  { id: "d2",  type: "invoice",      filename: "Invoice_LMT-44218.pdf",               status: "validated",  confidence: 0.995, source: "broker_upload", uploadedAt: "2026-05-21T09:14:00Z", operation: { id: "NP-2026-001847", supplier: { shortName: "Lumitech Optics" } } },
+  { id: "d3",  type: "bl",           filename: "BL_MAEU-7741229.pdf",                 status: "ready",      confidence: 0.991, source: "broker_upload", uploadedAt: "2026-05-21T09:14:00Z", operation: { id: "NP-2026-001847", supplier: { shortName: "Lumitech Optics" } } },
+  { id: "d4",  type: "packing_list", filename: "PackingList_LMT-44218.pdf",           status: "ready",      confidence: 0.989, source: "broker_upload", uploadedAt: "2026-05-21T09:14:00Z", operation: { id: "NP-2026-001847", supplier: { shortName: "Lumitech Optics" } } },
+  { id: "d5",  type: "mve",          filename: "MVE_ScanCopy.pdf",                    status: "ready",      confidence: 0.972, source: "broker_upload", uploadedAt: "2026-05-21T09:14:00Z", operation: { id: "NP-2026-001847", supplier: { shortName: "Lumitech Optics" } } },
+  { id: "d6",  type: "cfdi",         filename: "CFDI_Honorarios_Aduanas.xml",          status: "ready",      confidence: 0.999, source: "broker_upload", uploadedAt: "2026-05-21T09:14:00Z", operation: { id: "NP-2026-001847", supplier: { shortName: "Lumitech Optics" } } },
+  { id: "d7",  type: "pedimento",    filename: "Pedimento_A1_26-47-1108-6002846.pdf", status: "ready",      confidence: 0.994, source: "broker_upload", uploadedAt: "2026-05-20T18:30:00Z", operation: { id: "NP-2026-001846", supplier: { shortName: "TaegukChem" } } },
+  { id: "d8",  type: "invoice",      filename: "Invoice_TCH-2026-0419.pdf",           status: "ready",      confidence: 0.987, source: "broker_upload", uploadedAt: "2026-05-20T18:30:00Z", operation: { id: "NP-2026-001846", supplier: { shortName: "TaegukChem" } } },
+  { id: "d9",  type: "bl",           filename: "BL_KMTC-990442.pdf",                 status: "ready",      confidence: 0.980, source: "broker_upload", uploadedAt: "2026-05-20T18:30:00Z", operation: { id: "NP-2026-001846", supplier: { shortName: "TaegukChem" } } },
+  { id: "d10", type: "packing_list", filename: "PL-TCH-2026-0419.pdf",               status: "classified", confidence: 0.962, source: "broker_upload", uploadedAt: "2026-05-20T18:30:00Z", operation: { id: "NP-2026-001846", supplier: { shortName: "TaegukChem" } } },
+];
+
 export function DocumentsPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [filter, setFilter] = useState("all");
@@ -53,10 +66,14 @@ export function DocumentsPage() {
   const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
-    fetch("/api/documents")
+    setDocuments(DEMO_DOCUMENTS);
+    setLoading(false);
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 2000);
+    fetch("/api/documents", { signal: ctrl.signal })
       .then((r) => r.json())
-      .then((d) => { setDocuments(d.documents ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((d) => { if (d.documents?.length) setDocuments(d.documents); })
+      .catch(() => {});
   }, []);
 
   const filtered = filter === "all" ? documents : documents.filter((d) => d.type === filter);

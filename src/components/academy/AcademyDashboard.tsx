@@ -6,6 +6,21 @@ import Link from "next/link";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { AssistantPanel } from "@/components/assistant/AssistantPanel";
 
+const DEMO_LESSONS: LessonData[] = [
+  { id: "01", moduleNum: "01", title: "What is an import operation?", level: "beginner", durationMin: 22, tags: ["Operations", "Documents"], intro: "The full lifecycle of an import — from purchase order to customs clearance — and who is responsible at each step.", levelName: "Fundamentals", levelTag: "L1 · Fundamentals", progress: null },
+  { id: "02", moduleNum: "02", title: "Core trade documents", level: "beginner", durationMin: 28, tags: ["Documents", "Pedimento", "MVE"], intro: "Each document explained: what it is, what fields matter and how it relates to the others.", levelName: "Fundamentals", levelTag: "L1 · Fundamentals", progress: null },
+  { id: "03", moduleNum: "03", title: "Key fields every user should know", level: "beginner", durationMin: 35, tags: ["Documents", "Customs Value", "HS Code"], intro: "The 20 fields the AI extracts most often — and what each one is used for in compliance review.", levelName: "Fundamentals", levelTag: "L1 · Fundamentals", progress: null },
+  { id: "04", moduleNum: "04", title: "Document classification", level: "intermediate", durationMin: 18, tags: ["Documents", "AI Governance"], intro: "How the AI knows that a PDF is a Commercial Invoice and not a Packing List — and what to do when it gets it wrong.", levelName: "Document intelligence", levelTag: "L2 · Document intelligence", progress: null },
+  { id: "05", moduleNum: "05", title: "Field extraction", level: "intermediate", durationMin: 22, tags: ["Documents", "AI Governance"], intro: "Turning a scanned PDF into structured fields with full source lineage back to the original document.", levelName: "Document intelligence", levelTag: "L2 · Document intelligence", progress: null },
+  { id: "06", moduleNum: "06", title: "Cross-validation & exceptions", level: "intermediate", durationMin: 30, tags: ["Exceptions", "Cross-validation"], intro: "How the AI checks fields across multiple documents — and generates exceptions when they don't match.", levelName: "Document intelligence", levelTag: "L2 · Document intelligence", progress: null },
+  { id: "07", moduleNum: "07", title: "Pedimento A1 deep dive", level: "intermediate", durationMin: 40, tags: ["Pedimento", "Mexico compliance"], intro: "Every section of the Mexican pedimento de importación: what each field means and how to spot errors.", levelName: "Mexico compliance", levelTag: "L3 · Mexico compliance", progress: null },
+  { id: "08", moduleNum: "08", title: "SAT & VUCEM integration", level: "intermediate", durationMin: 25, tags: ["SAT", "VUCEM", "Mexico compliance"], intro: "How Nextport AI connects to SAT and VUCEM to validate pedimentos and detect CFDI discrepancies.", levelName: "Mexico compliance", levelTag: "L3 · Mexico compliance", progress: null },
+  { id: "09", moduleNum: "09", title: "INCOTERMS in practice", level: "intermediate", durationMin: 20, tags: ["INCOTERMS", "Customs Value"], intro: "How INCOTERMS affect customs value, who pays freight and insurance, and what to check on the invoice.", levelName: "International trade", levelTag: "L4 · International trade", progress: null },
+  { id: "10", moduleNum: "10", title: "HS codes & tariff classification", level: "intermediate", durationMin: 35, tags: ["HS Code", "Tariffs", "Mexico compliance"], intro: "How to read and verify a fracción arancelaria, find the right code and catch misclassification risk.", levelName: "Mexico compliance", levelTag: "L3 · Mexico compliance", progress: null },
+  { id: "11", moduleNum: "11", title: "Value discrepancy exceptions", level: "advanced", durationMin: 28, tags: ["Exceptions", "Customs Value"], intro: "How to investigate and resolve invoice-vs-pedimento value mismatches — the most common blocking exception.", levelName: "Exception management", levelTag: "L5 · Exception management", progress: null },
+  { id: "12", moduleNum: "12", title: "Human-in-the-loop approval", level: "advanced", durationMin: 20, tags: ["Approval", "AI Governance", "SOC 2"], intro: "Why human approval is required, what the approver is certifying, and how the audit trail is maintained.", levelName: "Governance", levelTag: "L8 · Governance", progress: null },
+];
+
 interface LessonData {
   id: string;
   moduleNum: string;
@@ -29,14 +44,20 @@ export function AcademyDashboard() {
   const [lessons, setLessons] = useState<LessonData[]>([]);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [tutorOpen, setTutorOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/academy")
+    // Start with demo data immediately, then upgrade to real data if DB is available
+    setLessons(DEMO_LESSONS);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    fetch("/api/academy", { signal: ctrl.signal })
       .then((r) => r.json())
-      .then((d) => { setLessons(d.lessons ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((d) => { if (d.lessons?.length) setLessons(d.lessons); })
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+    return () => { ctrl.abort(); clearTimeout(timer); };
   }, []);
 
   const filtered = lessons.filter((l) => {

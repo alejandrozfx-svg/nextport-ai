@@ -1,137 +1,120 @@
 "use client";
 
 import Link from "next/link";
-import { RiskChip } from "@/components/ui/RiskChip";
-import { Avatar } from "@/components/ui/Avatar";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import type { OperationStatus } from "@/types";
-import { AlertTriangle, FileText, Plane, Ship, Truck } from "lucide-react";
+import type { DemoOperation } from "@/lib/demo-data";
 
-interface OperationRowProps {
-  id: string;
-  supplier: { name: string; shortName: string };
-  broker: { name: string };
-  origin: string;
-  destination: string;
-  mode: string;
-  incoterm: string;
-  eta: string | Date;
-  etaDelta: string;
-  value: number;
-  currency: string;
-  status: OperationStatus;
-  owner: { name: string; initials: string };
-  pedimento: string;
-  hsBucket: string;
-  docCount: number;
-  docsExpected: number;
-  exceptionCount: number;
+const ruleClass: Record<string, string> = {
+  risk:   "row-risk-rule",
+  review: "row-warn-rule",
+  ready:  "row-ok-rule",
+};
+
+const chipKind: Record<string, string> = {
+  risk:   "risk",
+  review: "warn",
+  ready:  "ok",
+};
+
+const chipLabel: Record<string, string> = {
+  risk:   "At risk",
+  review: "Needs review",
+  ready:  "Ready",
+};
+
+function MiniDocIcon({ classified }: { classified: boolean }) {
+  return (
+    <div className="w-4 h-5 rounded-[2px] flex-shrink-0 relative" style={{
+      background: classified
+        ? "linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))"
+        : "rgba(255,255,255,0.03)",
+      border: `1px solid ${classified ? "var(--hair-2)" : "var(--hair)"}`,
+      borderStyle: classified ? "solid" : "dashed",
+    }}>
+      {classified && (
+        <div style={{ position: "absolute", top: 0, right: 0, width: 5, height: 5, background: "var(--bg)", borderLeft: "1px solid var(--hair-2)", borderBottom: "1px solid var(--hair-2)" }} />
+      )}
+    </div>
+  );
 }
 
-const modeIcon: Record<string, React.ReactNode> = {
-  air: <Plane size={12} />,
-  sea: <Ship size={12} />,
-  land: <Truck size={12} />,
-};
-
-const statusBorder: Record<OperationStatus, string> = {
-  risk: "border-risk",
-  review: "border-warn",
-  ready: "border-ok",
-};
-
-export function OperationRow({
-  id, supplier, broker, origin, destination, mode, incoterm,
-  eta, etaDelta, value, currency, status, owner, pedimento, hsBucket,
-  docCount, docsExpected, exceptionCount,
-}: OperationRowProps) {
-  const docColor = docCount < docsExpected ? "var(--warn)" : "var(--ok)";
+export function OperationRow({ op }: { op: DemoOperation }) {
+  const rule = ruleClass[op.status] ?? "";
+  const docComplete = op.docCount >= op.docsExpected;
+  const docColor = docComplete ? "var(--ok)" : "var(--warn)";
 
   return (
-    <Link
-      href={`/console/operations/${id}`}
-      className={`flex items-center px-4 py-3 gap-4 transition-all hover:bg-white/[0.03] ${statusBorder[status]}`}
-      style={{ borderBottom: "1px solid var(--hair)" }}
-    >
-      {/* Status + ID */}
-      <div className="flex flex-col gap-1 min-w-[110px]">
-        <RiskChip kind={status} size="sm" pulse={status === "risk"} />
-        <span className="text-xs font-mono" style={{ color: "var(--ink-4)" }}>
-          {id}
-        </span>
-      </div>
-
-      {/* Supplier + broker */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: "var(--ink)" }}>
-          {supplier.name}
-        </p>
-        <p className="text-xs truncate" style={{ color: "var(--ink-4)" }}>
-          {broker.name}
-        </p>
-      </div>
-
-      {/* Route */}
-      <div className="flex items-center gap-1 min-w-[120px]">
-        <span style={{ color: "var(--ink-4)" }}>{modeIcon[mode] ?? <Truck size={12} />}</span>
-        <span className="text-xs" style={{ color: "var(--ink-3)" }}>
-          {origin} → {destination}
-        </span>
-      </div>
-
-      {/* ETA */}
-      <div className="min-w-[80px] text-right">
-        <p className="text-xs" style={{ color: "var(--ink)" }}>
-          {formatDate(eta)}
-        </p>
-        <p
-          className="text-xs font-mono"
-          style={{ color: etaDelta.startsWith("+") ? "var(--warn)" : "var(--ok)" }}
-        >
-          {etaDelta}
-        </p>
-      </div>
-
-      {/* Value */}
-      <div className="min-w-[100px] text-right">
-        <p className="text-sm font-mono" style={{ color: "var(--ink)" }}>
-          {currency} {formatCurrency(value)}
-        </p>
-        <p className="text-xs" style={{ color: "var(--ink-4)" }}>
-          {incoterm}
-        </p>
-      </div>
-
-      {/* Pedimento */}
-      <div className="min-w-[90px]">
-        <p className="text-xs font-mono" style={{ color: "var(--ink-3)" }}>
-          {pedimento.slice(0, 12)}…
-        </p>
-        <p className="text-xs" style={{ color: "var(--ink-4)" }}>
-          {hsBucket}
-        </p>
-      </div>
-
-      {/* Docs */}
-      <div className="flex items-center gap-1 min-w-[60px]">
-        <FileText size={12} style={{ color: docColor }} />
-        <span className="text-xs font-mono" style={{ color: docColor }}>
-          {docCount}/{docsExpected}
-        </span>
-      </div>
-
-      {/* Exceptions */}
-      {exceptionCount > 0 && (
-        <div className="flex items-center gap-1 min-w-[40px]">
-          <AlertTriangle size={12} style={{ color: "var(--risk)" }} />
-          <span className="text-xs font-mono" style={{ color: "var(--risk)" }}>
-            {exceptionCount}
+    <tr className={`row-link ${rule} transition-colors`} style={{ cursor: "pointer" }}>
+      <td style={{ paddingLeft: 16 }}>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <span className={`chip chip-${chipKind[op.status]}`}>
+            <span className="dot" />{chipLabel[op.status]}
           </span>
-        </div>
-      )}
-
-      {/* Owner */}
-      <Avatar initials={owner.initials} size="sm" />
-    </Link>
+          <div className="font-mono text-[10.5px] mt-1" style={{ color: "var(--ink-4)" }}>{op.id}</div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="text-[13px] font-medium truncate" style={{ color: "white" }}>{op.supplierShort}</div>
+          <div className="text-[11px] truncate" style={{ color: "var(--ink-4)" }}>{op.brokerage.split("(")[0].trim()}</div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="text-[12px] truncate" style={{ color: "var(--ink-2)" }}>{op.origin}</div>
+          <div className="text-[11px] truncate" style={{ color: "var(--ink-4)" }}>{op.destination}</div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="text-[12.5px] tabular" style={{ color: "white" }}>{op.eta}</div>
+          <div className="text-[11px] font-mono tabular" style={{ color: op.etaDelta.startsWith("+") ? "var(--warn)" : "var(--ink-4)" }}>{op.etaDelta}</div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="text-[12.5px] font-mono tabular" style={{ color: "white" }}>
+            {op.currency} {op.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </div>
+          <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>{op.incoterm}</div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="text-[11.5px] font-mono" style={{ color: "var(--ink-3)" }}>{op.pedimento}</div>
+          <div className="text-[10.5px] font-mono" style={{ color: "var(--ink-4)" }}>{op.hsBucket}</div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="flex items-center gap-0.5 mb-1">
+            {Array.from({ length: op.docsExpected }).map((_, i) => (
+              <MiniDocIcon key={i} classified={i < op.docCount} />
+            ))}
+          </div>
+          <div className="text-[10.5px] font-mono tabular" style={{ color: docColor }}>
+            {op.docCount}/{op.docsExpected}
+          </div>
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          {op.flags.length > 0 ? (
+            <span className="text-[12.5px] font-mono tabular font-medium" style={{ color: "var(--risk)" }}>{op.flags.length}</span>
+          ) : (
+            <span className="text-[12px]" style={{ color: "var(--ink-4)" }}>—</span>
+          )}
+        </Link>
+      </td>
+      <td>
+        <Link href={`/console/operations/${op.id}`} className="block">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)", color: "var(--brand)" }}>
+              {op.owner.initials}
+            </div>
+            <span className="text-[11.5px] truncate" style={{ color: "var(--ink-3)" }}>{op.owner.name.split(" ")[0]}</span>
+          </div>
+        </Link>
+      </td>
+    </tr>
   );
 }

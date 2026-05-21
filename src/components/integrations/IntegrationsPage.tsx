@@ -25,16 +25,37 @@ const statusConfig = {
 
 const categoryOrder = ["Communication", "Storage", "ERP", "BI & Reporting", "Government", "Customs & Logistics"];
 
+const DEMO_INTEGRATIONS: Integration[] = [
+  { id: "1",  name: "SAT · VUCEM",          slug: "sat-vucem",    category: "Government",           status: "connected",    lastSyncAt: "2026-05-21T09:14:00Z", syncHealth: "healthy", dataTypes: ["pedimento", "cfdi"],         errorMessage: null },
+  { id: "2",  name: "SAP S/4 HANA",         slug: "sap-s4",       category: "ERP",                  status: "connected",    lastSyncAt: "2026-05-21T08:00:00Z", syncHealth: "healthy", dataTypes: ["purchase_order", "invoice"],  errorMessage: null },
+  { id: "3",  name: "Aduanas del Pacífico",  slug: "adp",          category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-21T09:10:00Z", syncHealth: "healthy", dataTypes: ["pedimento", "bl"],            errorMessage: null },
+  { id: "4",  name: "Grupo Aduanal Tepeyac", slug: "tepeyac",      category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-20T18:30:00Z", syncHealth: "healthy", dataTypes: ["pedimento"],                  errorMessage: null },
+  { id: "5",  name: "Oracle NetSuite",       slug: "netsuite",     category: "ERP",                  status: "pending",      lastSyncAt: null,                   syncHealth: null,      dataTypes: ["invoice", "payment"],         errorMessage: null },
+  { id: "6",  name: "Microsoft Teams",       slug: "ms-teams",     category: "Communication",        status: "connected",    lastSyncAt: "2026-05-21T07:00:00Z", syncHealth: "healthy", dataTypes: ["notifications"],              errorMessage: null },
+  { id: "7",  name: "Slack",                 slug: "slack",        category: "Communication",        status: "connected",    lastSyncAt: "2026-05-21T07:00:00Z", syncHealth: "healthy", dataTypes: ["notifications"],              errorMessage: null },
+  { id: "8",  name: "Google Drive",          slug: "gdrive",       category: "Storage",              status: "connected",    lastSyncAt: "2026-05-21T06:00:00Z", syncHealth: "healthy", dataTypes: ["documents"],                  errorMessage: null },
+  { id: "9",  name: "Dropbox",               slug: "dropbox",      category: "Storage",              status: "disconnected", lastSyncAt: null,                   syncHealth: null,      dataTypes: ["documents"],                  errorMessage: null },
+  { id: "10", name: "Power BI",              slug: "powerbi",      category: "BI & Reporting",       status: "pending",      lastSyncAt: null,                   syncHealth: null,      dataTypes: ["analytics"],                  errorMessage: null },
+  { id: "11", name: "Maersk Connect",        slug: "maersk",       category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-21T08:45:00Z", syncHealth: "healthy", dataTypes: ["bl", "tracking"],             errorMessage: null },
+  { id: "12", name: "FedEx API",             slug: "fedex",        category: "Customs & Logistics",  status: "error",        lastSyncAt: "2026-05-20T14:00:00Z", syncHealth: "error",   dataTypes: ["tracking"],                   errorMessage: "Auth token expired" },
+  { id: "13", name: "Comercio Internacional Norte", slug: "cin", category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-21T09:00:00Z", syncHealth: "healthy", dataTypes: ["pedimento"],                  errorMessage: null },
+  { id: "14", name: "Tableau",               slug: "tableau",      category: "BI & Reporting",       status: "disconnected", lastSyncAt: null,                   syncHealth: null,      dataTypes: ["analytics"],                  errorMessage: null },
+];
+
 export function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/integrations")
+    setIntegrations(DEMO_INTEGRATIONS);
+    setLoading(false);
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 2000);
+    fetch("/api/integrations", { signal: ctrl.signal })
       .then((r) => r.json())
-      .then((d) => { setIntegrations(d.integrations ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((d) => { if (d.integrations?.length) setIntegrations(d.integrations); })
+      .catch(() => {});
   }, []);
 
   async function handleSync(id: string) {
