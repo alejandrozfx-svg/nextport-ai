@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Search, ScanLine, Bell } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -28,12 +29,35 @@ interface TopBarProps {
 
 export function TopBar({ onScan }: TopBarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { lang, setLang } = useLang();
+  const [query, setQuery] = useState("");
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   const titleKey = Object.entries(PAGE_TITLE_KEYS).find(
     ([k]) => pathname === k || pathname.startsWith(k + "/")
   )?.[1];
   const title = titleKey ? t(titleKey, lang) : "Console";
+
+  // Close bell dropdown on outside click
+  useEffect(() => {
+    if (!bellOpen) return;
+    function onClick(e: MouseEvent) {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [bellOpen]);
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    router.push(`/console/operations?q=${encodeURIComponent(q)}`);
+  }
 
   return (
     <header
@@ -53,7 +77,7 @@ export function TopBar({ onScan }: TopBarProps) {
       </h1>
 
       {/* Search */}
-      <div className="flex-1 max-w-md">
+      <form onSubmit={submitSearch} className="flex-1 max-w-md">
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
           style={{ background: "var(--bg-2)", border: "1px solid var(--hair)" }}
@@ -61,6 +85,8 @@ export function TopBar({ onScan }: TopBarProps) {
           <Search size={13} style={{ color: "var(--ink-4)" }} />
           <input
             type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder={t("searchTopBar", lang)}
             className="flex-1 bg-transparent text-xs outline-none"
             style={{ color: "var(--ink)", caretColor: "var(--brand)" }}
@@ -69,10 +95,10 @@ export function TopBar({ onScan }: TopBarProps) {
             className="text-xs px-1.5 py-0.5 rounded font-mono"
             style={{ background: "var(--hair)", color: "var(--ink-4)", fontSize: 10 }}
           >
-            ⌘K
+            ↵
           </kbd>
         </div>
-      </div>
+      </form>
 
       <div className="flex items-center gap-2 ml-auto">
         {/* Language switcher */}
@@ -107,17 +133,36 @@ export function TopBar({ onScan }: TopBarProps) {
           {t("scanDocs", lang)}
         </button>
 
-        {/* Bell */}
-        <button
-          className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
-          style={{ border: "1px solid var(--hair)" }}
-        >
-          <Bell size={14} style={{ color: "var(--ink-3)" }} />
-          <span
-            className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
-            style={{ background: "var(--risk)" }}
-          />
-        </button>
+        {/* Bell with dropdown */}
+        <div ref={bellRef} className="relative">
+          <button
+            onClick={() => setBellOpen((v) => !v)}
+            className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
+            style={{ border: "1px solid var(--hair)" }}
+          >
+            <Bell size={14} style={{ color: "var(--ink-3)" }} />
+          </button>
+          {bellOpen && (
+            <div
+              className="absolute right-0 top-10 z-50 fade-up"
+              style={{
+                width: 280,
+                background: "var(--bg-2)",
+                border: "1px solid var(--hair)",
+                borderRadius: 10,
+                boxShadow: "0 14px 40px rgba(0,0,0,0.5)",
+                padding: 14,
+              }}
+            >
+              <div className="text-[12px] font-medium mb-1" style={{ color: "var(--ink)" }}>
+                {t("notifications", lang)}
+              </div>
+              <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>
+                {t("noNotifications", lang)}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

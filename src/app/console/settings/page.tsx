@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { Save, User, Bell, Globe, Database, Shield } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+import type { Lang } from "@/lib/i18n";
 
 export default function SettingsPage() {
+  const { lang, setLang } = useLang();
   const [email, setEmail] = useState("demo@nextport.ai");
   const [name, setName] = useState("Alejandro Reyes");
-  const [lang, setLang] = useState("en");
   const [saved, setSaved] = useState(false);
 
   function handleSave() {
@@ -53,7 +55,7 @@ export default function SettingsPage() {
             <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>Language</label>
             <select
               value={lang}
-              onChange={(e) => setLang(e.target.value)}
+              onChange={(e) => setLang(e.target.value as Lang)}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
             >

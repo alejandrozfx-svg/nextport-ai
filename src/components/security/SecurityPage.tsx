@@ -28,6 +28,19 @@ const complianceBadges = [
   { label: "SAT NOM-151", status: "Compliant", color: "var(--ok)" },
 ];
 
+const DEMO_AUDIT_EVENTS: AuditEvent[] = [
+  { id: "ev-001", actor: "Mariana López",     event: "approved",             detail: "Aprobación de cumplimiento sobre NP-2026-001844 con 2 excepciones revisadas.", createdAt: "2026-05-21T09:42:00Z", operationId: "NP-2026-001844", user: { name: "Mariana López", initials: "ML" } },
+  { id: "ev-002", actor: "Sofía Galván",      event: "approved",             detail: "Firma del manager sobre NP-2026-001844, lista para handoff a SAT.",            createdAt: "2026-05-21T09:43:12Z", operationId: "NP-2026-001844", user: { name: "Sofía Galván", initials: "SG" } },
+  { id: "ev-003", actor: "Nextport AI",       event: "classified",           detail: "Pedimento A1, Invoice, BL y Packing List clasificados con 99.2% de confianza.", createdAt: "2026-05-21T09:14:00Z", operationId: "NP-2026-001847", user: null },
+  { id: "ev-004", actor: "Nextport AI",       event: "exception_detected",   detail: "Discrepancia en valor en aduana detectada: USD 5,330 entre factura y pedimento.", createdAt: "2026-05-21T09:14:18Z", operationId: "NP-2026-001847", user: null },
+  { id: "ev-005", actor: "Mariana López",     event: "correction_requested", detail: "Solicitud de corrección enviada al agente aduanal por discrepancia de valor.",   createdAt: "2026-05-21T09:21:05Z", operationId: "NP-2026-001847", user: { name: "Mariana López", initials: "ML" } },
+  { id: "ev-006", actor: "Diego Hernández",   event: "uploaded",             detail: "Subida manual de Packing List PL-TCH-2026-0419.pdf para NP-2026-001846.",         createdAt: "2026-05-20T18:30:00Z", operationId: "NP-2026-001846", user: { name: "Diego Hernández", initials: "DH" } },
+  { id: "ev-007", actor: "Nextport AI",       event: "classified",           detail: "10 documentos clasificados automáticamente para 2 operaciones.",                  createdAt: "2026-05-20T18:31:42Z", operationId: null,             user: null },
+  { id: "ev-008", actor: "Ana Ramírez",       event: "approved",             detail: "Aprobación final sobre NP-2026-001845 — Hannover Präzision.",                     createdAt: "2026-05-20T16:12:00Z", operationId: "NP-2026-001845", user: { name: "Ana Ramírez", initials: "AR" } },
+  { id: "ev-009", actor: "Nextport AI",       event: "exported",             detail: "Paquete de auditoría exportado en PDF para NP-2026-001845.",                      createdAt: "2026-05-20T16:13:30Z", operationId: "NP-2026-001845", user: null },
+  { id: "ev-010", actor: "Mariana López",     event: "escalated",            detail: "Operación NP-2026-001843 escalada por discrepancia HS code sin documentación de soporte.", createdAt: "2026-05-19T11:48:00Z", operationId: "NP-2026-001843", user: { name: "Mariana López", initials: "ML" } },
+];
+
 export function SecurityPage() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [total, setTotal] = useState(0);
@@ -35,15 +48,26 @@ export function SecurityPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/audit?page=${page}&limit=20`)
+    // Start with demo data so the audit trail is never empty.
+    setEvents(DEMO_AUDIT_EVENTS);
+    setTotal(DEMO_AUDIT_EVENTS.length);
+    setLoading(false);
+
+    // Try to upgrade to real DB data within 2s; silently keep demo on failure.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    fetch(`/api/audit?page=${page}&limit=20`, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((d) => {
-        setEvents(d.events ?? []);
-        setTotal(d.total ?? 0);
-        setLoading(false);
+        if (d.events?.length) {
+          setEvents(d.events);
+          setTotal(d.total ?? d.events.length);
+        }
       })
-      .catch(() => setLoading(false));
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+
+    return () => { ctrl.abort(); clearTimeout(timer); };
   }, [page]);
 
   const eventColor: Record<string, string> = {

@@ -81,7 +81,7 @@ export function IntelligencePage() {
         <StatCard label="Documents Classified" value={kpis.documentsClassified} icon={<FileText size={14} />} color="var(--brand)" />
         <StatCard label="Fields Extracted" value={kpis.fieldsExtracted} icon={<Cpu size={14} />} color="var(--brand)" />
         <StatCard label="Validations Run" value={kpis.validationsRun} icon={<CheckCheck size={14} />} color="var(--ok)" />
-        <StatCard label="Avg Confidence" value={`${kpis.avgConfidence}%`} icon={<TrendingUp size={14} />} color={kpis.avgConfidence >= 85 ? "var(--ok)" : kpis.avgConfidence >= 70 ? "var(--warn)" : "var(--risk)"} sub={`${kpis.passRate}% pass rate`} />
+        <StatCard label="Avg Confidence" value={`${(kpis.avgConfidence * 100).toFixed(1)}%`} icon={<TrendingUp size={14} />} color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"} sub={`${(kpis.passRate * 100).toFixed(1)}% pass rate`} />
       </div>
 
       {/* Charts */}

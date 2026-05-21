@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
@@ -124,7 +123,6 @@ function WorkflowRibbon({ lang }: { lang: "en" | "es" | "zh" }) {
 
 export function PipelinePage() {
   const { lang } = useLang();
-  const [, setStartScan] = useState(false); // reserved for future scan-from-pipeline action
 
   const counts = {
     all:    DEMO_OPERATIONS.length,
@@ -243,9 +241,9 @@ export function PipelinePage() {
             <Link href="/console/operations" className="btn btn-primary btn-sm">
               <Icon name="arrow_right" size={13} /> {t("pipelineSeeQueue", lang)}
             </Link>
-            <button className="btn btn-sm" onClick={() => setStartScan(true)}>
+            <Link href="/console/integrations" className="btn btn-sm">
               <Icon name="inbox" size={13} /> {lang === "es" ? "Conectar buzón" : lang === "zh" ? "连接收件箱" : "Connect inbox"}
-            </button>
+            </Link>
           </div>
         </div>
 

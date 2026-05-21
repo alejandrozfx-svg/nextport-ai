@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { DemoOperation } from "@/lib/demo-data";
+import { useLang } from "@/lib/lang-context";
+import { t } from "@/lib/i18n";
 
 const ruleClass: Record<string, string> = {
   risk:   "row-risk-rule",
@@ -13,12 +15,6 @@ const chipKind: Record<string, string> = {
   risk:   "risk",
   review: "warn",
   ready:  "ok",
-};
-
-const chipLabel: Record<string, string> = {
-  risk:   "At risk",
-  review: "Needs review",
-  ready:  "Ready",
 };
 
 function MiniDocIcon({ classified }: { classified: boolean }) {
@@ -38,9 +34,15 @@ function MiniDocIcon({ classified }: { classified: boolean }) {
 }
 
 export function OperationRow({ op }: { op: DemoOperation }) {
+  const { lang } = useLang();
   const rule = ruleClass[op.status] ?? "";
   const docComplete = op.docCount >= op.docsExpected;
   const docColor = docComplete ? "var(--ok)" : "var(--warn)";
+  const chipLabel: Record<string, string> = {
+    risk:   t("atRisk", lang),
+    review: t("needsReview", lang),
+    ready:  t("statusReady", lang),
+  };
 
   return (
     <tr className={`row-link ${rule} transition-colors`} style={{ cursor: "pointer" }}>

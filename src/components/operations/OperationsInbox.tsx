@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { ReactElement } from "react";
+import { useSearchParams } from "next/navigation";
 import { OperationRow } from "./OperationRow";
+import { UploadModal } from "./UploadModal";
 import { DEMO_OPERATIONS } from "@/lib/demo-data";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { sampleDocuments } from "@/lib/pipeline-data";
 
 type TabKey = "all" | "risk" | "review" | "ready";
 
@@ -59,9 +60,17 @@ function StatCard({ label, value, sub, color, active, onClick }: {
 
 export function OperationsInbox() {
   const { lang } = useLang();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") ?? "";
   const [filter, setFilter] = useState<TabKey>("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialQuery);
   const [openUpload, setOpenUpload] = useState(false);
+
+  // Sync URL ?q= → local search state when the user navigates from TopBar
+  useEffect(() => {
+    const q = searchParams.get("q") ?? "";
+    setSearch(q);
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     return OPERATIONS.filter((op) => {
@@ -97,14 +106,14 @@ export function OperationsInbox() {
   ];
 
   const tableHeaders = [
-    t("risk", lang).replace("En ", "").replace("At ", "Status"),
+    t("tableStatus", lang),
     t("supplier", lang),
-    t("destination", lang).replace("Destino", "Ruta").replace("目的地", "路线"),
+    t("tableRoute", lang),
     t("eta", lang),
     t("value", lang),
     t("pedimentoNum", lang),
     t("documentsLabel", lang),
-    t("exceptions", lang).slice(0, 3),
+    t("tableExceptions", lang),
     t("owner", lang),
   ];
 
@@ -129,7 +138,7 @@ export function OperationsInbox() {
         <StatCard label={t("activeOps", lang)} value={counts.all} sub={lang === "es" ? "Este mes" : lang === "zh" ? "本月" : "This month"} active={filter === "all"} onClick={() => setFilter("all")} />
         <StatCard label={t("atRisk", lang)} value={counts.risk} sub={lang === "es" ? "Discrepancia bloqueante" : lang === "zh" ? "阻断性差异" : "Blocking mismatch"} color="var(--risk)" active={filter === "risk"} onClick={() => setFilter("risk")} />
         <StatCard label={t("needsReview", lang)} value={counts.review} sub={lang === "es" ? "Documento faltante" : lang === "zh" ? "缺少文件" : "Missing document"} color="var(--warn)" active={filter === "review"} onClick={() => setFilter("review")} />
-        <StatCard label={t("readyForHandoff", lang)} value={counts.ready} sub={t("readyForHandoff", lang)} color="var(--ok)" active={filter === "ready"} onClick={() => setFilter("ready")} />
+        <StatCard label={t("readyForHandoff", lang)} value={counts.ready} sub={t("closedExpediente", lang)} color="var(--ok)" active={filter === "ready"} onClick={() => setFilter("ready")} />
         <StatCard label={t("customsValueToday", lang)} value={`$${(totalValue / 1000).toFixed(0)}k`} sub="USD" />
       </div>
 
@@ -204,179 +213,3 @@ export function OperationsInbox() {
   );
 }
 
-function UploadModal({ onClose }: { onClose: () => void }) {
-  const { lang } = useLang();
-  const [phase, setPhase] = useState<"idle" | "scanning" | "done">("idle");
-  const [files, setFiles] = useState<Array<{
-    name: string;
-    type: string;
-    size: string;
-    href: string;
-    confidence: string;
-    progress: number;
-    classified: boolean;
-    extracted: number;
-  }>>([]);
-
-  function startScan() {
-    setFiles(sampleDocuments.map((d) => ({
-      name: d.name,
-      type: d.type,
-      size: d.size,
-      href: d.href,
-      confidence: d.confidence,
-      progress: 0,
-      classified: false,
-      extracted: 0,
-    })));
-    setPhase("scanning");
-    animateScan(sampleDocuments.length);
-  }
-
-  function animateScan(count: number) {
-    const start = performance.now();
-    function tick(now: number) {
-      const elapsed = (now - start) / 1000;
-      setFiles((prev) => prev.map((file, index) => {
-        const offset = index * 0.35;
-        const progress = Math.max(0, Math.min(1, (elapsed - offset) / 1.6));
-        const extracted = Math.max(0, Math.min(1, (elapsed - offset - 1.0) / 1.5));
-        return {
-          ...file,
-          progress,
-          classified: progress >= 1,
-          extracted: Math.floor(extracted * (index === 0 ? 6 : 24)),
-        };
-      }));
-      if (elapsed < count * 0.35 + 3.0) {
-        requestAnimationFrame(tick);
-      } else {
-        setPhase("done");
-      }
-    }
-    requestAnimationFrame(tick);
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(4,6,10,0.65)", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div className="glass-panel fade-up" style={{ width: 780, maxHeight: "85vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b" style={{ borderColor: "var(--hair)" }}>
-          <div className="flex items-center gap-2.5">
-            <Icon name="inbox" size={16} />
-            <div>
-              <div className="text-[15px]" style={{ color: "white" }}>
-                {lang === "es" ? "Detectar documentos de importación" : lang === "zh" ? "检测进口文件" : "Detect import documents"}
-              </div>
-              <div className="text-[12px]" style={{ color: "var(--ink-4)" }}>
-                {lang === "es" ? "Simula recepción por correo o carga manual, luego clasifica, extrae, valida y pone en cola para revisión humana." : lang === "zh" ? "模拟邮件或手动上传接收，然后分类、提取、验证并排队等待人工审核。" : "Simulate email or upload intake, then classify, extract, validate and queue human review."}
-              </div>
-            </div>
-          </div>
-          <button className="btn btn-sm btn-ghost" onClick={onClose}><Icon name="x" size={14} /></button>
-        </div>
-
-        <div className="p-6">
-          {phase === "idle" && (
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
-                {[
-                  ["Gmail inbox", "Broker email with 5 attached PDFs", "Connected"],
-                  ["Manual upload", "Drop PDFs from the sample document pack", "Ready"],
-                  ["Broker folder", "Shared Drive / SharePoint watcher", "Pending setup"],
-                ].map(([label, value, status]) => (
-                  <div key={label} className="glass-panel-tight p-3">
-                    <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>{label}</div>
-                    <div className="text-[12.5px] leading-snug mt-1" style={{ color: "white" }}>{value}</div>
-                    <div className="text-[10.5px] mt-2" style={{ color: status === "Pending setup" ? "var(--warn)" : "var(--ok)" }}>{status}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-xl border-2 border-dashed p-10 text-center" style={{ borderColor: "rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.015)" }}>
-                <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center liquid-glass">
-                  <Icon name="upload" size={18} />
-                </div>
-                <div className="text-[14px] mb-1.5" style={{ color: "white" }}>
-                  Start from email detection or use the dummy document pack
-                </div>
-                <div className="text-[12px] mb-4" style={{ color: "var(--ink-4)" }}>
-                  PDF, XML, ZIP or JPG up to 50 MB. This demo uses the provided trade compliance PDFs.
-                </div>
-                <button className="btn btn-primary btn-sm mx-auto" onClick={startScan}>
-                  Use sample document pack
-                </button>
-              </div>
-            </div>
-          )}
-
-          {(phase === "scanning" || phase === "done") && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[12.5px] flex items-center gap-2" style={{ color: "white" }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{
-                    background: phase === "done" ? "var(--ok)" : "var(--brand)",
-                    boxShadow: `0 0 8px ${phase === "done" ? "var(--ok)" : "var(--brand)"}`,
-                  }} />
-                  {phase === "done"
-                    ? (lang === "es" ? "Validación lista para revisión humana" : lang === "zh" ? "验证已准备好进行人工审核" : "Validation ready for human review")
-                    : (lang === "es" ? "Detectando, clasificando y extrayendo..." : lang === "zh" ? "检测、分类和提取中..." : "Detecting, classifying and extracting...")}
-                </div>
-                <div className="text-[11px] font-mono tabular" style={{ color: "var(--ink-4)" }}>
-                  {files.filter((f) => f.classified).length} / {files.length} classified
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                {files.map((f) => (
-                  <div key={f.name} className="glass-panel-tight px-3 py-2.5 flex items-center gap-3">
-                    <a href={f.href} target="_blank" rel="noreferrer" className="w-7 h-9 rounded-[3px] border flex-shrink-0 flex items-center justify-center" style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))", borderColor: "var(--hair-2)", color: "var(--brand)" }}>
-                      <Icon name="file" size={13} />
-                    </a>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <a href={f.href} target="_blank" rel="noreferrer" className="text-[12.5px] truncate flex-1 hover:underline" style={{ color: "white" }}>{f.name}</a>
-                        <div className="font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>{f.size}</div>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="progress flex-1"><span style={{ width: `${f.progress * 100}%` }} /></div>
-                        <div className="flex items-center gap-1.5 min-w-[175px] justify-end">
-                          {f.classified ? (
-                            <>
-                              <span className="chip chip-brand"><span className="dot" />{f.type}</span>
-                              <span className="text-[10.5px] font-mono tabular" style={{ color: "var(--ink-4)" }}>{f.confidence} - {f.extracted} fields</span>
-                            </>
-                          ) : (
-                            <span className="text-[10.5px] font-mono tabular" style={{ color: "var(--ink-4)" }}>{Math.round(f.progress * 100)}%</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {phase === "done" && (
-                <div className="glass-panel-tight p-3 mt-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--warn-soft)", border: "1px solid oklch(0.78 0.14 70 / 0.4)", color: "var(--warn)" }}>
-                    <Icon name="alert" size={14} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[13px]" style={{ color: "white" }}>
-                    {lang === "es" ? "Operación NP-2026-001848 creada o actualizada con la evidencia recibida." : lang === "zh" ? "运营 NP-2026-001848 已从邮件/上传证据创建或更新。" : "Operation NP-2026-001848 created or updated from email/upload evidence."}
-                  </div>
-                  <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>
-                    {lang === "es" ? "2 excepciones detectadas: discrepancia en contenedor BL y origen pendiente. Esperando revisión humana." : lang === "zh" ? "检测到 2 个异常：BL 集装箱不匹配，原产地需支持。等待人工审核。" : "2 exceptions detected: BL container mismatch and origin support needed. Awaiting human review."}
-                  </div>
-                  </div>
-                  <button className="btn btn-sm btn-primary" onClick={onClose}>
-                    {lang === "es" ? "Volver a bandeja" : lang === "zh" ? "返回收件箱" : "Back to inbox"} <Icon name="arrow_right" size={13} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
