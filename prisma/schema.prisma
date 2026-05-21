@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   @default("admin")
+  initials  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  operations    Operation[]
+  approvals     Approval[]
+  auditEvents   AuditEvent[]
+  conversations AssistantConversation[]
+  progress      AcademyProgress[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  rfc       String
+  createdAt DateTime @default(now())
+}
+
+model Supplier {
+  id         String      @id @default(cuid())
+  name       String
+  shortName  String
+  country    String
+  city       String
+  taxId      String?
+  operations Operation[]
+  createdAt  DateTime    @default(now())
+}
+
+model CustomsBroker {
+  id         String      @id @default(cuid())
+  name       String
+  patent     String
+  operations Operation[]
+  createdAt  DateTime    @default(now())
+}
+
+model Operation {
+  id           String   @id
+  supplierId   String
+  brokerId     String
+  origin       String
+  destination  String
+  mode         String
+  incoterm     String
+  eta          DateTime
+  etaDelta     String
+  value        Float
+  currency     String
+  pedimento    String
+  hsBucket     String
+  status       String
+  ownerId      String
+  aiSummary    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  supplier     Supplier      @relation(fields: [supplierId], references: [id])
+  broker       CustomsBroker @relation(fields: [brokerId], references: [id])
+  owner        User          @relation(fields: [ownerId], references: [id])
+  documents    Document[]
+  exceptions   Exception[]
+  approvals    Approval[]
+  auditEvents  AuditEvent[]
+  aiSummaryRec AISummary?
+}
+
+model Document {
+  id           String    @id @default(cuid())
+  operationId  String
+  type         String
+  filename     String
+  status       String
+  confidence   Float
+  source       String    @default("upload")
+  uploadedAt   DateTime  @default(now())
+  classifiedAt DateTime?
+  extractedAt  DateTime?
+  validatedAt  DateTime?
+
+  operation        Operation        @relation(fields: [operationId], references: [id])
+  extractedFields  ExtractedField[]
+  validationChecks ValidationCheck[]
+}
+
+model ExtractedField {
+  id          String   @id @default(cuid())
+  documentId  String
+  fieldKey    String
+  label       String
+  value       String
+  confidence  Float
+  mismatch    Boolean  @default(false)
+  mismatchRef String?
+  createdAt   DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id])
+}
+
+model ValidationCheck {
+  id         String   @id @default(cuid())
+  documentId String
+  checkName  String
+  passed     Boolean
+  detail     String?
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id])
+}
+
+model Exception {
+  id          String    @id @default(cuid())
+  operationId String
+  kind        String
+  title       String
+  detail      String
+  refs        String[]
+  fields      String[]
+  docs        String[]
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime  @default(now())
+
+  operation Operation @relation(fields: [operationId], references: [id])
+}
+
+model AISummary {
+  id          String   @id @default(cuid())
+  operationId String   @unique
+  summary     String
+  createdAt   DateTime @default(now())
+
+  operation Operation @relation(fields: [operationId], references: [id])
+}
+
+model Approval {
+  id          String   @id @default(cuid())
+  operationId String
+  userId      String
+  action      String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  operation Operation @relation(fields: [operationId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  operationId String?
+  userId      String?
+  actor       String
+  event       String
+  detail      String?
+  entityType  String?
+  entityId    String?
+  createdAt   DateTime @default(now())
+
+  operation Operation? @relation(fields: [operationId], references: [id])
+  user      User?      @relation(fields: [userId], references: [id])
+}
+
+model Integration {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  category     String
+  status       String
+  lastSyncAt   DateTime?
+  syncHealth   String?
+  dataTypes    String[]
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model AcademyLesson {
+  id          String   @id @default(cuid())
+  moduleNum   String
+  title       String
+  level       String
+  durationMin Int
+  tags        String[]
+  intro       String
+  lessons     String[]
+  levelName   String
+  levelTag    String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  progress AcademyProgress[]
+}
+
+model AcademyProgress {
+  id        String    @id @default(cuid())
+  userId    String
+  lessonId  String
+  completed Boolean   @default(false)
+  startedAt DateTime  @default(now())
+  doneAt    DateTime?
+
+  user   User          @relation(fields: [userId], references: [id])
+  lesson AcademyLesson @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+}
+
+model GlossaryTerm {
+  id         String   @id @default(cuid())
+  term       String   @unique
+  definition String
+  category   String
+  relatedIds String[]
+  createdAt  DateTime @default(now())
+}
+
+model AssistantConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  context   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id])
+  messages AssistantMessage[]
+}
+
+model AssistantMessage {
+  id              String   @id @default(cuid())
+  conversationId  String
+  role            String
+  content         String
+  relatedLessons  String[]
+  suggestedAction String?
+  createdAt       DateTime @default(now())
+
+  conversation AssistantConversation @relation(fields: [conversationId], references: [id])
+}
