@@ -2,6 +2,12 @@
 
 AI-powered control tower for Mexican import operations and trade compliance. Classify documents, detect exceptions, and get pedimento-ready with AI-assisted review at every stage.
 
+## Live URLs
+
+- **GitHub repository:** https://github.com/alejandrozfx-svg/nextport-ai
+- **Production deployment:** https://nextport-ai.vercel.app
+- **Vercel deployment URL:** https://nextport-4e5de4k0c-alejandrozfx-6580s-projects.vercel.app
+
 ## Tech Stack
 
 - **Next.js 15** (App Router, TypeScript, React 19)
@@ -118,10 +124,11 @@ npm run db:migrate   # Run migrations
 
 ## Deployment
 
-1. Deploy to Vercel: `vercel deploy`
-2. Set environment variables in Vercel dashboard
-3. Run `npm run db:push` against production DB
-4. Run `npm run db:seed` for demo data
+1. Deploy to Vercel: `vercel --prod`
+2. Create a Postgres database in Vercel Storage or connect Neon/Supabase
+3. Set `DATABASE_URL`, `NEXTAUTH_SECRET`, and `NEXTAUTH_URL` in Vercel
+4. Run `npm run db:push` against production DB
+5. Run `npm run db:seed` for demo data
 
 ## License
 
