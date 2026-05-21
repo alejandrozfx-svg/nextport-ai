@@ -10,9 +10,6 @@ import {
   Shield,
   GraduationCap,
   Settings,
-  Package,
-  Route,
-  Sparkles,
   Bot,
   ChevronRight,
 } from "lucide-react";
@@ -20,16 +17,8 @@ import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { Avatar } from "@/components/ui/Avatar";
 import { useState, useEffect } from "react";
-
-const navItems = [
-  { href: "/console/operations", label: "Operations", icon: Inbox },
-  { href: "/console/documents", label: "Documents", icon: FileText },
-  { href: "/console/intelligence", label: "Intelligence", icon: BarChart3 },
-  { href: "/console/integrations", label: "Integrations", icon: Plug },
-  { href: "/console/security", label: "Security & Audit", icon: Shield },
-  { href: "/console/academy", label: "Academy", icon: GraduationCap, badge: "NEW" },
-  { href: "/console/settings", label: "Settings", icon: Settings },
-];
+import { useLang } from "@/lib/lang-context";
+import { t } from "@/lib/i18n";
 
 const integrationStatus = [
   { name: "SAT · VUCEM", status: "connected" as const },
@@ -43,6 +32,7 @@ interface SidebarProps {
 
 export function Sidebar({ onAiClick }: SidebarProps) {
   const pathname = usePathname();
+  const { lang } = useLang();
   const [user, setUser] = useState<{ name: string; initials: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -53,6 +43,16 @@ export function Sidebar({ onAiClick }: SidebarProps) {
       } catch {}
     }
   }, []);
+
+  const navItems = [
+    { href: "/console/operations",   labelKey: "operations"   as const, icon: Inbox },
+    { href: "/console/documents",    labelKey: "documents"    as const, icon: FileText },
+    { href: "/console/intelligence", labelKey: "intelligence" as const, icon: BarChart3 },
+    { href: "/console/integrations", labelKey: "integrations" as const, icon: Plug },
+    { href: "/console/security",     labelKey: "security"     as const, icon: Shield },
+    { href: "/console/academy",      labelKey: "academy"      as const, icon: GraduationCap, badge: "NEW" },
+    { href: "/console/settings",     labelKey: "settings"     as const, icon: Settings },
+  ];
 
   return (
     <aside
@@ -68,13 +68,13 @@ export function Sidebar({ onAiClick }: SidebarProps) {
       <div className="px-4 py-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--hair)" }}>
         <BrandMark />
         <p className="text-xs mt-0.5 font-mono" style={{ color: "var(--ink-4)" }}>
-          Import Control Tower
+          {t("importControlTower", lang)}
         </p>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon, badge }) => {
+        {navItems.map(({ href, labelKey, icon: Icon, badge }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -95,7 +95,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
               }
             >
               <Icon size={16} className="flex-shrink-0" />
-              <span className="flex-1">{label}</span>
+              <span className="flex-1">{t(labelKey, lang)}</span>
               {badge && (
                 <span
                   className="text-xs px-1.5 py-0.5 rounded-full font-medium"
@@ -118,7 +118,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
       {/* Integration status */}
       <div className="px-4 py-3 space-y-2" style={{ borderTop: "1px solid var(--hair)" }}>
         <p className="text-xs font-medium mb-2" style={{ color: "var(--ink-4)" }}>
-          INTEGRATIONS
+          {t("integrationsSection", lang)}
         </p>
         {integrationStatus.map(({ name, status }) => (
           <div key={name} className="flex items-center gap-2">
@@ -152,12 +152,12 @@ export function Sidebar({ onAiClick }: SidebarProps) {
         <div className="flex items-center gap-2 mb-1">
           <Bot size={14} style={{ color: "var(--brand)" }} />
           <span className="text-xs font-semibold" style={{ color: "var(--brand)" }}>
-            Nextport Tutor
+            {t("tutorName", lang)}
           </span>
           <ChevronRight size={12} style={{ color: "var(--brand)", marginLeft: "auto" }} />
         </div>
         <p className="text-xs" style={{ color: "var(--ink-3)" }}>
-          Ask anything about trade compliance
+          {t("askComplianceShort", lang)}
         </p>
       </button>
 

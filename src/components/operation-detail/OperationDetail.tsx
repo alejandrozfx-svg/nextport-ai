@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { DemoOperation } from "@/lib/demo-data";
+import { useLang } from "@/lib/lang-context";
+import { t } from "@/lib/i18n";
 
 /* ── icons ──────────────────────────────────────────────── */
 function Icon({ name, size = 14, style }: { name: string; size?: number; style?: React.CSSProperties }) {
@@ -131,11 +133,12 @@ function NextBestAction({ action }: { action: NonNullable<DemoOperation["recomme
 
 /* ── ApprovalRow ─────────────────────────────────────────── */
 function ApprovalRow({ label, who, status }: { label: string; who: string; status: "done" | "pending" | "queued" | "blocked" }) {
+  const { lang } = useLang();
   const map = {
-    done:    { icon: "check",   color: "var(--ok)",   text: "Approved" },
-    pending: { icon: "user",    color: "var(--warn)",  text: "Awaiting you" },
-    queued:  { icon: "history", color: "var(--ink-3)", text: "Queued" },
-    blocked: { icon: "x",       color: "var(--ink-4)", text: "Blocked" },
+    done:    { icon: "check",   color: "var(--ok)",   text: t("approvedStatus", lang) },
+    pending: { icon: "user",    color: "var(--warn)",  text: t("awaitingYou", lang) },
+    queued:  { icon: "history", color: "var(--ink-3)", text: t("queuedStatus", lang) },
+    blocked: { icon: "x",       color: "var(--ink-4)", text: t("blockedStatus", lang) },
   }[status];
   return (
     <div className="flex items-center gap-2.5 py-2 border-t" style={{ borderColor: "var(--hair)" }}>
@@ -148,6 +151,14 @@ function ApprovalRow({ label, who, status }: { label: string; who: string; statu
       </div>
     </div>
   );
+}
+
+/* ── FieldStatusChip ─────────────────────────────────────── */
+function FieldStatusChip({ status }: { status: "ok" | "warn" | "risk" }) {
+  const { lang } = useLang();
+  if (status === "ok")   return <Chip kind="ok">{t("matchStatus", lang)}</Chip>;
+  if (status === "warn") return <Chip kind="warn">{t("checkStatus", lang)}</Chip>;
+  return <Chip kind="risk">{t("mismatchStatus", lang)}</Chip>;
 }
 
 /* ── FieldRow ────────────────────────────────────────────── */
@@ -168,11 +179,7 @@ function FieldRow({ label, value, mono, status, note, highlighted }: {
         <div className={`field-value${mono ? " font-mono tabular" : ""}`}>{value}</div>
         {note && <div className="text-[10.5px]" style={{ color: status === "risk" ? "var(--risk)" : "var(--warn)" }}>{note}</div>}
       </div>
-      <div className="text-right">
-        {status === "ok"   && <Chip kind="ok">Match</Chip>}
-        {status === "warn" && <Chip kind="warn">Check</Chip>}
-        {status === "risk" && <Chip kind="risk">Mismatch</Chip>}
-      </div>
+      <FieldStatusChip status={status} />
     </div>
   );
 }
@@ -398,6 +405,7 @@ interface OperationDetailProps {
 }
 
 export function OperationDetail({ op }: OperationDetailProps) {
+  const { lang } = useLang();
   const [activeDoc, setActiveDoc] = useState(0);
   const [decision, setDecision] = useState<string | null>(null);
   const [focusedFlag, setFocusedFlag] = useState<number | null>(null);
@@ -441,14 +449,14 @@ export function OperationDetail({ op }: OperationDetailProps) {
   }, [op.id]);
 
   const statusChipKind = op.status === "risk" ? "risk" : op.status === "review" ? "review" : "ok";
-  const statusLabel = op.status === "risk" ? "At risk" : op.status === "review" ? "Needs review" : "Ready";
+  const statusLabel = op.status === "risk" ? t("atRisk", lang) : op.status === "review" ? t("needsReview", lang) : t("statusReady", lang);
 
   return (
     <div className="px-8 py-7">
       {/* Back */}
       <Link href="/console/operations" className="flex items-center gap-1.5 mb-4 text-[12px] hover:opacity-100 transition-opacity" style={{ color: "var(--ink-3)" }}>
         <Icon name="arrow_left" size={13} />
-        Back to inbox
+        {lang === "es" ? "Volver a bandeja" : lang === "zh" ? "返回收件箱" : "Back to inbox"}
       </Link>
 
       {/* Header */}
@@ -476,11 +484,11 @@ export function OperationDetail({ op }: OperationDetailProps) {
             {op.owner.initials}
           </div>
           <div className="text-right mr-1">
-            <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>Owner</div>
+            <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>{t("owner", lang)}</div>
             <div className="text-[12px]" style={{ color: "white" }}>{op.owner.name}</div>
           </div>
-          <button className="btn btn-sm"><Icon name="history" size={13} /> Audit trail</button>
-          <button className="btn btn-sm"><Icon name="link" size={13} /> Share</button>
+          <button className="btn btn-sm"><Icon name="history" size={13} /> {lang === "es" ? "Trazabilidad" : lang === "zh" ? "审计轨迹" : "Audit trail"}</button>
+          <button className="btn btn-sm"><Icon name="link" size={13} /> {lang === "es" ? "Compartir" : lang === "zh" ? "分享" : "Share"}</button>
         </div>
       </div>
 
@@ -489,7 +497,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.3)" }}>
           <Icon name="shield" size={11} style={{ color: "var(--brand)" }} />
         </div>
-        <div className="flex-1">Every AI extraction, exception and approval is logged with timestamp and source document.</div>
+        <div className="flex-1">{lang === "es" ? "Cada extracción, excepción y aprobación de IA se registra con marca de tiempo y documento fuente." : lang === "zh" ? "每次AI提取、异常和审批均记录时间戳和来源文件。" : "Every AI extraction, exception and approval is logged with timestamp and source document."}</div>
         <div className="flex items-center gap-2 font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>
           <span>Trail · {op.id}</span>
           <span>SHA 7f3c…b29a</span>
@@ -501,9 +509,12 @@ export function OperationDetail({ op }: OperationDetailProps) {
 
         {/* LEFT: documents + activity */}
         <aside className="glass-panel p-4">
-          <SectionTitle icon="file">Documents found</SectionTitle>
+          <SectionTitle icon="file">{lang === "es" ? "Documentos encontrados" : lang === "zh" ? "已找到文件" : "Documents found"}</SectionTitle>
           <div className="text-[11px] mb-3" style={{ color: "var(--ink-4)" }}>
-            <span className="tabular" style={{ color: "rgba(255,255,255,0.75)" }}>{op.docCount}</span> of <span className="tabular">{op.docsExpected}</span> expected · classified by AI
+            <span className="tabular" style={{ color: "rgba(255,255,255,0.75)" }}>{op.docCount}</span>
+            {lang === "es" ? " de " : lang === "zh" ? " / " : " of "}
+            <span className="tabular">{op.docsExpected}</span>
+            {lang === "es" ? " esperados · clasificados por IA" : lang === "zh" ? " 预期 · AI分类" : " expected · classified by AI"}
           </div>
           <div className="space-y-1.5">
             {op.docs.map((d, i) => (
@@ -520,8 +531,8 @@ export function OperationDetail({ op }: OperationDetailProps) {
               <div key={`missing-${i}`} className="doc-chip" style={{ borderStyle: "dashed", opacity: 0.7 }}>
                 <div className="ico" style={{ background: "rgba(255,255,255,0.01)", borderStyle: "dashed" }} />
                 <div className="flex-1">
-                  <div className="text-[12.5px]" style={{ color: "var(--ink-3)" }}>Missing document</div>
-                  <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>Expected — request from broker</div>
+                  <div className="text-[12.5px]" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Documento faltante" : lang === "zh" ? "缺少文件" : "Missing document"}</div>
+                  <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>{lang === "es" ? "Esperado — solicitar al agente" : lang === "zh" ? "预期 — 向报关行索取" : "Expected — request from broker"}</div>
                 </div>
                 <Icon name="alert" size={14} style={{ color: "var(--warn)" }} />
               </div>
@@ -529,7 +540,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
           </div>
 
           <div className="divider my-4" />
-          <SectionTitle icon="history">Activity</SectionTitle>
+          <SectionTitle icon="history">{t("activityLabel", lang)}</SectionTitle>
           <div className="space-y-2.5 text-[12px]">
             {op.timeline.map((e, i) => (
               <div key={i} className="flex gap-2.5">
@@ -538,7 +549,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
               </div>
             ))}
             {op.timeline.length === 0 && (
-              <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>No activity yet.</div>
+              <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>{lang === "es" ? "Sin actividad aún." : lang === "zh" ? "暂无活动。" : "No activity yet."}</div>
             )}
           </div>
         </aside>
@@ -566,10 +577,10 @@ export function OperationDetail({ op }: OperationDetailProps) {
           {/* Extracted fields */}
           <div className="glass-panel p-4">
             <div className="flex items-center justify-between mb-3">
-              <SectionTitle icon="sparkle">Extracted fields</SectionTitle>
+              <SectionTitle icon="sparkle">{lang === "es" ? "Campos extraídos" : lang === "zh" ? "提取的字段" : "Extracted fields"}</SectionTitle>
               <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--ink-4)" }}>
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: "var(--ok)" }} />
-                Cross-validated against all {op.docCount} documents
+                {lang === "es" ? `Validado cruzado contra los ${op.docCount} documentos` : lang === "zh" ? `已与全部 ${op.docCount} 份文件交叉验证` : `Cross-validated against all ${op.docCount} documents`}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-x-6">
@@ -592,17 +603,17 @@ export function OperationDetail({ op }: OperationDetailProps) {
           {/* Exceptions */}
           <div className="glass-panel p-4">
             <div className="flex items-center justify-between mb-3">
-              <SectionTitle icon="alert">Exceptions detected</SectionTitle>
+              <SectionTitle icon="alert">{lang === "es" ? "Excepciones detectadas" : lang === "zh" ? "检测到的异常" : "Exceptions detected"}</SectionTitle>
               <div className="flex items-center gap-2">
                 {focusedFlag !== null && (
-                  <button className="text-[10.5px] hover:opacity-100 transition-opacity" style={{ color: "var(--ink-3)" }} onClick={() => setFocusedFlag(null)}>Clear focus</button>
+                  <button className="text-[10.5px] hover:opacity-100 transition-opacity" style={{ color: "var(--ink-3)" }} onClick={() => setFocusedFlag(null)}>{lang === "es" ? "Limpiar foco" : lang === "zh" ? "清除焦点" : "Clear focus"}</button>
                 )}
                 <span className="text-[11px] tabular" style={{ color: "var(--ink-4)" }}>{op.flags.length}</span>
               </div>
             </div>
             {op.flags.length === 0 ? (
               <div className="text-[12.5px] flex items-center gap-2 py-2" style={{ color: "var(--ink-3)" }}>
-                <Icon name="check" size={14} style={{ color: "var(--ok)" }} /> No exceptions detected.
+                <Icon name="check" size={14} style={{ color: "var(--ok)" }} /> {lang === "es" ? "Sin excepciones detectadas." : lang === "zh" ? "未检测到异常。" : "No exceptions detected."}
               </div>
             ) : (
               <div className="space-y-2">
@@ -618,7 +629,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
             )}
             {op.flags.length > 0 && (
               <div className="mt-3 pt-3 border-t flex items-center gap-2 text-[11px]" style={{ borderColor: "var(--hair)", color: "var(--ink-4)" }}>
-                <Icon name="info" size={11} /> Click an exception to highlight its source document and field.
+                <Icon name="info" size={11} /> {lang === "es" ? "Haz clic en una excepción para resaltar su documento y campo fuente." : lang === "zh" ? "点击异常以高亮显示其来源文件和字段。" : "Click an exception to highlight its source document and field."}
               </div>
             )}
           </div>
@@ -633,8 +644,8 @@ export function OperationDetail({ op }: OperationDetailProps) {
                 <Icon name="sparkle" size={12} style={{ color: "var(--brand)" }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11.5px]" style={{ color: "white" }}>Open Academy · Module 14.2</div>
-                <div className="text-[10.5px]" style={{ color: "var(--ink-3)" }}>Lesson: how to resolve this exception</div>
+                <div className="text-[11.5px]" style={{ color: "white" }}>{lang === "es" ? "Abrir Academia · Módulo 14.2" : lang === "zh" ? "打开学院 · 模块 14.2" : "Open Academy · Module 14.2"}</div>
+                <div className="text-[10.5px]" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Lección: cómo resolver esta excepción" : lang === "zh" ? "课程：如何解决此异常" : "Lesson: how to resolve this exception"}</div>
               </div>
               <Icon name="arrow_right" size={12} style={{ opacity: 0.6 }} />
             </Link>
@@ -643,21 +654,21 @@ export function OperationDetail({ op }: OperationDetailProps) {
           {/* AI summary */}
           <div className="glass-panel p-4" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))" }}>
             <div className="flex items-center justify-between mb-3">
-              <SectionTitle icon="sparkle">AI summary</SectionTitle>
+              <SectionTitle icon="sparkle">{t("aiSummary", lang)}</SectionTitle>
               <span className="text-[10.5px] font-mono" style={{ color: "var(--ink-4)" }}>v 3.2 · synthesized 09:18</span>
             </div>
             <p className="text-[12.8px] leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>{op.summary}</p>
             <div className="mt-3 pt-3 border-t flex items-center gap-2 text-[11px]" style={{ borderColor: "var(--hair)", color: "var(--ink-4)" }}>
-              <Icon name="info" size={11} /> Generated by AI · always verify against source documents.
+              <Icon name="info" size={11} /> {lang === "es" ? "Generado por IA · siempre verifica contra documentos fuente." : lang === "zh" ? "由AI生成 · 请始终对照源文件验证。" : "Generated by AI · always verify against source documents."}
             </div>
           </div>
 
           {/* Human in the loop — sticky approval rail */}
           <div className="glass-panel p-4" style={{ position: "sticky", top: 16 }}>
-            <SectionTitle icon="shield">Human in the loop</SectionTitle>
-            <div className="text-[12px] mb-3" style={{ color: "var(--ink-3)" }}>Required before ERP / customs handoff.</div>
-            <ApprovalRow label="Compliance review" who="Mariana López"   status={op.status === "ready" ? "done"    : "pending"} />
-            <ApprovalRow label="Manager sign-off"  who="Sofía Galván"   status={op.status === "ready" ? "queued"  : "blocked"} />
+            <SectionTitle icon="shield">{lang === "es" ? "Humano en el proceso" : lang === "zh" ? "人工参与" : "Human in the loop"}</SectionTitle>
+            <div className="text-[12px] mb-3" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Requerido antes de entrega a ERP / aduana." : lang === "zh" ? "ERP/海关移交前必须完成。" : "Required before ERP / customs handoff."}</div>
+            <ApprovalRow label={lang === "es" ? "Revisión de cumplimiento" : lang === "zh" ? "合规审查" : "Compliance review"} who="Mariana López" status={op.status === "ready" ? "done" : "pending"} />
+            <ApprovalRow label={lang === "es" ? "Aprobación del manager" : lang === "zh" ? "经理审批" : "Manager sign-off"} who="Sofía Galván" status={op.status === "ready" ? "queued" : "blocked"} />
             <div className="space-y-2 mt-4">
               {decision === null ? (
                 <>
@@ -669,23 +680,23 @@ export function OperationDetail({ op }: OperationDetailProps) {
                     disabled={op.status !== "ready"}
                     onClick={() => setDecision("approved")}
                   >
-                    <Icon name="check" size={14} /> Approve &amp; release
+                    <Icon name="check" size={14} /> {lang === "es" ? "Aprobar y liberar" : lang === "zh" ? "批准并放行" : "Approve & release"}
                   </button>
                   <button className="btn w-full justify-center" onClick={() => setDecision("review")}>
-                    <Icon name="user" size={13} /> Send for review
+                    <Icon name="user" size={13} /> {lang === "es" ? "Enviar a revisión" : lang === "zh" ? "发送审查" : "Send for review"}
                   </button>
                   <button className="btn btn-danger w-full justify-center" onClick={() => setDecision("held")}>
-                    <Icon name="flag" size={13} /> Hold operation
+                    <Icon name="flag" size={13} /> {lang === "es" ? "Poner en espera" : lang === "zh" ? "暂停运营" : "Hold operation"}
                   </button>
                 </>
               ) : (
                 <div className="glass-panel-tight p-3 flex items-center gap-2.5">
                   <Icon name="check" size={14} style={{ color: "var(--ok)" }} />
                   <div className="flex-1">
-                    <div className="text-[12px]" style={{ color: "white" }}>Decision recorded</div>
-                    <div className="text-[11px] capitalize" style={{ color: "var(--ink-4)" }}>{decision} · logged in audit trail</div>
+                    <div className="text-[12px]" style={{ color: "white" }}>{lang === "es" ? "Decisión registrada" : lang === "zh" ? "决策已记录" : "Decision recorded"}</div>
+                    <div className="text-[11px] capitalize" style={{ color: "var(--ink-4)" }}>{decision} · {lang === "es" ? "registrado en trazabilidad" : lang === "zh" ? "已记录在审计轨迹" : "logged in audit trail"}</div>
                   </div>
-                  <button className="btn btn-sm btn-ghost" onClick={() => setDecision(null)}>Undo</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setDecision(null)}>{lang === "es" ? "Deshacer" : lang === "zh" ? "撤销" : "Undo"}</button>
                 </div>
               )}
             </div>

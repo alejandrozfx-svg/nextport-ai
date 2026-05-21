@@ -2,16 +2,24 @@
 
 import { Search, ScanLine, Bell } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useLang } from "@/lib/lang-context";
+import { t, type Lang } from "@/lib/i18n";
 
-const pageTitles: Record<string, string> = {
-  "/console/operations": "Operations",
-  "/console/documents": "Documents",
-  "/console/intelligence": "Intelligence",
-  "/console/integrations": "Integrations",
-  "/console/security": "Security & Audit",
-  "/console/academy": "Academy",
-  "/console/settings": "Settings",
+const PAGE_TITLE_KEYS: Record<string, "pageTitleOperations" | "pageTitleDocuments" | "pageTitleIntelligence" | "pageTitleIntegrations" | "pageTitleSecurity" | "pageTitleAcademy" | "pageTitleSettings"> = {
+  "/console/operations":   "pageTitleOperations",
+  "/console/documents":    "pageTitleDocuments",
+  "/console/intelligence": "pageTitleIntelligence",
+  "/console/integrations": "pageTitleIntegrations",
+  "/console/security":     "pageTitleSecurity",
+  "/console/academy":      "pageTitleAcademy",
+  "/console/settings":     "pageTitleSettings",
 };
+
+const LANGS: [Lang, string][] = [
+  ["en", "EN"],
+  ["es", "ES"],
+  ["zh", "中"],
+];
 
 interface TopBarProps {
   onScan?: () => void;
@@ -19,10 +27,12 @@ interface TopBarProps {
 
 export function TopBar({ onScan }: TopBarProps) {
   const pathname = usePathname();
+  const { lang, setLang } = useLang();
 
-  const title =
-    Object.entries(pageTitles).find(([k]) => pathname === k || pathname.startsWith(k + "/"))?.[1] ??
-    "Console";
+  const titleKey = Object.entries(PAGE_TITLE_KEYS).find(
+    ([k]) => pathname === k || pathname.startsWith(k + "/")
+  )?.[1];
+  const title = titleKey ? t(titleKey, lang) : "Console";
 
   return (
     <header
@@ -50,7 +60,7 @@ export function TopBar({ onScan }: TopBarProps) {
           <Search size={13} style={{ color: "var(--ink-4)" }} />
           <input
             type="text"
-            placeholder="Search operations, documents…"
+            placeholder={t("searchTopBar", lang)}
             className="flex-1 bg-transparent text-xs outline-none"
             style={{ color: "var(--ink)", caretColor: "var(--brand)" }}
           />
@@ -64,6 +74,28 @@ export function TopBar({ onScan }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
+        {/* Language switcher */}
+        <div
+          className="flex items-center rounded-full p-0.5"
+          style={{ background: "var(--bg-2)", border: "1px solid var(--hair)" }}
+        >
+          {LANGS.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setLang(key)}
+              className="rounded-full px-2.5 py-1 text-[11px] transition-all"
+              style={{
+                background: lang === key ? "rgba(255,255,255,0.12)" : "transparent",
+                color: lang === key ? "white" : "var(--ink-4)",
+                fontWeight: lang === key ? 600 : 400,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Scan button */}
         <button
           onClick={onScan}
@@ -71,7 +103,7 @@ export function TopBar({ onScan }: TopBarProps) {
           style={{ background: "var(--brand)", color: "#0A0D12" }}
         >
           <ScanLine size={13} />
-          Scan docs
+          {t("scanDocs", lang)}
         </button>
 
         {/* Bell */}

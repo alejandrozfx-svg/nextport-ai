@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { OperationRow } from "./OperationRow";
 import { DEMO_OPERATIONS } from "@/lib/demo-data";
+import { useLang } from "@/lib/lang-context";
+import { t } from "@/lib/i18n";
 
 type TabKey = "all" | "risk" | "review" | "ready";
 type WorkflowKey = "detected" | "classified" | "extracted" | "validated" | "review" | "handoff";
@@ -389,6 +391,7 @@ function AutoInjectedOperationsHeader({ counts }: { counts: Record<TabKey, numbe
 }
 
 export function OperationsInbox() {
+  const { lang } = useLang();
   const [filter, setFilter] = useState<TabKey>("all");
   const [search, setSearch] = useState("");
   const [openUpload, setOpenUpload] = useState(false);
@@ -420,35 +423,47 @@ export function OperationsInbox() {
   const totalValue = OPERATIONS.reduce((s, o) => s + o.value, 0);
 
   const tabs: { key: TabKey; label: string; color?: string }[] = [
-    { key: "all", label: "All operations" },
-    { key: "risk", label: "At risk", color: "var(--risk)" },
-    { key: "review", label: "Needs review", color: "var(--warn)" },
-    { key: "ready", label: "Ready", color: "var(--ok)" },
+    { key: "all",    label: t("allOperations", lang) },
+    { key: "risk",   label: t("atRiskTab", lang),       color: "var(--risk)" },
+    { key: "review", label: t("needsReviewTab", lang),  color: "var(--warn)" },
+    { key: "ready",  label: t("readyTab", lang),        color: "var(--ok)" },
+  ];
+
+  const tableHeaders = [
+    t("risk", lang).replace("En ", "").replace("At ", "Status"),
+    t("supplier", lang),
+    t("destination", lang).replace("Destino", "Ruta").replace("目的地", "路线"),
+    t("eta", lang),
+    t("value", lang),
+    t("pedimentoNum", lang),
+    t("documentsLabel", lang),
+    t("exceptions", lang).slice(0, 3),
+    t("owner", lang),
   ];
 
   return (
     <div className="px-8 py-7 space-y-5">
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="text-[22px] font-semibold" style={{ color: "white" }}>Operations inbox</h1>
+          <h1 className="text-[22px] font-semibold" style={{ color: "white" }}>{t("operationsInbox", lang)}</h1>
           <p className="text-[13px] mt-0.5" style={{ color: "var(--ink-3)" }}>
-            Control tower for active import operations
+            {t("controlTowerDesc", lang)}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn btn-sm"><Icon name="search" size={13} /> Filter</button>
+          <button className="btn btn-sm"><Icon name="search" size={13} /> {t("filter", lang)}</button>
           <button className="btn btn-primary btn-sm" onClick={() => setOpenUpload(true)}>
-            <Icon name="upload" size={13} /> Scan documents
+            <Icon name="upload" size={13} /> {t("scanDocs", lang)}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-        <StatCard label="Active operations" value={counts.all} sub="This month" active={filter === "all"} onClick={() => setFilter("all")} />
-        <StatCard label="At risk" value={counts.risk} sub="Blocking mismatch" color="var(--risk)" active={filter === "risk"} onClick={() => setFilter("risk")} />
-        <StatCard label="Needs review" value={counts.review} sub="Missing document" color="var(--warn)" active={filter === "review"} onClick={() => setFilter("review")} />
-        <StatCard label="Ready for handoff" value={counts.ready} sub="Ready for handoff" color="var(--ok)" active={filter === "ready"} onClick={() => setFilter("ready")} />
-        <StatCard label="Customs value today" value={`$${(totalValue / 1000).toFixed(0)}k`} sub="USD equivalent" />
+        <StatCard label={t("activeOps", lang)} value={counts.all} sub={lang === "es" ? "Este mes" : lang === "zh" ? "本月" : "This month"} active={filter === "all"} onClick={() => setFilter("all")} />
+        <StatCard label={t("atRisk", lang)} value={counts.risk} sub={lang === "es" ? "Discrepancia bloqueante" : lang === "zh" ? "阻断性差异" : "Blocking mismatch"} color="var(--risk)" active={filter === "risk"} onClick={() => setFilter("risk")} />
+        <StatCard label={t("needsReview", lang)} value={counts.review} sub={lang === "es" ? "Documento faltante" : lang === "zh" ? "缺少文件" : "Missing document"} color="var(--warn)" active={filter === "review"} onClick={() => setFilter("review")} />
+        <StatCard label={t("readyForHandoff", lang)} value={counts.ready} sub={t("readyForHandoff", lang)} color="var(--ok)" active={filter === "ready"} onClick={() => setFilter("ready")} />
+        <StatCard label={t("customsValueToday", lang)} value={`$${(totalValue / 1000).toFixed(0)}k`} sub="USD" />
       </div>
 
       <AIWorkflowPanel onStartScan={() => setOpenUpload(true)} />
@@ -457,20 +472,20 @@ export function OperationsInbox() {
 
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 glass-panel-tight p-1">
-          {tabs.map((t) => (
+          {tabs.map((tab) => (
             <button
-              key={t.key}
-              onClick={() => setFilter(t.key)}
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
               className="px-3 py-1.5 rounded-lg text-[12.5px] transition-all"
               style={{
-                background: filter === t.key ? "rgba(255,255,255,0.08)" : "transparent",
-                color: filter === t.key ? (t.color ?? "white") : "var(--ink-4)",
-                boxShadow: filter === t.key ? "inset 0 0 0 1px var(--hair-2)" : undefined,
+                background: filter === tab.key ? "rgba(255,255,255,0.08)" : "transparent",
+                color: filter === tab.key ? (tab.color ?? "white") : "var(--ink-4)",
+                boxShadow: filter === tab.key ? "inset 0 0 0 1px var(--hair-2)" : undefined,
               }}
             >
-              {t.label}
+              {tab.label}
               <span className="ml-1.5 text-[11px] tabular" style={{ color: "var(--ink-4)" }}>
-                {counts[t.key]}
+                {counts[tab.key]}
               </span>
             </button>
           ))}
@@ -480,7 +495,7 @@ export function OperationsInbox() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search operations..."
+            placeholder={t("searchOps", lang)}
             className="bg-transparent text-[12.5px] outline-none w-48"
             style={{ color: "var(--ink)", caretColor: "var(--brand)" }}
           />
@@ -502,7 +517,7 @@ export function OperationsInbox() {
           </colgroup>
           <thead>
             <tr>
-              {["Status", "Supplier", "Route", "ETA", "Value", "Pedimento", "Documents", "Exc", "Owner"].map((h) => (
+              {tableHeaders.map((h) => (
                 <th key={h}>{h}</th>
               ))}
             </tr>
@@ -511,7 +526,7 @@ export function OperationsInbox() {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-center py-10" style={{ color: "var(--ink-4)" }}>
-                  No operations match your filter.
+                  {t("noOpsMatch", lang)}
                 </td>
               </tr>
             ) : (
@@ -527,6 +542,7 @@ export function OperationsInbox() {
 }
 
 function UploadModal({ onClose }: { onClose: () => void }) {
+  const { lang } = useLang();
   const [phase, setPhase] = useState<"idle" | "scanning" | "done">("idle");
   const [files, setFiles] = useState<Array<{
     name: string;
@@ -585,9 +601,11 @@ function UploadModal({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-2.5">
             <Icon name="inbox" size={16} />
             <div>
-              <div className="text-[15px]" style={{ color: "white" }}>Detect import documents</div>
+              <div className="text-[15px]" style={{ color: "white" }}>
+                {lang === "es" ? "Detectar documentos de importación" : lang === "zh" ? "检测进口文件" : "Detect import documents"}
+              </div>
               <div className="text-[12px]" style={{ color: "var(--ink-4)" }}>
-                Simulate email or upload intake, then classify, extract, validate and queue human review.
+                {lang === "es" ? "Simula recepción por correo o carga manual, luego clasifica, extrae, valida y pone en cola para revisión humana." : lang === "zh" ? "模拟邮件或手动上传接收，然后分类、提取、验证并排队等待人工审核。" : "Simulate email or upload intake, then classify, extract, validate and queue human review."}
               </div>
             </div>
           </div>
@@ -636,7 +654,9 @@ function UploadModal({ onClose }: { onClose: () => void }) {
                     background: phase === "done" ? "var(--ok)" : "var(--brand)",
                     boxShadow: `0 0 8px ${phase === "done" ? "var(--ok)" : "var(--brand)"}`,
                   }} />
-                  {phase === "done" ? "Validation ready for human review" : "Detecting, classifying and extracting..."}
+                  {phase === "done"
+                    ? (lang === "es" ? "Validación lista para revisión humana" : lang === "zh" ? "验证已准备好进行人工审核" : "Validation ready for human review")
+                    : (lang === "es" ? "Detectando, clasificando y extrayendo..." : lang === "zh" ? "检测、分类和提取中..." : "Detecting, classifying and extracting...")}
                 </div>
                 <div className="text-[11px] font-mono tabular" style={{ color: "var(--ink-4)" }}>
                   {files.filter((f) => f.classified).length} / {files.length} classified
@@ -678,13 +698,15 @@ function UploadModal({ onClose }: { onClose: () => void }) {
                     <Icon name="alert" size={14} />
                   </div>
                   <div className="flex-1">
-                    <div className="text-[13px]" style={{ color: "white" }}>Operation NP-2026-001848 created or updated from email/upload evidence.</div>
-                    <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>
-                      2 exceptions detected: BL container mismatch and origin support needed. Awaiting human review.
-                    </div>
+                    <div className="text-[13px]" style={{ color: "white" }}>
+                    {lang === "es" ? "Operación NP-2026-001848 creada o actualizada con la evidencia recibida." : lang === "zh" ? "运营 NP-2026-001848 已从邮件/上传证据创建或更新。" : "Operation NP-2026-001848 created or updated from email/upload evidence."}
+                  </div>
+                  <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>
+                    {lang === "es" ? "2 excepciones detectadas: discrepancia en contenedor BL y origen pendiente. Esperando revisión humana." : lang === "zh" ? "检测到 2 个异常：BL 集装箱不匹配，原产地需支持。等待人工审核。" : "2 exceptions detected: BL container mismatch and origin support needed. Awaiting human review."}
+                  </div>
                   </div>
                   <button className="btn btn-sm btn-primary" onClick={onClose}>
-                    Back to inbox <Icon name="arrow_right" size={13} />
+                    {lang === "es" ? "Volver a bandeja" : lang === "zh" ? "返回收件箱" : "Back to inbox"} <Icon name="arrow_right" size={13} />
                   </button>
                 </div>
               )}
