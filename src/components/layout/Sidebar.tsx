@@ -185,7 +185,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
       >
         <Avatar
           initials={user?.initials ?? "DS"}
-          src={user?.photo ?? "/users/diego-solorzano.jpg"}
+          src={user ? user.photo : "/users/diego-solorzano.jpg"}
           size="sm"
           alt={user?.name ?? "Diego Solórzano"}
         />

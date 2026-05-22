@@ -31,6 +31,42 @@ const LANGS = [
 
 type Lang = (typeof LANGS)[number][0];
 type SignInStage = "email" | "password" | "reset" | "reset_sent" | "success";
+type DemoUser = {
+  name: string;
+  initials: string;
+  role: string;
+  email: string;
+  photo?: string;
+};
+
+type DemoLoginUser = DemoUser & { password: string };
+
+const DEFAULT_DEMO_USER: DemoUser = {
+  name: "Diego Solórzano",
+  initials: "DS",
+  role: "Product Demo Owner",
+  email: "diegosolorzano@nextport.com",
+  photo: "/users/diego-solorzano.jpg",
+};
+
+const DEMO_LOGIN_USERS: DemoLoginUser[] = [
+  { ...DEFAULT_DEMO_USER, password: "123456" },
+  {
+    name: "Diego Solórzano",
+    initials: "DS",
+    role: "Product Demo Owner",
+    email: "demo@nextport.ai",
+    photo: "/users/diego-solorzano.jpg",
+    password: "demo123",
+  },
+  {
+    name: "Alejandro Zarraga",
+    initials: "AZ",
+    role: "Product Demo Owner",
+    email: "alejandro@nextport.ai",
+    password: "demo123",
+  },
+];
 
 const I18N: Record<Lang, Record<string, string>> = {
   en: {
@@ -245,18 +281,9 @@ export default function LandingPage() {
     };
   }, [fadeVideoTo, videoEnabled]);
 
-  function enterConsole() {
+  function enterConsole(user: DemoUser = DEFAULT_DEMO_USER) {
     window.localStorage.setItem("np_lang", lang);
-    window.localStorage.setItem(
-      "np_user",
-      JSON.stringify({
-        name: "Diego Solórzano",
-        initials: "DS",
-        role: "Product Demo Owner",
-        email: "diegosolorzano@nextport.com",
-        photo: "/users/diego-solorzano.jpg",
-      }),
-    );
+    window.localStorage.setItem("np_user", JSON.stringify(user));
     router.push("/console");
   }
 
@@ -315,7 +342,7 @@ export default function LandingPage() {
             <LangPill lang={lang} setLang={setLang} />
             <button
               type="button"
-              onClick={enterConsole}
+              onClick={() => enterConsole()}
               className="liquid-glass flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-medium text-white sm:h-auto sm:w-auto sm:px-5 sm:py-1.5"
               aria-label={t(lang, "enter_console")}
             >
@@ -429,7 +456,7 @@ function SignInCard({
   onSuccess,
 }: {
   lang: Lang;
-  onSuccess: () => void;
+  onSuccess: (user?: DemoUser) => void;
 }) {
   const [stage, setStage] = useState<SignInStage>("email");
   const [email, setEmail] = useState("");
@@ -437,11 +464,7 @@ function SignInCard({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const validUsers = [
-    { email: "diegosolorzano@nextport.com", password: "123456" },
-    { email: "demo@nextport.ai", password: "demo123" },
-  ];
+  const [signedInUser, setSignedInUser] = useState<DemoUser | null>(null);
 
   const isValidEmail = (value: string) =>
     /^[^\s@]+@[^\s@]+(\.[^\s@]+)?$/.test(value.trim());
@@ -474,12 +497,20 @@ function SignInCard({
     setSubmitting(true);
     window.setTimeout(() => {
       setSubmitting(false);
-      const match = validUsers.some(
+      const match = DEMO_LOGIN_USERS.find(
         (user) => user.email === email.trim().toLowerCase() && user.password === password,
       );
       if (match) {
+        const demoUser: DemoUser = {
+          name: match.name,
+          initials: match.initials,
+          role: match.role,
+          email: match.email,
+          ...(match.photo ? { photo: match.photo } : {}),
+        };
+        setSignedInUser(demoUser);
         setStage("success");
-        window.setTimeout(onSuccess, 650);
+        window.setTimeout(() => onSuccess(demoUser), 650);
       } else {
         setError(t(lang, "password_wrong"));
       }
@@ -513,7 +544,13 @@ function SignInCard({
           <Check size={16} strokeWidth={2.4} style={{ color: "var(--ok)" }} />
         </div>
         <div className="text-left">
-          <div className="text-[14px] text-white">{t(lang, "welcome")}</div>
+          <div className="text-[14px] text-white">
+            {lang === "es"
+              ? `Bienvenido de vuelta, ${signedInUser?.name.split(" ")[0] ?? "Diego"}`
+              : lang === "zh"
+              ? `欢迎回来，${signedInUser?.name.split(" ")[0] ?? "Diego"}`
+              : `Welcome back, ${signedInUser?.name.split(" ")[0] ?? "Diego"}`}
+          </div>
           <div className="text-[12px] text-white/60">{t(lang, "loading")}</div>
         </div>
       </div>
