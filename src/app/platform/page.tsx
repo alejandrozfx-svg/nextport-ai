@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/sentinel/Navbar";
-import { HeroSection } from "@/components/sentinel/HeroSection";
+import { MarketingSubpage } from "@/components/marketing/MarketingSubpage";
+import { platformPage } from "@/lib/marketing-pages";
 
 export const metadata: Metadata = {
   title: "Plataforma | Nextport AI",
   description:
-    "Plataforma de Nextport AI — full-screen immersive landing with 3D Spline scene.",
+    "Control tower para convertir documentos de importación en operaciones auditables y listas para revisión humana.",
 };
 
+// Spline 3D scene used as the background only on /platform.
+const SPLINE_SCENE = "https://prod.spline.design/Slk6b8kz3LRlKiyk/scene.splinecode";
+
 export default function PlatformPage() {
-  return (
-    <div className="sentinel-theme bg-hero-bg min-h-screen font-sora antialiased">
-      <Navbar />
-      <HeroSection />
-    </div>
-  );
+  return <MarketingSubpage page={platformPage} splineScene={SPLINE_SCENE} />;
 }

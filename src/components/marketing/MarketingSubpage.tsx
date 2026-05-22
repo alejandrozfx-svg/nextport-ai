@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { SplineBackground } from "./SplineBackground";
 
 type Metric = {
   value: string;
@@ -53,21 +54,33 @@ const navItems = [
 
 const iconMap = [MailCheck, FileCheck2, Database, GitBranch, ShieldCheck, Network, LockKeyhole, Sparkles];
 
-export function MarketingSubpage({ page }: { page: MarketingPageConfig }) {
+interface MarketingSubpageProps {
+  page: MarketingPageConfig;
+  /** Optional Spline scene URL — when set, replaces the default video backdrop */
+  splineScene?: string;
+}
+
+export function MarketingSubpage({ page, splineScene }: MarketingSubpageProps) {
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
       <div className="fixed inset-0 -z-10">
-        <video
-          className="h-full w-full object-cover opacity-35"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          src="/assets/tracker.mp4"
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_8%,rgba(122,176,224,0.20),transparent_60%),linear-gradient(180deg,rgba(0,0,0,0.55),#05070A_58%,#0A0D12)]" />
-        <div className="absolute inset-0 grid-bg opacity-35" />
+        {splineScene ? (
+          <SplineBackground scene={splineScene} overlayOpacity={0.55} />
+        ) : (
+          <>
+            <video
+              className="h-full w-full object-cover opacity-35"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              src="/assets/tracker.mp4"
+            />
+            <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_8%,rgba(122,176,224,0.20),transparent_60%),linear-gradient(180deg,rgba(0,0,0,0.55),#05070A_58%,#0A0D12)]" />
+            <div className="absolute inset-0 grid-bg opacity-35" />
+          </>
+        )}
       </div>
 
       <header className="relative z-20 px-3 py-4 sm:px-6 sm:py-6">
