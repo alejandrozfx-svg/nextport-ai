@@ -1,7 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Clock, AlertCircle, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  Box,
+  Building2,
+  CheckCircle2,
+  Clock,
+  Cloud,
+  Database,
+  FileText,
+  Hash,
+  Landmark,
+  Mail,
+  MessageCircle,
+  RefreshCw,
+  Ship,
+  Truck,
+  Users,
+  WifiOff,
+} from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/utils";
@@ -51,14 +70,77 @@ const dataTypeKeys: Record<string, TranslationKey> = {
   tracking: "dataTypeTracking",
 };
 
+const brandStyles: Record<string, {
+  label: string;
+  icon: typeof Mail;
+  bg: string;
+  color: string;
+  border: string;
+}> = {
+  gmail: { label: "G", icon: Mail, bg: "linear-gradient(135deg, rgba(234,67,53,0.24), rgba(251,188,5,0.16), rgba(52,168,83,0.18))", color: "#F8D7D2", border: "rgba(234,67,53,0.36)" },
+  outlook: { label: "O", icon: Mail, bg: "linear-gradient(135deg, rgba(0,120,212,0.30), rgba(44,160,232,0.16))", color: "#B9E2FF", border: "rgba(44,160,232,0.38)" },
+  "ms-teams": { label: "T", icon: Users, bg: "linear-gradient(135deg, rgba(98,100,167,0.34), rgba(80,90,210,0.14))", color: "#D7D8FF", border: "rgba(122,124,220,0.38)" },
+  slack: { label: "S", icon: Hash, bg: "linear-gradient(135deg, rgba(74,21,75,0.36), rgba(54,197,240,0.14), rgba(46,182,125,0.14))", color: "#F1D6FF", border: "rgba(180,120,190,0.35)" },
+  whatsapp: { label: "W", icon: MessageCircle, bg: "linear-gradient(135deg, rgba(37,211,102,0.30), rgba(18,140,126,0.14))", color: "#BDF7D0", border: "rgba(37,211,102,0.40)" },
+  gdrive: { label: "D", icon: Cloud, bg: "linear-gradient(135deg, rgba(66,133,244,0.22), rgba(251,188,5,0.14), rgba(52,168,83,0.16))", color: "#D5E7FF", border: "rgba(66,133,244,0.36)" },
+  sharepoint: { label: "SP", icon: Cloud, bg: "linear-gradient(135deg, rgba(3,120,124,0.30), rgba(0,170,180,0.12))", color: "#C9FBFF", border: "rgba(0,170,180,0.36)" },
+  dropbox: { label: "Db", icon: Box, bg: "linear-gradient(135deg, rgba(0,97,255,0.28), rgba(0,160,255,0.10))", color: "#C9E0FF", border: "rgba(0,97,255,0.36)" },
+  "sap-s4": { label: "SAP", icon: Database, bg: "linear-gradient(135deg, rgba(0,112,186,0.30), rgba(122,176,224,0.12))", color: "#BFE4FF", border: "rgba(122,176,224,0.38)" },
+  netsuite: { label: "NS", icon: Database, bg: "linear-gradient(135deg, rgba(255,90,31,0.26), rgba(255,255,255,0.04))", color: "#FFD6C8", border: "rgba(255,120,80,0.32)" },
+  dynamics365: { label: "D365", icon: Database, bg: "linear-gradient(135deg, rgba(0,120,212,0.28), rgba(80,90,210,0.12))", color: "#CBE7FF", border: "rgba(0,120,212,0.36)" },
+  powerbi: { label: "BI", icon: BarChart3, bg: "linear-gradient(135deg, rgba(242,200,17,0.28), rgba(222,160,0,0.10))", color: "#FFE999", border: "rgba(242,200,17,0.38)" },
+  tableau: { label: "Tb", icon: BarChart3, bg: "linear-gradient(135deg, rgba(64,140,220,0.24), rgba(255,130,60,0.12))", color: "#D2E7FF", border: "rgba(90,150,220,0.34)" },
+  "sat-vucem": { label: "SAT", icon: Landmark, bg: "linear-gradient(135deg, rgba(28,132,114,0.26), rgba(255,255,255,0.04))", color: "#C6F7ED", border: "rgba(28,132,114,0.38)" },
+  "sat-cfdi": { label: "SAT", icon: Landmark, bg: "linear-gradient(135deg, rgba(28,132,114,0.26), rgba(255,255,255,0.04))", color: "#C6F7ED", border: "rgba(28,132,114,0.38)" },
+  vucem: { label: "VU", icon: Landmark, bg: "linear-gradient(135deg, rgba(28,132,114,0.22), rgba(122,176,224,0.10))", color: "#C6F7ED", border: "rgba(28,132,114,0.34)" },
+  "aduanas-pacifico": { label: "AP", icon: FileText, bg: "linear-gradient(135deg, rgba(122,176,224,0.22), rgba(255,255,255,0.03))", color: "var(--brand)", border: "oklch(0.78 0.09 235 / 0.34)" },
+  maersk: { label: "M", icon: Ship, bg: "linear-gradient(135deg, rgba(66,176,213,0.28), rgba(255,255,255,0.05))", color: "#CDEFFF", border: "rgba(66,176,213,0.38)" },
+  dhl: { label: "DHL", icon: Truck, bg: "linear-gradient(135deg, rgba(255,204,0,0.28), rgba(212,5,17,0.12))", color: "#FFE999", border: "rgba(255,204,0,0.38)" },
+  fedex: { label: "Fx", icon: Truck, bg: "linear-gradient(135deg, rgba(78,40,145,0.30), rgba(255,102,0,0.16))", color: "#E7D8FF", border: "rgba(145,100,220,0.34)" },
+};
+
+function getBrandStyle(integration: Integration) {
+  if (brandStyles[integration.slug]) return brandStyles[integration.slug];
+  if (integration.category === "Customs & Logistics") {
+    return { label: "A", icon: FileText, bg: "linear-gradient(135deg, rgba(122,176,224,0.22), rgba(255,255,255,0.03))", color: "var(--brand)", border: "oklch(0.78 0.09 235 / 0.34)" };
+  }
+  return { label: integration.name.slice(0, 2), icon: Building2, bg: "rgba(255,255,255,0.045)", color: "var(--ink-2)", border: "var(--hair-2)" };
+}
+
+function IntegrationLogo({ integration }: { integration: Integration }) {
+  const brand = getBrandStyle(integration);
+  const Icon = brand.icon;
+
+  return (
+    <div
+      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl"
+      style={{
+        background: brand.bg,
+        border: `1px solid ${brand.border}`,
+        color: brand.color,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+      }}
+      aria-hidden="true"
+    >
+      <div className="flex flex-col items-center gap-0.5">
+        <Icon size={16} />
+        <span className="font-mono text-[9px] font-semibold leading-none">{brand.label}</span>
+      </div>
+    </div>
+  );
+}
+
 const DEMO_INTEGRATIONS: Integration[] = [
   { id: "1",  name: "SAT · VUCEM",          slug: "sat-vucem",    category: "Government",           status: "connected",    lastSyncAt: "2026-05-21T09:14:00Z", syncHealth: "healthy", dataTypes: ["pedimento", "cfdi"],         errorMessage: null },
   { id: "2",  name: "SAP S/4 HANA",         slug: "sap-s4",       category: "ERP",                  status: "connected",    lastSyncAt: "2026-05-21T08:00:00Z", syncHealth: "healthy", dataTypes: ["purchase_order", "invoice"],  errorMessage: null },
   { id: "3",  name: "Aduanas del Pacífico",  slug: "adp",          category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-21T09:10:00Z", syncHealth: "healthy", dataTypes: ["pedimento", "bl"],            errorMessage: null },
   { id: "4",  name: "Grupo Aduanal Tepeyac", slug: "tepeyac",      category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-20T18:30:00Z", syncHealth: "healthy", dataTypes: ["pedimento"],                  errorMessage: null },
   { id: "5",  name: "Oracle NetSuite",       slug: "netsuite",     category: "ERP",                  status: "pending",      lastSyncAt: null,                   syncHealth: null,      dataTypes: ["invoice", "payment"],         errorMessage: null },
+  { id: "15", name: "Gmail",                 slug: "gmail",        category: "Communication",        status: "connected",    lastSyncAt: "2026-05-21T07:25:00Z", syncHealth: "healthy", dataTypes: ["documents", "notifications"], errorMessage: null },
+  { id: "16", name: "Microsoft Outlook",     slug: "outlook",      category: "Communication",        status: "pending",      lastSyncAt: null,                   syncHealth: null,      dataTypes: ["documents", "notifications"], errorMessage: null },
   { id: "6",  name: "Microsoft Teams",       slug: "ms-teams",     category: "Communication",        status: "connected",    lastSyncAt: "2026-05-21T07:00:00Z", syncHealth: "healthy", dataTypes: ["notifications"],              errorMessage: null },
   { id: "7",  name: "Slack",                 slug: "slack",        category: "Communication",        status: "connected",    lastSyncAt: "2026-05-21T07:00:00Z", syncHealth: "healthy", dataTypes: ["notifications"],              errorMessage: null },
+  { id: "17", name: "WhatsApp Business",     slug: "whatsapp",     category: "Communication",        status: "pending",      lastSyncAt: null,                   syncHealth: null,      dataTypes: ["documents", "notifications"], errorMessage: null },
   { id: "8",  name: "Google Drive",          slug: "gdrive",       category: "Storage",              status: "connected",    lastSyncAt: "2026-05-21T06:00:00Z", syncHealth: "healthy", dataTypes: ["documents"],                  errorMessage: null },
   { id: "9",  name: "Dropbox",               slug: "dropbox",      category: "Storage",              status: "disconnected", lastSyncAt: null,                   syncHealth: null,      dataTypes: ["documents"],                  errorMessage: null },
   { id: "10", name: "Power BI",              slug: "powerbi",      category: "BI & Reporting",       status: "pending",      lastSyncAt: null,                   syncHealth: null,      dataTypes: ["analytics"],                  errorMessage: null },
@@ -67,6 +149,17 @@ const DEMO_INTEGRATIONS: Integration[] = [
   { id: "13", name: "Comercio Internacional Norte", slug: "cin", category: "Customs & Logistics",  status: "connected",    lastSyncAt: "2026-05-21T09:00:00Z", syncHealth: "healthy", dataTypes: ["pedimento"],                  errorMessage: null },
   { id: "14", name: "Tableau",               slug: "tableau",      category: "BI & Reporting",       status: "disconnected", lastSyncAt: null,                   syncHealth: null,      dataTypes: ["analytics"],                  errorMessage: null },
 ];
+
+const REQUIRED_VISIBLE_SLUGS = ["gmail", "outlook", "ms-teams", "slack", "whatsapp"];
+
+function withRequiredDemoIntegrations(integrations: Integration[]) {
+  const existingSlugs = new Set(integrations.map((integration) => integration.slug));
+  const missing = DEMO_INTEGRATIONS.filter(
+    (integration) => REQUIRED_VISIBLE_SLUGS.includes(integration.slug) && !existingSlugs.has(integration.slug)
+  );
+
+  return [...integrations, ...missing];
+}
 
 export function IntegrationsPage() {
   const { lang } = useLang();
@@ -82,7 +175,7 @@ export function IntegrationsPage() {
     setTimeout(() => ctrl.abort(), 2000);
     fetch("/api/integrations", { signal: ctrl.signal })
       .then((r) => r.json())
-      .then((d) => { if (d.integrations?.length) setIntegrations(d.integrations); })
+      .then((d) => { if (d.integrations?.length) setIntegrations(withRequiredDemoIntegrations(d.integrations)); })
       .catch(() => {});
   }, []);
 
@@ -142,14 +235,17 @@ export function IntegrationsPage() {
 
                 return (
                   <div key={integration.id} className="glass-panel p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                          {integration.name}
-                        </p>
-                        <p className="text-xs font-mono" style={{ color: "var(--ink-4)" }}>
-                          {integration.slug}
-                        </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <IntegrationLogo integration={integration} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                            {integration.name}
+                          </p>
+                          <p className="truncate text-xs font-mono" style={{ color: "var(--ink-4)" }}>
+                            {integration.slug}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <Icon size={12} style={{ color: cfg.color }} />
