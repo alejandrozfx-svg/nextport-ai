@@ -72,9 +72,9 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(4,6,10,0.65)", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div className="glass-panel fade-up" style={{ width: 780, maxHeight: "85vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b" style={{ borderColor: "var(--hair)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 sm:px-6" style={{ background: "rgba(4,6,10,0.65)", backdropFilter: "blur(8px)" }} onClick={onClose}>
+      <div className="glass-panel fade-up" style={{ width: "min(780px, calc(100vw - 24px))", maxHeight: "85vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 border-b px-4 pb-4 pt-5 sm:items-center sm:px-6" style={{ borderColor: "var(--hair)" }}>
           <div className="flex items-center gap-2.5">
             <Icon name="inbox" size={16} />
             <div>
@@ -89,7 +89,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
           <button className="btn btn-sm btn-ghost" onClick={onClose}><Icon name="x" size={14} /></button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {phase === "idle" && (
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3">
@@ -106,7 +106,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
 
-              <div className="rounded-xl border-2 border-dashed p-10 text-center" style={{ borderColor: "rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.015)" }}>
+              <div className="rounded-xl border-2 border-dashed p-5 text-center sm:p-10" style={{ borderColor: "rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.015)" }}>
                 <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center liquid-glass">
                   <Icon name="upload" size={18} />
                 </div>
@@ -142,7 +142,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
 
               <div className="space-y-1.5">
                 {files.map((f) => (
-                  <div key={f.name} className="glass-panel-tight px-3 py-2.5 flex items-center gap-3">
+                  <div key={f.name} className="glass-panel-tight flex flex-col items-stretch gap-3 px-3 py-2.5 sm:flex-row sm:items-center">
                     <a href={f.href} target="_blank" rel="noreferrer" className="w-7 h-9 rounded-[3px] border flex-shrink-0 flex items-center justify-center" style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))", borderColor: "var(--hair-2)", color: "var(--brand)" }}>
                       <Icon name="file" size={13} />
                     </a>
@@ -151,9 +151,9 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                         <a href={f.href} target="_blank" rel="noreferrer" className="text-[12.5px] truncate flex-1 hover:underline" style={{ color: "white" }}>{f.name}</a>
                         <div className="font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>{f.size}</div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
                         <div className="progress flex-1"><span style={{ width: `${f.progress * 100}%` }} /></div>
-                        <div className="flex items-center gap-1.5 min-w-[175px] justify-end">
+                        <div className="flex items-center justify-start gap-1.5 sm:min-w-[175px] sm:justify-end">
                           {f.classified ? (
                             <>
                               <span className="chip chip-brand"><span className="dot" />{f.type}</span>

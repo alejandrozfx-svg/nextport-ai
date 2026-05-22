@@ -17,16 +17,10 @@ export function ConsoleShell({ children }: ConsoleShellProps) {
 
   return (
     <LangProvider>
-      <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+      <div className="console-shell">
         <Sidebar onAiClick={() => setAiOpen(true)} />
         <TopBar onScan={() => setScanOpen(true)} />
-        <main
-          style={{
-            marginLeft: 240,
-            paddingTop: 56,
-            minHeight: "100vh",
-          }}
-        >
+        <main className="console-main">
           {children}
         </main>
         {aiOpen && <AssistantPanel onClose={() => setAiOpen(false)} />}

@@ -57,8 +57,9 @@ export function Sidebar({ onAiClick }: SidebarProps) {
   ];
 
   return (
+    <>
     <aside
-      className="fixed left-0 top-0 h-screen flex flex-col"
+      className="fixed left-0 top-0 hidden h-screen flex-col md:flex"
       style={{
         width: 240,
         background: "var(--bg-2)",
@@ -188,5 +189,30 @@ export function Sidebar({ onAiClick }: SidebarProps) {
         </div>
       </div>
     </aside>
+    <nav className="console-bottom-nav md:hidden" aria-label="Console navigation">
+      {navItems.map(({ href, labelKey, icon: Icon }) => {
+        const active = pathname === href || pathname.startsWith(href + "/");
+        return (
+          <Link
+            key={href}
+            href={href}
+            className="flex min-w-[72px] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] transition-all"
+            style={
+              active
+                ? {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "white",
+                    boxShadow: "inset 0 0 0 1px var(--hair-2)",
+                  }
+                : { color: "var(--ink-4)" }
+            }
+          >
+            <Icon size={16} />
+            <span className="max-w-full truncate">{t(labelKey, lang)}</span>
+          </Link>
+        );
+      })}
+    </nav>
+    </>
   );
 }

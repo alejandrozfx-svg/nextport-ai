@@ -407,6 +407,8 @@ function academyRecommendation(status: DemoOperation["status"]): { id: string; t
   return { id: "12", titleKey: "lessonHumanLoopApproval" };
 }
 
+type MobileDetailTab = "summary" | "docs" | "fields" | "risks" | "actions";
+
 /* ── Main component ─────────────────────────────────────── */
 interface OperationDetailProps {
   op: DemoOperation;
@@ -417,6 +419,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
   const [activeDoc, setActiveDoc] = useState(0);
   const [decision, setDecision] = useState<string | null>(null);
   const [focusedFlag, setFocusedFlag] = useState<number | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileDetailTab>("summary");
 
   const focused = focusedFlag !== null ? op.flags[focusedFlag] : null;
   const highlightedFields = new Set<string>(focused ? focused.fields : []);
@@ -459,9 +462,17 @@ export function OperationDetail({ op }: OperationDetailProps) {
 
   const statusChipKind = op.status === "risk" ? "risk" : op.status === "review" ? "review" : "ok";
   const statusLabel = op.status === "risk" ? t("atRisk", lang) : op.status === "review" ? t("needsReview", lang) : t("statusReady", lang);
+  const fieldsAll = [...fieldsLeft, ...fieldsRight];
+  const mobileTabs: Array<{ key: MobileDetailTab; label: string }> = [
+    { key: "summary", label: lang === "es" ? "Resumen" : lang === "zh" ? "摘要" : "Summary" },
+    { key: "docs", label: lang === "es" ? "Docs" : lang === "zh" ? "文件" : "Docs" },
+    { key: "fields", label: lang === "es" ? "Campos" : lang === "zh" ? "字段" : "Fields" },
+    { key: "risks", label: lang === "es" ? "Riesgos" : lang === "zh" ? "风险" : "Risks" },
+    { key: "actions", label: lang === "es" ? "Acciones" : lang === "zh" ? "操作" : "Actions" },
+  ];
 
   return (
-    <div className="px-8 py-7">
+    <div className="px-4 py-5 pb-44 sm:px-6 md:px-8 md:py-7 md:pb-7">
       {/* Back */}
       <Link href="/console/operations" className="flex items-center gap-1.5 mb-4 text-[12px] hover:opacity-100 transition-opacity" style={{ color: "var(--ink-3)" }}>
         <Icon name="arrow_left" size={13} />
@@ -469,16 +480,16 @@ export function OperationDetail({ op }: OperationDetailProps) {
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-6 mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
+      <div className="mb-5 flex flex-col gap-4 md:mb-6 md:flex-row md:items-start md:justify-between md:gap-6">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2 md:gap-3">
             <span className="font-mono text-[12.5px]" style={{ color: "var(--ink-3)" }}>{op.id}</span>
             <Chip kind={statusChipKind}>{statusLabel}</Chip>
             <Chip kind="brand">{op.mode}</Chip>
             <Chip kind="neutral">{op.incoterm}</Chip>
           </div>
-          <h1 className="font-display text-[28px] leading-tight mb-1.5" style={{ color: "white" }}>{op.supplier}</h1>
-          <div className="flex items-center gap-3 text-[12.5px]" style={{ color: "var(--ink-3)" }}>
+          <h1 className="font-display mb-1.5 text-[25px] leading-tight md:text-[28px]" style={{ color: "white" }}>{op.supplier}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]" style={{ color: "var(--ink-3)" }}>
             <span>{op.origin} <span style={{ color: "var(--ink-4)" }}>→</span> {op.destination}</span>
             <span className="w-1 h-1 rounded-full" style={{ background: "var(--ink-4)" }} />
             <span>ETA <span className="tabular" style={{ color: "white" }}>{op.eta}</span>{" "}
@@ -488,7 +499,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
             <span>Pedimento <span className="font-mono" style={{ color: "white" }}>{op.pedimento}</span></span>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="hidden items-center gap-2 flex-shrink-0 md:flex">
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)", color: "var(--brand)" }}>
             {op.owner.initials}
           </div>
@@ -502,7 +513,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
       </div>
 
       {/* Audit banner */}
-      <div className="glass-panel-tight px-4 py-2.5 mb-5 flex items-center gap-3 text-[12px]" style={{ color: "var(--ink-2)" }}>
+      <div className="glass-panel-tight mb-5 flex flex-col gap-3 px-4 py-2.5 text-[12px] sm:flex-row sm:items-center" style={{ color: "var(--ink-2)" }}>
         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.3)" }}>
           <Icon name="shield" size={11} style={{ color: "var(--brand)" }} />
         </div>
@@ -513,8 +524,157 @@ export function OperationDetail({ op }: OperationDetailProps) {
         </div>
       </div>
 
+      {/* Mobile review workspace */}
+      <div className="space-y-4 md:hidden">
+        <div className="glass-panel-tight flex gap-1 overflow-x-auto p-1">
+          {mobileTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setMobileTab(tab.key)}
+              className="min-w-max rounded-lg px-3 py-2 text-[12px] transition-all"
+              style={{
+                background: mobileTab === tab.key ? "rgba(255,255,255,0.08)" : "transparent",
+                color: mobileTab === tab.key ? "white" : "var(--ink-4)",
+                boxShadow: mobileTab === tab.key ? "inset 0 0 0 1px var(--hair-2)" : undefined,
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {mobileTab === "summary" && (
+          <div className="space-y-3">
+            <div className="glass-panel p-4">
+              <SectionTitle icon="sparkle">{t("aiSummary", lang)}</SectionTitle>
+              <p className="text-[13px] leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>{op.summary}</p>
+            </div>
+            {op.recommendedAction && <NextBestAction action={op.recommendedAction} />}
+          </div>
+        )}
+
+        {mobileTab === "docs" && (
+          <div className="space-y-3">
+            <div className="glass-panel p-4">
+              <SectionTitle icon="file">{lang === "es" ? "Evidencia recibida" : lang === "zh" ? "已收到证据" : "Evidence received"}</SectionTitle>
+              <div className="mb-3 text-[11px]" style={{ color: "var(--ink-4)" }}>
+                <span className="tabular" style={{ color: "rgba(255,255,255,0.75)" }}>{op.docCount}</span>
+                {lang === "es" ? " de " : lang === "zh" ? " / " : " of "}
+                <span className="tabular">{op.docsExpected}</span>
+                {lang === "es" ? " documentos esperados" : lang === "zh" ? " 份预期文件" : " expected documents"}
+              </div>
+              <div className="space-y-2">
+                {op.docs.map((d, i) => (
+                  <DocChip
+                    key={d}
+                    doc={d}
+                    active={i === activeDoc}
+                    highlighted={highlightedDocs.has(d)}
+                    hasFlag={i === 0 && op.status === "risk"}
+                    onClick={() => setActiveDoc(i)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="glass-panel overflow-hidden p-0">
+              <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--hair)" }}>
+                <div className="min-w-0 truncate text-[13px]" style={{ color: "white" }}>{currentDoc}</div>
+                <Chip kind="brand">AI 99.2%</Chip>
+              </div>
+              <div className="p-3">
+                <DocPreview kind={currentDoc} op={op} highlightedFields={highlightedFields} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {mobileTab === "fields" && (
+          <div className="glass-panel p-4">
+            <SectionTitle icon="sparkle">{lang === "es" ? "Campos extraídos" : lang === "zh" ? "提取的字段" : "Extracted fields"}</SectionTitle>
+            <div className="space-y-1">
+              {fieldsAll.map((f) => (
+                <FieldRow key={f.k} label={f.label} value={f.value} mono={(f as any).mono} status={f.status} note={(f as any).note} highlighted={highlightedFields.has(f.k)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mobileTab === "risks" && (
+          <div className="space-y-3">
+            <div className="glass-panel p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <SectionTitle icon="alert">{lang === "es" ? "Riesgos detectados" : lang === "zh" ? "检测到的风险" : "Detected risks"}</SectionTitle>
+                <span className="text-[11px] tabular" style={{ color: "var(--ink-4)" }}>{op.flags.length}</span>
+              </div>
+              {op.flags.length === 0 ? (
+                <div className="flex items-center gap-2 py-2 text-[12.5px]" style={{ color: "var(--ink-3)" }}>
+                  <Icon name="check" size={14} style={{ color: "var(--ok)" }} /> {lang === "es" ? "Sin excepciones detectadas." : lang === "zh" ? "未检测到异常。" : "No exceptions detected."}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {op.flags.map((f, i) => (
+                    <ExceptionCard
+                      key={i}
+                      flag={f}
+                      active={focusedFlag === i}
+                      onClick={() => setFocusedFlag(focusedFlag === i ? null : i)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            {op.status !== "ready" && (
+              <Link href={`/console/academy/${academyLesson.id}`} className="glass-panel flex w-full items-center gap-3 p-3 transition-colors hover:bg-white/[0.03]">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)" }}>
+                  <Icon name="sparkle" size={12} style={{ color: "var(--brand)" }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px]" style={{ color: "white" }}>{t("openAcademy", lang)} · {t(academyLesson.titleKey, lang)}</div>
+                  <div className="text-[10.5px]" style={{ color: "var(--ink-3)" }}>{t("relatedAcademyModule", lang)} {academyLesson.id}</div>
+                </div>
+                <Icon name="arrow_right" size={12} style={{ opacity: 0.6 }} />
+              </Link>
+            )}
+          </div>
+        )}
+
+        {mobileTab === "actions" && (
+          <div className="space-y-3">
+            <div className="glass-panel p-4">
+              <SectionTitle icon="shield">{lang === "es" ? "Revisión humana" : lang === "zh" ? "人工审核" : "Human review"}</SectionTitle>
+              <div className="mb-3 text-[12px]" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Requerido antes de entrega a ERP / aduana." : lang === "zh" ? "ERP/海关移交前必须完成。" : "Required before ERP / customs handoff."}</div>
+              <ApprovalRow label={lang === "es" ? "Revisión de cumplimiento" : lang === "zh" ? "合规审查" : "Compliance review"} who="Mariana López" status={op.status === "ready" ? "done" : "pending"} />
+              <ApprovalRow label={lang === "es" ? "Aprobación del manager" : lang === "zh" ? "经理审批" : "Manager sign-off"} who="Sofía Galván" status={op.status === "ready" ? "queued" : "blocked"} />
+            </div>
+            {op.recommendedAction && <NextBestAction action={op.recommendedAction} />}
+          </div>
+        )}
+
+        <div className="fixed inset-x-0 z-40 px-3 md:hidden" style={{ bottom: "calc(70px + env(safe-area-inset-bottom))" }}>
+          <div className="glass-panel flex items-center gap-2 p-2">
+            <button className="btn btn-sm flex-1 justify-center" onClick={() => setDecision("review")}>
+              {lang === "es" ? "Corregir" : lang === "zh" ? "更正" : "Correct"}
+            </button>
+            <button className="btn btn-danger btn-sm flex-1 justify-center" onClick={() => setDecision("held")}>
+              {lang === "es" ? "Escalar" : lang === "zh" ? "升级" : "Escalate"}
+            </button>
+            <button
+              className="btn btn-sm flex-1 justify-center"
+              style={op.status === "ready"
+                ? { background: "linear-gradient(180deg, oklch(0.86 0.13 155), oklch(0.62 0.13 155))", color: "#0A0D12", borderColor: "transparent" }
+                : { opacity: 0.45, cursor: "not-allowed" }}
+              disabled={op.status !== "ready"}
+              onClick={() => setDecision("approved")}
+            >
+              {lang === "es" ? "Aprobar" : lang === "zh" ? "批准" : "Approve"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 3-column workspace */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: "260px 1fr 360px" }}>
+      <div className="hidden gap-4 md:grid" style={{ gridTemplateColumns: "260px 1fr 360px" }}>
 
         {/* LEFT: documents + activity */}
         <aside className="glass-panel p-4">

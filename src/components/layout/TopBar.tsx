@@ -67,23 +67,20 @@ export function TopBar({ onScan }: TopBarProps) {
 
   return (
     <header
-      className="fixed top-0 flex items-center px-6 gap-4"
+      className="console-topbar fixed top-0 flex items-center gap-2 px-3 sm:gap-4 sm:px-6"
       style={{
-        left: 240,
-        right: 0,
-        height: 56,
         background: "rgba(10, 13, 18, 0.85)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--hair)",
         zIndex: 30,
       }}
     >
-      <h1 className="text-sm font-semibold flex-shrink-0" style={{ color: "var(--ink)" }}>
+      <h1 className="min-w-0 flex-1 truncate text-sm font-semibold md:flex-none" style={{ color: "var(--ink)" }}>
         {title}
       </h1>
 
       {/* Search */}
-      <form onSubmit={submitSearch} className="flex-1 max-w-md">
+      <form onSubmit={submitSearch} className="hidden max-w-md flex-1 md:block">
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
           style={{ background: "var(--bg-2)", border: "1px solid var(--hair)" }}
@@ -106,10 +103,10 @@ export function TopBar({ onScan }: TopBarProps) {
         </div>
       </form>
 
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2 md:ml-auto">
         {/* Language switcher */}
         <div
-          className="flex items-center rounded-full p-0.5"
+          className="hidden items-center rounded-full p-0.5 sm:flex"
           style={{ background: "var(--bg-2)", border: "1px solid var(--hair)" }}
         >
           {LANGS.map(([key, label]) => (
@@ -132,11 +129,11 @@ export function TopBar({ onScan }: TopBarProps) {
         {/* Scan button */}
         <button
           onClick={onScan}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+          className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all hover:opacity-90 sm:px-3"
           style={{ background: "var(--brand)", color: "#0A0D12" }}
         >
           <ScanLine size={13} />
-          {t("scanDocs", lang)}
+          <span className="hidden sm:inline">{t("scanDocs", lang)}</span>
         </button>
 
         {/* Bell with dropdown */}
