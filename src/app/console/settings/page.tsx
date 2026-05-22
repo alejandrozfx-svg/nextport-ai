@@ -7,8 +7,8 @@ import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 
 export default function SettingsPage() {
   const { lang, setLang } = useLang();
-  const [email, setEmail] = useState("demo@nextport.ai");
-  const [name, setName] = useState("Alejandro Reyes");
+  const [email, setEmail] = useState("diego.solorzano@nextport.ai");
+  const [name, setName] = useState("Diego Solórzano");
   const [saved, setSaved] = useState(false);
 
   // Load saved user from localStorage (populated by landing-page sign-in or previous Save).
@@ -28,7 +28,7 @@ export default function SettingsPage() {
       try {
         const stored = localStorage.getItem("np_user");
         const prev = stored ? (JSON.parse(stored) as Record<string, unknown>) : {};
-        const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AR";
+        const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "DS";
         localStorage.setItem("np_user", JSON.stringify({ ...prev, name, email, initials }));
       } catch {}
     }

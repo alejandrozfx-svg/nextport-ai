@@ -34,7 +34,7 @@ interface SidebarProps {
 export function Sidebar({ onAiClick }: SidebarProps) {
   const pathname = usePathname();
   const { lang } = useLang();
-  const [user, setUser] = useState<{ name: string; initials: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; initials: string; role: string; photo?: string } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -46,8 +46,8 @@ export function Sidebar({ onAiClick }: SidebarProps) {
   }, []);
 
   const navItems = [
-    { href: "/console/operations",   labelKey: "operations"   as const, icon: Inbox },
     { href: "/console/pipeline",     labelKey: "pipeline"     as const, icon: Workflow },
+    { href: "/console/operations",   labelKey: "operations"   as const, icon: Inbox },
     { href: "/console/documents",    labelKey: "documents"    as const, icon: FileText },
     { href: "/console/intelligence", labelKey: "intelligence" as const, icon: BarChart3 },
     { href: "/console/integrations", labelKey: "integrations" as const, icon: Plug },
@@ -172,13 +172,18 @@ export function Sidebar({ onAiClick }: SidebarProps) {
         className="px-4 py-3 flex items-center gap-2.5"
         style={{ borderTop: "1px solid var(--hair)" }}
       >
-        <Avatar initials={user?.initials ?? "AR"} size="sm" />
+        <Avatar
+          initials={user?.initials ?? "DS"}
+          src={user?.photo ?? "/users/diego-solorzano.jpg"}
+          size="sm"
+          alt={user?.name ?? "Diego Solórzano"}
+        />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate" style={{ color: "var(--ink)" }}>
-            {user?.name ?? "Alejandro Reyes"}
+            {user?.name ?? "Diego Solórzano"}
           </p>
           <p className="text-xs truncate" style={{ color: "var(--ink-4)" }}>
-            {user?.role ?? "admin"}
+            {user?.role ?? "Product Demo Owner"}
           </p>
         </div>
       </div>

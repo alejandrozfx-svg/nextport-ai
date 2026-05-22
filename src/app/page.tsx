@@ -65,7 +65,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     reset_sent_hint: "Check {email} for instructions.",
     reset_back: "Back to sign in",
     reset_resend: "Didn't arrive? Resend in 30s",
-    welcome: "Welcome back, Alejandro",
+    welcome: "Welcome back, Diego",
     loading: "Loading your console...",
   },
   es: {
@@ -100,7 +100,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     reset_sent_hint: "Revisa {email} para ver las instrucciones.",
     reset_back: "Volver a iniciar sesión",
     reset_resend: "¿No llegó? Reenviar en 30s",
-    welcome: "Bienvenido de vuelta, Alejandro",
+    welcome: "Bienvenido de vuelta, Diego",
     loading: "Cargando tu consola...",
   },
   zh: {
@@ -135,7 +135,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     reset_sent_hint: "请查看 {email} 获取说明。",
     reset_back: "返回登录",
     reset_resend: "没收到？30 秒后重发",
-    welcome: "欢迎回来，Alejandro",
+    welcome: "欢迎回来，Diego",
     loading: "正在加载控制台...",
   },
 };
@@ -250,10 +250,11 @@ export default function LandingPage() {
     window.localStorage.setItem(
       "np_user",
       JSON.stringify({
-        name: "Alejandro Reyes",
-        initials: "AR",
+        name: "Diego Solórzano",
+        initials: "DS",
         role: "Product Demo Owner",
-        email: "alejandrozfx@gmail",
+        email: "diego.solorzano@nextport.ai",
+        photo: "/users/diego-solorzano.jpg",
       }),
     );
     router.push("/console");
@@ -427,7 +428,7 @@ function SignInCard({
   const [showPassword, setShowPassword] = useState(false);
 
   const validUsers = [
-    { email: "alejandrozfx@gmail", password: "123456" },
+    { email: "diego.solorzano@nextport.ai", password: "demo123" },
     { email: "demo@nextport.ai", password: "demo123" },
   ];
 
