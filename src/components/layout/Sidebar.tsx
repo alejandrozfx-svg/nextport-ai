@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Inbox,
   FileText,
@@ -13,6 +13,7 @@ import {
   Bot,
   ChevronRight,
   Workflow,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -33,6 +34,7 @@ interface SidebarProps {
 
 export function Sidebar({ onAiClick }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { lang } = useLang();
   const [user, setUser] = useState<{ name: string; initials: string; role: string; photo?: string } | null>(null);
 
@@ -55,6 +57,14 @@ export function Sidebar({ onAiClick }: SidebarProps) {
     { href: "/console/academy",      labelKey: "academy"      as const, icon: GraduationCap, badge: "NEW" },
     { href: "/console/settings",     labelKey: "settings"     as const, icon: Settings },
   ];
+
+  function handleLogout() {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("np_user");
+    }
+    setUser(null);
+    router.push("/");
+  }
 
   return (
     <>
@@ -187,6 +197,16 @@ export function Sidebar({ onAiClick }: SidebarProps) {
             {user?.role ?? "Product Demo Owner"}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label={lang === "es" ? "Cerrar sesión" : lang === "zh" ? "退出登录" : "Log out"}
+          title={lang === "es" ? "Cerrar sesión" : lang === "zh" ? "退出登录" : "Log out"}
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all hover:opacity-90"
+          style={{ border: "1px solid var(--hair)", color: "var(--ink-3)", background: "rgba(255,255,255,0.02)" }}
+        >
+          <LogOut size={14} />
+        </button>
       </div>
     </aside>
     <nav className="console-bottom-nav md:hidden" aria-label="Console navigation">
