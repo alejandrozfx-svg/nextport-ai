@@ -70,11 +70,11 @@ export function MarketingSubpage({ page }: { page: MarketingPageConfig }) {
         <div className="absolute inset-0 grid-bg opacity-35" />
       </div>
 
-      <header className="relative z-20 px-4 py-5 sm:px-6 sm:py-6">
-        <nav className="liquid-glass mx-auto flex max-w-6xl items-center justify-between rounded-full px-4 py-2.5 sm:px-5">
+      <header className="relative z-20 px-3 py-4 sm:px-6 sm:py-6">
+        <nav className="liquid-glass mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-full px-3 py-2.5 sm:px-5">
           <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Nextport AI home">
             <span className="brand-mark block h-6 w-6" />
-            <span className="text-[15px] font-semibold tracking-tight">
+            <span className="text-[14px] font-semibold tracking-tight sm:text-[15px]">
               Nextport <span style={{ color: "var(--ink-3)" }}>AI</span>
             </span>
           </Link>
@@ -91,43 +91,58 @@ export function MarketingSubpage({ page }: { page: MarketingPageConfig }) {
             ))}
           </div>
 
-          <Link href="/console" className="btn btn-primary btn-sm">
-            Entrar a consola <ArrowRight size={13} />
+          <Link href="/console" className="btn btn-primary btn-sm px-3 sm:px-4" aria-label="Entrar a consola">
+            <span className="hidden sm:inline">Entrar a consola</span>
+            <span className="sm:hidden">Consola</span>
+            <ArrowRight size={13} />
           </Link>
         </nav>
+        <div className="mx-auto mt-3 flex max-w-6xl gap-2 overflow-x-auto px-1 pb-1 md:hidden">
+          {navItems.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              className={`liquid-glass min-w-max rounded-full px-3 py-1.5 text-[12px] ${
+                item.key === page.navKey ? "text-white" : "text-white/70"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
       </header>
 
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 pb-14 pt-10 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:pb-20 lg:pt-16">
+      <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 lg:pb-20 lg:pt-16">
         <div>
-          <div className="chip chip-brand mb-5">
+          <div className="chip chip-brand mb-4 sm:mb-5">
             <span className="dot" />
             {page.badge}
           </div>
-          <p className="mb-4 text-[12px] uppercase tracking-[0.24em] text-white/40">{page.eyebrow}</p>
-          <h1 className="font-display max-w-[760px] text-[54px] leading-[0.98] text-white sm:text-[72px] lg:text-[86px]">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-white/40 sm:mb-4 sm:text-[12px] sm:tracking-[0.24em]">{page.eyebrow}</p>
+          <h1 className="font-display max-w-[760px] text-[42px] leading-[1.02] text-white min-[390px]:text-[46px] sm:text-[72px] sm:leading-[0.98] lg:text-[86px]">
             {page.title}
           </h1>
-          <p className="mt-7 max-w-2xl text-[16px] leading-8 text-white/68">{page.subtitle}</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/console" className="btn btn-primary">
+          <p className="mt-5 max-w-2xl text-[14px] leading-6 text-white/70 sm:mt-7 sm:text-[16px] sm:leading-8">{page.subtitle}</p>
+          <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+            <Link href="/console" className="btn btn-primary justify-center sm:justify-start">
               {page.primaryCta ?? "Ver demo"} <ArrowRight size={15} />
             </Link>
-            <Link href="/pricing" className="btn">
+            <Link href="/pricing" className="btn justify-center sm:justify-start">
               {page.secondaryCta ?? "Ver precios"}
             </Link>
           </div>
         </div>
 
-        <div className="glass-panel p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="glass-panel p-3 sm:p-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {page.metrics.map((metric) => (
-              <div key={metric.label} className="glass-panel-tight p-4">
-                <div className="font-display text-[38px] leading-none">{metric.value}</div>
-                <div className="mt-2 text-[12px] leading-5 text-white/55">{metric.label}</div>
+              <div key={metric.label} className="glass-panel-tight p-3 sm:p-4">
+                <div className="font-display text-[30px] leading-none sm:text-[38px]">{metric.value}</div>
+                <div className="mt-2 text-[11.5px] leading-5 text-white/55 sm:text-[12px]">{metric.label}</div>
               </div>
             ))}
           </div>
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-4 sm:mt-4">
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">{page.workflowTitle}</p>
             <div className="mt-4 space-y-3">
               {page.workflow.map((step, index) => (
@@ -146,11 +161,11 @@ export function MarketingSubpage({ page }: { page: MarketingPageConfig }) {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-5 pb-16 sm:px-6 lg:grid-cols-3">
+      <section className="mx-auto grid max-w-6xl gap-3 px-4 pb-12 sm:px-6 sm:pb-16 lg:grid-cols-3 lg:gap-4">
         {page.sections.map((section, index) => {
           const Icon = iconMap[index % iconMap.length];
           return (
-            <article key={section.title} className="glass-panel p-5">
+            <article key={section.title} className="glass-panel p-4 sm:p-5">
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-[color:var(--brand)]">
                 <Icon size={18} />
               </div>
@@ -170,8 +185,8 @@ export function MarketingSubpage({ page }: { page: MarketingPageConfig }) {
         })}
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-20 sm:px-6">
-        <div className="glass-panel grid gap-5 p-5 lg:grid-cols-[0.72fr_1.28fr]">
+      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-20">
+        <div className="glass-panel grid gap-5 p-4 sm:p-5 lg:grid-cols-[0.72fr_1.28fr]">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Base de investigación</p>
             <h2 className="mt-3 text-[24px] font-semibold">Contenido aterrizado a import compliance real.</h2>

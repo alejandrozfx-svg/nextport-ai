@@ -284,8 +284,8 @@ export default function LandingPage() {
       {!videoReady && videoEnabled && <HeroFallback />}
       <div className="hero-vignette" />
 
-      <nav className="relative z-20 px-4 py-5 sm:px-6 sm:py-6">
-        <div className="liquid-glass mx-auto flex max-w-5xl items-center justify-between rounded-full px-4 py-2.5 sm:px-5">
+      <nav className="relative z-20 px-3 py-4 sm:px-6 sm:py-6">
+        <div className="liquid-glass mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-full px-3 py-2.5 sm:px-5">
           <div className="flex min-w-0 items-center gap-5 lg:gap-8">
             <a
               href="#landing"
@@ -293,7 +293,7 @@ export default function LandingPage() {
               className="flex shrink-0 items-center gap-2.5"
             >
               <BrandMark size={24} />
-              <span className="text-[15px] font-semibold tracking-tight text-white">
+              <span className="text-[14px] font-semibold tracking-tight text-white sm:text-[15px]">
                 Nextport <span style={{ color: "var(--ink-3)" }}>AI</span>
               </span>
             </a>
@@ -316,28 +316,39 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={enterConsole}
-              className="liquid-glass hidden rounded-full px-5 py-1.5 text-[13px] font-medium text-white sm:flex sm:items-center sm:gap-1.5"
+              className="liquid-glass flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-medium text-white sm:h-auto sm:w-auto sm:px-5 sm:py-1.5"
+              aria-label={t(lang, "enter_console")}
             >
-              {t(lang, "enter_console")}
+              <span className="hidden sm:inline">{t(lang, "enter_console")}</span>
               <ArrowRight size={14} strokeWidth={1.8} />
             </button>
           </div>
         </div>
+        <div className="mx-auto mt-3 flex max-w-5xl gap-2 overflow-x-auto px-1 pb-1 md:hidden">
+          {(["platform", "compliance", "integrations", "pricing"] as const).map((item) => (
+            <Link
+              key={item}
+              href={MARKETING_ROUTES[item]}
+              className="liquid-glass min-w-max rounded-full px-3 py-1.5 text-[12px] text-white/80"
+            >
+              {t(lang, item)}
+            </Link>
+          ))}
+        </div>
       </nav>
 
       <section
-        className="relative z-10 flex flex-col items-center justify-center px-5 pb-8 pt-8 text-center sm:px-6 sm:pt-10"
-        style={{ transform: "translateY(-4%)" }}
+        className="relative z-10 flex flex-col items-center justify-center px-4 pb-7 pt-5 text-center sm:px-6 sm:pt-10"
       >
         <h1 className="hero-title fade-up max-w-[1100px] text-white">
           {t(lang, "headline")}
         </h1>
 
-        <p className="fade-up mt-7 max-w-[640px] text-[15px] leading-relaxed text-white/65 md:text-[16px]">
+        <p className="fade-up mt-5 max-w-[640px] text-[14px] leading-6 text-white/70 sm:mt-7 md:text-[16px] md:leading-relaxed">
           {t(lang, "sub")}
         </p>
 
-        <div className="fade-up mt-9 w-full max-w-xl space-y-4">
+        <div className="fade-up mt-7 w-full max-w-xl space-y-4 sm:mt-9">
           <SignInCard lang={lang} onSuccess={enterConsole} />
           <p className="px-4 text-[12.5px] leading-relaxed text-white/55">
             {t(lang, "trust_line")}
@@ -355,7 +366,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="relative z-10 flex justify-center gap-3 pb-10">
+      <div className="relative z-10 flex justify-center gap-3 pb-7 sm:pb-10">
         <button
           type="button"
           aria-label="Instagram"
@@ -511,7 +522,7 @@ function SignInCard({
 
   if (stage === "reset_sent") {
     return (
-      <div className="liquid-glass fade-up rounded-2xl px-6 py-5">
+      <div className="liquid-glass fade-up rounded-2xl px-4 py-5 sm:px-6">
         <div className="mb-2 flex items-center gap-3">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-full"
@@ -529,7 +540,7 @@ function SignInCard({
             </div>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2 border-t pt-3" style={{ borderColor: "var(--hair)" }}>
+        <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center" style={{ borderColor: "var(--hair)" }}>
           <button
             type="button"
             onClick={() => {
@@ -542,7 +553,7 @@ function SignInCard({
             <ArrowLeft size={12} strokeWidth={1.8} />
             {t(lang, "reset_back")}
           </button>
-          <span className="ml-auto text-[11px] text-white/30">{t(lang, "reset_resend")}</span>
+          <span className="text-[11px] text-white/30 sm:ml-auto">{t(lang, "reset_resend")}</span>
         </div>
       </div>
     );
@@ -550,7 +561,7 @@ function SignInCard({
 
   if (stage === "reset") {
     return (
-      <form onSubmit={submitReset} className="liquid-glass fade-up rounded-2xl px-5 py-4">
+      <form onSubmit={submitReset} className="liquid-glass fade-up rounded-2xl px-4 py-4 sm:px-5">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-[13px] text-white">{t(lang, "reset_title")}</div>
           <button
@@ -599,8 +610,8 @@ function SignInCard({
 
   if (stage === "password") {
     return (
-      <form onSubmit={submitPassword} className="liquid-glass fade-up rounded-2xl px-5 py-4">
-        <div className="mb-3 flex items-center justify-between">
+      <form onSubmit={submitPassword} className="liquid-glass fade-up rounded-2xl px-4 py-4 sm:px-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <div
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
@@ -664,7 +675,7 @@ function SignInCard({
             {error}
           </div>
         )}
-        <div className="mt-3 flex items-center justify-between px-1 text-[11.5px]">
+        <div className="mt-3 flex flex-col gap-2 px-1 text-[11.5px] sm:flex-row sm:items-center sm:justify-between">
           <label className="flex cursor-pointer items-center gap-1.5 text-white/55">
             <input type="checkbox" className="accent-white" />
             {t(lang, "remember")}
@@ -688,7 +699,7 @@ function SignInCard({
   return (
     <form onSubmit={submitEmail} className="space-y-2">
       <div
-        className="liquid-glass flex items-center gap-3 rounded-full py-2 pl-6 pr-2"
+        className="liquid-glass flex items-center gap-3 rounded-full py-2 pl-4 pr-2 sm:pl-6"
         style={{
           boxShadow: error
             ? "0 0 0 1px oklch(0.70 0.16 25 / 0.5), inset 0 1px 1px rgba(255,255,255,0.10)"
