@@ -253,7 +253,7 @@ export default function LandingPage() {
         name: "Diego Solórzano",
         initials: "DS",
         role: "Product Demo Owner",
-        email: "diego.solorzano@nextport.ai",
+        email: "diegosolorzano@nextport.com",
         photo: "/users/diego-solorzano.jpg",
       }),
     );
@@ -428,7 +428,7 @@ function SignInCard({
   const [showPassword, setShowPassword] = useState(false);
 
   const validUsers = [
-    { email: "diego.solorzano@nextport.ai", password: "demo123" },
+    { email: "diegosolorzano@nextport.com", password: "123456" },
     { email: "demo@nextport.ai", password: "demo123" },
   ];
 

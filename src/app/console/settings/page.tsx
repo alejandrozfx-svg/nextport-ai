@@ -7,7 +7,7 @@ import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 
 export default function SettingsPage() {
   const { lang, setLang } = useLang();
-  const [email, setEmail] = useState("diego.solorzano@nextport.ai");
+  const [email, setEmail] = useState("diegosolorzano@nextport.com");
   const [name, setName] = useState("Diego Solórzano");
   const [saved, setSaved] = useState(false);
 
