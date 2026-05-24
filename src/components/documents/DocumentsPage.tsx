@@ -432,7 +432,7 @@ function DocumentThumbnail({ doc, variant = "card" }: { doc: DocumentItem; varia
     <div
       className={cn(
         "relative flex overflow-hidden rounded-xl border",
-        isLarge ? "min-h-[310px] p-5" : "h-36 p-3"
+        isLarge ? "min-h-[310px] p-5" : "h-24 p-3"
       )}
       style={{ background: visual.previewBg, borderColor: "var(--hair)" }}
     >
@@ -442,25 +442,15 @@ function DocumentThumbnail({ doc, variant = "card" }: { doc: DocumentItem; varia
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div
-              className={cn("grid place-items-center rounded-lg border", isLarge ? "h-10 w-10" : "h-8 w-8")}
-              style={{ borderColor: "var(--hair-2)", background: "rgba(0,0,0,0.22)" }}
+              className={cn("grid place-items-center rounded-lg border", isLarge ? "h-10 w-10" : "h-9 w-9")}
+              style={{ borderColor: "var(--hair-2)", background: "rgba(0,0,0,0.30)" }}
             >
-              <Icon size={isLarge ? 18 : 14} style={{ color: visual.accent }} />
+              <Icon size={isLarge ? 18 : 16} style={{ color: visual.accent }} />
             </div>
-            <div>
-              <p className="font-mono text-[10px] font-semibold tracking-[0.18em]" style={{ color: visual.accent }}>
-                {visual.short}
-              </p>
-              <p className={cn("font-semibold", isLarge ? "text-base" : "text-xs")} style={{ color: "var(--ink)" }}>
-                {visual.stamp}
-              </p>
-            </div>
-          </div>
-          <div
-            className="rounded-full px-2 py-1 text-[9px] font-mono uppercase tracking-wider"
-            style={{ background: "rgba(255,255,255,0.08)", color: "var(--ink-3)" }}
-          >
-            {Math.round(doc.confidence * 100)}%
+            {/* Single, unambiguous label: just the type short code (PED / INV / BL / PKG / MVE / CFDI) */}
+            <p className="font-mono text-[11px] font-semibold tracking-[0.20em]" style={{ color: visual.accent }}>
+              {visual.short}
+            </p>
           </div>
         </div>
 
@@ -475,7 +465,10 @@ function DocumentThumbnail({ doc, variant = "card" }: { doc: DocumentItem; varia
           </div>
         )}
 
-        <DocumentSpecificPreview doc={doc} compact={!isLarge} />
+        {/* The compact thumbnail no longer renders DocumentSpecificPreview — it was just decorative
+         * skeleton bars with no real info and ate ~40% of the card. Large variant still shows it
+         * for the evidence viewer where we have the vertical budget. */}
+        {isLarge && <DocumentSpecificPreview doc={doc} compact={false} />}
       </div>
     </div>
   );
@@ -757,8 +750,10 @@ export function DocumentsPage() {
   const [confFilter, setConfFilter] = useState<ConfidenceFilter>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
+  const [operationFilter, setOperationFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
-  const [view, setView] = useState<ViewMode>("cards");
+  const [view, setView] = useState<ViewMode>("table"); // Default to dense table per audit-pull spec
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportState, setExportState] = useState<"idle" | "preparing" | "done">("idle");
@@ -786,6 +781,8 @@ export function DocumentsPage() {
     if (filter !== "all" && doc.type !== filter) return false;
     if (statusFilter !== "all" && doc.status !== statusFilter) return false;
     if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
+    if (supplierFilter !== "all" && doc.operation.supplier.shortName !== supplierFilter) return false;
+    if (operationFilter !== "all" && doc.operation.id !== operationFilter) return false;
     if (!docMatchesPeriod(doc, period)) return false;
     if (!docMatchesConfidence(doc, confFilter)) return false;
     if (!docMatchesSearch(doc, search)) return false;
@@ -810,8 +807,10 @@ export function DocumentsPage() {
 
   const allStatuses = Array.from(new Set(documents.map((d) => d.status)));
   const allSources = Array.from(new Set(documents.map((d) => d.source)));
+  const allSuppliers = Array.from(new Set(documents.map((d) => d.operation.supplier.shortName))).sort();
+  const allOperations = Array.from(new Set(documents.map((d) => d.operation.id))).sort();
   const hasActiveFilter =
-    search !== "" || period !== "all" || confFilter !== "all" || statusFilter !== "all" || sourceFilter !== "all";
+    search !== "" || period !== "all" || confFilter !== "all" || statusFilter !== "all" || sourceFilter !== "all" || supplierFilter !== "all" || operationFilter !== "all";
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -834,6 +833,8 @@ export function DocumentsPage() {
     setConfFilter("all");
     setStatusFilter("all");
     setSourceFilter("all");
+    setSupplierFilter("all");
+    setOperationFilter("all");
     setFilter("all");
   }
 
@@ -998,12 +999,13 @@ export function DocumentsPage() {
         </div>
 
         {filtersOpen && (
-          <div className="grid gap-2 border-t pt-3 md:grid-cols-2 lg:grid-cols-4" style={{ borderColor: "var(--hair)" }}>
+          <div className="grid gap-2 border-t pt-3 md:grid-cols-2 lg:grid-cols-3" style={{ borderColor: "var(--hair)" }}>
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
               className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              aria-label={t("auditPeriodAll", lang)}
             >
               <option value="all">{t("auditPeriodAll", lang)}</option>
               <option value="7d">{t("auditPeriod7d", lang)}</option>
@@ -1015,6 +1017,7 @@ export function DocumentsPage() {
               onChange={(e) => setConfFilter(e.target.value as ConfidenceFilter)}
               className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              aria-label={t("auditConfAll", lang)}
             >
               <option value="all">{t("auditConfAll", lang)}</option>
               <option value="low">{t("auditConfLow", lang)}</option>
@@ -1026,6 +1029,7 @@ export function DocumentsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              aria-label={t("auditStatusAll", lang)}
             >
               <option value="all">{t("auditStatusAll", lang)}</option>
               {allStatuses.map((s) => (
@@ -1033,10 +1037,35 @@ export function DocumentsPage() {
               ))}
             </select>
             <select
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              aria-label={t("auditColSupplier", lang)}
+            >
+              <option value="all">{t("auditColSupplier", lang)} — {t("auditSourceAll", lang).toLowerCase()}</option>
+              {allSuppliers.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              value={operationFilter}
+              onChange={(e) => setOperationFilter(e.target.value)}
+              className="rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              aria-label={t("auditColOperation", lang)}
+            >
+              <option value="all">{t("auditColOperation", lang)} — {t("auditSourceAll", lang).toLowerCase()}</option>
+              {allOperations.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+            <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
               className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              aria-label={t("auditSourceAll", lang)}
             >
               <option value="all">{t("auditSourceAll", lang)}</option>
               {allSources.map((s) => (
@@ -1118,6 +1147,8 @@ export function DocumentsPage() {
                   const fields = getEvidenceFields(doc);
                   const checks = getEvidenceChecks(doc);
                   const hasFailedCheck = checks.some((c) => !c.passed);
+                  const hasLowConfidenceField = fields.some((f) => f.confidence < 0.90);
+                  const pdfUrl = getVisualConfig(doc.type).pdfUrl;
 
                   return (
                     <div
@@ -1127,7 +1158,7 @@ export function DocumentsPage() {
                         isSelected ? "lifted-active" : ""
                       )}
                     >
-                      {/* Selection checkbox — top-left overlay */}
+                      {/* Selection checkbox — top-left overlay on the slim thumbnail */}
                       <label
                         className="absolute left-3 top-3 z-20 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md transition-all"
                         style={{
@@ -1146,14 +1177,23 @@ export function DocumentsPage() {
                         {isChecked && <CheckCircle2 size={12} style={{ color: "#0A0D12" }} />}
                       </label>
 
-                      {/* Failed-check indicator — top-right corner pulse */}
-                      {hasFailedCheck && (
-                        <span
-                          className="absolute right-3 top-3 z-20 h-2 w-2 rounded-full"
-                          style={{ background: "var(--risk)", boxShadow: "0 0 8px var(--risk)" }}
-                          title={`${checks.filter((c) => !c.passed).length} failed`}
-                        />
-                      )}
+                      {/* Indicators stacked top-right */}
+                      <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
+                        {hasLowConfidenceField && (
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ background: "var(--warn)", boxShadow: "0 0 8px var(--warn)" }}
+                            title={`${fields.filter((f) => f.confidence < 0.90).length} fields below 90%`}
+                          />
+                        )}
+                        {hasFailedCheck && (
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ background: "var(--risk)", boxShadow: "0 0 8px var(--risk)" }}
+                            title={`${checks.filter((c) => !c.passed).length} failed checks`}
+                          />
+                        )}
+                      </div>
 
                       <button
                         onClick={() => setSelectedDocId(doc.id)}
@@ -1193,7 +1233,7 @@ export function DocumentsPage() {
                             </div>
                             <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
                               <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].fields}</p>
-                              <p className="font-mono text-xs font-semibold" style={{ color: "var(--ink)" }}>{fields.length}</p>
+                              <p className="font-mono text-xs font-semibold" style={{ color: hasLowConfidenceField ? "var(--warn)" : "var(--ink)" }}>{fields.length}</p>
                             </div>
                             <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
                               <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].checks}</p>
@@ -1204,11 +1244,36 @@ export function DocumentsPage() {
                           </div>
 
                           <div className="flex items-center justify-between gap-3 text-xs" style={{ color: "var(--ink-4)" }}>
-                            <span className="min-w-0 truncate">{doc.operation.supplier.shortName} · {doc.operation.id}</span>
+                            <span className="min-w-0 truncate">{doc.operation.supplier.shortName} · <span className="font-mono">{doc.operation.id}</span></span>
                             <span className="shrink-0 font-mono">{formatDate(doc.uploadedAt, lang)}</span>
                           </div>
                         </div>
                       </button>
+
+                      {/* Inline action bar — surfaces Download + Open expediente outside the row click */}
+                      <div className="flex items-center gap-1.5 border-t px-3 py-2" style={{ borderColor: "var(--hair)", background: "var(--surface-1)" }}>
+                        {pdfUrl && (
+                          <a
+                            href={pdfUrl}
+                            download
+                            onClick={(e) => e.stopPropagation()}
+                            className="btn btn-ghost btn-sm"
+                            aria-label="Download PDF"
+                            title="Download PDF"
+                          >
+                            <Download size={12} />
+                          </a>
+                        )}
+                        <Link
+                          href={`/console/operations/${doc.operation.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="btn btn-ghost btn-sm ml-auto"
+                          title={viewerCopy[lang].openExpediente}
+                        >
+                          {viewerCopy[lang].openExpediente}
+                          <ArrowUpRight size={11} />
+                        </Link>
+                      </div>
                     </div>
                   );
                 })}
@@ -1237,7 +1302,7 @@ export function DocumentsPage() {
                         <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColChecks", lang)}</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColStatus", lang)}</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDate", lang)}</th>
-                        <th className="px-3 py-2.5 text-right" style={{ width: 80 }}></th>
+                        <th className="px-3 py-2.5 text-right" style={{ width: 120 }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1330,14 +1395,37 @@ export function DocumentsPage() {
                                 {formatDate(doc.uploadedAt, lang)}
                               </td>
                               <td className="px-3 py-2.5 text-right">
-                                <button
-                                  onClick={() => setExpandedRow(isExpanded ? null : doc.id)}
-                                  className="btn btn-ghost btn-sm"
-                                  aria-label={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
-                                  title={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
-                                >
-                                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                </button>
+                                <div className="flex items-center justify-end gap-0.5">
+                                  {visual.pdfUrl && (
+                                    <a
+                                      href={visual.pdfUrl}
+                                      download
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="btn btn-ghost btn-sm"
+                                      aria-label="Download PDF"
+                                      title="Download PDF"
+                                    >
+                                      <Download size={11} />
+                                    </a>
+                                  )}
+                                  <Link
+                                    href={`/console/operations/${doc.operation.id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="btn btn-ghost btn-sm"
+                                    aria-label={viewerCopy[lang].openExpediente}
+                                    title={viewerCopy[lang].openExpediente}
+                                  >
+                                    <ArrowUpRight size={11} />
+                                  </Link>
+                                  <button
+                                    onClick={() => setExpandedRow(isExpanded ? null : doc.id)}
+                                    className="btn btn-ghost btn-sm"
+                                    aria-label={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
+                                    title={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
+                                  >
+                                    {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                             {isExpanded && (
