@@ -513,6 +513,11 @@ export function OperationDetail({ op }: OperationDetailProps) {
           </div>
           <button className="btn btn-sm"><Icon name="history" size={13} /> {lang === "es" ? "Trazabilidad" : lang === "zh" ? "审计轨迹" : "Audit trail"}</button>
           <button className="btn btn-sm"><Icon name="link" size={13} /> {lang === "es" ? "Compartir" : lang === "zh" ? "分享" : "Share"}</button>
+          {/* P1: deep-link to /console/documents pre-filtered to this operation with all docs preselected.
+           * Completes the Operations -> Documents integration referenced in ADR-0001. */}
+          <Link href={`/console/documents?op=${op.id}`} className="btn btn-sm btn-primary">
+            <Icon name="download" size={13} /> {t("exportEvidencePack", lang)}
+          </Link>
         </div>
       </div>
 

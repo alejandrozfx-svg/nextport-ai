@@ -170,3 +170,33 @@ The original "Behavior contract" §7 items still apply. Adding these enforcement
 - `src/lib/i18n.ts` (added pullEvidence* + audit playbook keys, removed fake playbook keys are tolerated as dead code for now)
 - `src/app/console/documents/page.tsx` (wrapped in `<Suspense>` for `useSearchParams`)
 - `docs/decisions/0001-documents-cleanup.md` (this file — updated with execution log)
+
+---
+
+**Iteration 3 (2026-05-23) — P1 smart additions, synthesized from Claude + Codex audits:**
+
+P0 removed the noise. P1 adds the intelligence that justifies why this page deserves a sidebar slot.
+
+| Item | What it does | Where |
+|---|---|---|
+| Playbook preview count | Each playbook chip now shows a small count badge — "how many docs would I see if I clicked this?" — computed live from the dataset via `previewPlaybookCount()`. The chip's title attribute also includes the description + count for accessibility. | Playbook chip row |
+| Per-doc purpose label | Each table row now carries a small uppercase pill next to the type name: "Audit ready" / "Needs review" / "Mismatch" / "Low confidence". Derived from check failures + field mismatches + field confidence + status via `getDocPurpose()`. This is the killer detail Codex flagged — the doc's *role* in the audit story, not just its status. | Table doc cell |
+| Confidence explanation | EvidenceViewer field rows now show a one-line WHY beneath the percentage. e.g. "High: pattern match + cross-doc validation passed" / "Low: pattern partial, manual review recommended" / "Conflict detected with companion document". Heuristic via `explainFieldConfidence()`. | EvidenceViewer field list |
+| Selection state transformation | When `selectedIds.size > 0`, the playbook chip row is hidden. Playbooks are starting points; once the user is in "select and review" mode, they are noise. | DocumentsPage main render |
+| Review package modal | Clicking the Export button no longer downloads immediately. It opens a modal showing what is going into the manifest: total docs, ops covered, avg confidence (color-graded), failed checks count, breakdown by type, date range. User clicks "Export now" to confirm or "Back to selection" to cancel. Gives the user a real "I'm sure" moment before triggering audit-grade output. | Bottom of DocumentsPage |
+| Deep-link from Operation Detail | New "Export evidence pack" button in the operation detail page action bar — routes to `/console/documents?op={op.id}`. The `?op=` param handler from P0 picks it up: pre-filters operation, pre-selects all docs, shows breadcrumb. End-to-end integration from Operations to Documents to audit export is now functional. | `src/components/operation-detail/OperationDetail.tsx` |
+
+### Behavior contract additions (iteration 3)
+
+14. **Playbook chips MUST show their count.** If you add a playbook, run it through `previewPlaybookCount()` so the user sees what they get without committing. Chips without counts are forbidden — they were one of the original sins of the audit-pull page.
+15. **Per-doc purpose label MUST be visible in the table.** It is the single most useful UI signal for distinguishing "audit ready" docs from "needs review" docs from "mismatch" docs without opening the row. Do not hide it behind hover.
+16. **Confidence explanation MUST appear in EvidenceViewer.** Showing "97.4%" alone is decoration; showing "97.4% — High: pattern match + cross-doc validation passed" is product. Maintain `explainFieldConfidence()` — make it smarter (real model reasoning) but never less informative.
+17. **The Review Package modal is the export gate.** Do not bypass it with a direct download. The pause is the feature — it forces the user to acknowledge what they are about to certify.
+18. **Operations → Documents deep-link is part of the contract.** Removing the "Export evidence pack" button from `OperationDetail` requires a new ADR. The job is "starting from an operation, get an audit pack" — that integration is non-negotiable.
+
+### Files changed in iteration 3
+
+- `src/components/documents/DocumentsPage.tsx` (helpers + UI for all 5 P1 items)
+- `src/components/operation-detail/OperationDetail.tsx` (Export evidence pack button)
+- `src/lib/i18n.ts` (P1 keys: `playbookPreviewDocs`, `purpose*`, `confidence*`, `reviewPackage*`, `exportEvidencePack`)
+- `docs/decisions/0001-documents-cleanup.md` (this file — iteration 3 log)

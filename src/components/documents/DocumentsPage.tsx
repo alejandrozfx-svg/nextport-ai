@@ -445,6 +445,57 @@ interface RecentPull {
  * user did not create was theatre. */
 const DEMO_RECENT_PULLS: RecentPull[] = [];
 
+/* ── P1 helpers ──────────────────────────────────────────────────────
+ * Below are pure helpers added in the P1 iteration. They derive UI labels
+ * and counts from the existing data shape without needing new state.
+ * ────────────────────────────────────────────────────────────────────*/
+
+/** Returns how many documents would match a playbook's preset, run against the full list.
+ * Lets us show "12 docs match" on each chip without committing to applying the filter. */
+function previewPlaybookCount(playbook: Playbook, documents: DocumentItem[]): number {
+  const p = playbook.preset;
+  return documents.filter((doc) => {
+    if (p.filter && p.filter !== "all" && doc.type !== p.filter) return false;
+    if (p.statusFilter && p.statusFilter !== "all" && doc.status !== p.statusFilter) return false;
+    if (p.supplierFilter && p.supplierFilter !== "all" && doc.operation.supplier.shortName !== p.supplierFilter) return false;
+    if (p.operationFilter && p.operationFilter !== "all" && doc.operation.id !== p.operationFilter) return false;
+    if (p.period && !docMatchesPeriod(doc, p.period)) return false;
+    if (p.confFilter && !docMatchesConfidence(doc, p.confFilter)) return false;
+    if (p.search && !docMatchesSearch(doc, p.search)) return false;
+    return true;
+  }).length;
+}
+
+/** Per-document purpose label — what role this doc plays in the audit narrative.
+ * Computed from the doc's checks + status + field confidences. */
+type DocPurpose = "auditReady" | "needsReview" | "mismatch" | "lowConfidence";
+
+function getDocPurpose(doc: DocumentItem): DocPurpose {
+  const checks = getEvidenceChecks(doc);
+  if (checks.some((c) => !c.passed)) return "mismatch";
+  const fields = getEvidenceFields(doc);
+  if (fields.some((f) => f.mismatch)) return "mismatch";
+  if (fields.some((f) => f.confidence < 0.90)) return "lowConfidence";
+  if (doc.status !== "ready" && doc.status !== "validated") return "needsReview";
+  return "auditReady";
+}
+
+const purposeMeta: Record<DocPurpose, { color: string; bg: string; labelKey: TranslationKey }> = {
+  auditReady:    { color: "var(--ok)",   bg: "var(--ok-soft)",   labelKey: "purposeAuditReady" },
+  needsReview:   { color: "var(--warn)", bg: "var(--warn-soft)", labelKey: "purposeNeedsReview" },
+  mismatch:      { color: "var(--risk)", bg: "var(--risk-soft)", labelKey: "purposeMismatch" },
+  lowConfidence: { color: "var(--warn)", bg: "var(--warn-soft)", labelKey: "purposeLowConfidence" },
+};
+
+/** Explains WHY the AI assigned this confidence level. Heuristic based on the demo data —
+ * in production this would surface the actual reasoning from the classifier. */
+function explainFieldConfidence(field: EvidenceField, lang: Lang): string {
+  if (field.mismatch) return t("confidenceMismatch", lang);
+  if (field.confidence >= 0.95) return t("confidenceHigh", lang);
+  if (field.confidence >= 0.90) return t("confidenceMid", lang);
+  return t("confidenceLow", lang);
+}
+
 /* Real SHA-256 over the manifest JSON via the Web Crypto API. Falls back to a clearly-marked
  * placeholder only if crypto.subtle is unavailable (very old browsers). The previous version
  * used Math.random() and called the result a hash — ADR-0001 forbids that. */
@@ -676,17 +727,31 @@ function EvidenceViewer({ doc, lang }: { doc: DocumentItem | null; lang: Lang })
             <span className="text-xs font-mono" style={{ color: "var(--ink-4)" }}>{fields.length} {copy.fields}</span>
           </div>
           <div className="space-y-1.5">
-            {fields.map((field) => (
-              <div key={field.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg border px-3 py-2" style={{ borderColor: "var(--hair)", background: field.mismatch ? "var(--risk-soft)" : "rgba(255,255,255,0.025)" }}>
-                <div className="min-w-0">
-                  <p className="truncate text-xs" style={{ color: "var(--ink-4)" }}>{field.label}</p>
-                  <p className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>{field.value}</p>
+            {fields.map((field) => {
+              // P1: explanation of WHY this confidence — surfaces the AI's reasoning per field.
+              const confColor = field.mismatch
+                ? "var(--risk)"
+                : field.confidence < 0.90 ? "var(--risk)"
+                : field.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
+              const explanation = explainFieldConfidence(field, lang);
+              return (
+                <div key={field.id} className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--hair)", background: field.mismatch ? "var(--risk-soft)" : "rgba(255,255,255,0.025)" }}>
+                  <div className="grid grid-cols-[1fr_auto] gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs" style={{ color: "var(--ink-4)" }}>{field.label}</p>
+                      <p className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>{field.value}</p>
+                    </div>
+                    <span className="font-mono text-xs" style={{ color: confColor }}>
+                      {Math.round(field.confidence * 100)}%
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[10.5px] leading-snug" style={{ color: "var(--ink-3)" }}>
+                    <span className="font-medium" style={{ color: confColor }}>{t("confidenceWhy", lang)}</span>{" "}
+                    {explanation}
+                  </p>
                 </div>
-                <span className="font-mono text-xs" style={{ color: field.mismatch ? "var(--risk)" : "var(--ok)" }}>
-                  {Math.round(field.confidence * 100)}%
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -869,6 +934,8 @@ export function DocumentsPage() {
   const [activePlaybook, setActivePlaybook] = useState<PlaybookId | null>(null);
   const [lastExport, setLastExport] = useState<{ docCount: number; sha: string; reasonKey: TranslationKey | null } | null>(null);
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
+  // P1: Review package modal sits between "click Export" and the actual download.
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     setDocuments(DEMO_DOCUMENTS);
@@ -946,8 +1013,18 @@ export function DocumentsPage() {
     setActivePlaybook(playbook.id);
   }
 
-  async function handleExportZip() {
+  /* P1: clicking the Export button opens the Review package modal instead of
+   * immediately downloading. The user reviews what is going into the manifest
+   * (counts by type / operations covered / date range / avg conf / failed checks)
+   * and then clicks "Export now" to actually trigger the download. */
+  function handleExportZip() {
     if (selectedIds.size === 0) return;
+    setReviewOpen(true);
+  }
+
+  async function confirmExport() {
+    if (selectedIds.size === 0) return;
+    setReviewOpen(false);
     setExportState("preparing");
     const selectedDocs = documents.filter((d) => selectedIds.has(d.id));
     const manifest = buildAuditManifest(selectedDocs);
@@ -1024,6 +1101,10 @@ export function DocumentsPage() {
         </div>
       )}
 
+      {/* P1: Selection state transformation — hide playbook chips once the user is in
+       * "review my selection" mode. They are starting points; once you have a selection,
+       * they only add noise. */}
+      {selectedIds.size === 0 && (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
           {t("playbooksTitle", lang)}:
@@ -1031,6 +1112,8 @@ export function DocumentsPage() {
         {PLAYBOOKS.map((pb) => {
           const Icon = pb.icon;
           const isActive = activePlaybook === pb.id;
+          // P1: show how many docs the preset would surface, computed from the live dataset.
+          const count = previewPlaybookCount(pb, documents);
           return (
             <button key={pb.id}
                     onClick={() => isActive ? clearAllFilters() : applyPlaybook(pb)}
@@ -1038,14 +1121,21 @@ export function DocumentsPage() {
                     style={isActive
                       ? { background: `${pb.accent}24`, borderColor: pb.accent, color: pb.accent }
                       : { background: "transparent", borderColor: "var(--hair-2)", color: "var(--ink-3)" }}
-                    title={t(pb.descKey, lang)}
+                    title={`${t(pb.descKey, lang)} — ${count} ${t("playbookPreviewDocs", lang)}`}
                     aria-pressed={isActive}>
               <Icon size={11} strokeWidth={1.6} />
               {t(pb.titleKey, lang)}
+              <span
+                className="rounded-full px-1.5 py-0.5 font-mono text-[9px] tabular"
+                style={isActive ? { background: `${pb.accent}33`, color: pb.accent } : { background: "var(--surface-2)", color: "var(--ink-3)" }}
+              >
+                {count}
+              </span>
             </button>
           );
         })}
       </div>
+      )}
 
       {lastExport && exportState === "done" && (
         <div className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -1223,7 +1313,22 @@ export function DocumentsPage() {
                                 <Icon size={13} style={{ color: visual.accent }} />
                               </div>
                               <div className="min-w-0">
-                                <div className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>{getDocTypeLabel(doc.type, lang)}</div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>{getDocTypeLabel(doc.type, lang)}</span>
+                                  {/* P1: purpose label — what role does this doc play in the audit narrative */}
+                                  {(() => {
+                                    const purpose = getDocPurpose(doc);
+                                    const meta = purposeMeta[purpose];
+                                    return (
+                                      <span
+                                        className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider"
+                                        style={{ background: meta.bg, color: meta.color }}
+                                      >
+                                        {t(meta.labelKey, lang)}
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
                                 <div className="truncate font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>{doc.filename}</div>
                               </div>
                             </button>
@@ -1327,6 +1432,96 @@ export function DocumentsPage() {
           </div>
         </div>
       )}
+
+      {/* P1: Review package modal — pre-export confirmation. Shows what is going into the
+       * manifest (counts by type, operations covered, date range, avg confidence, failed checks)
+       * so the user gets a clear "I'm sure" moment before triggering the download. */}
+      {reviewOpen && (() => {
+        const selectedDocs = documents.filter((d) => selectedIds.has(d.id));
+        if (selectedDocs.length === 0) return null;
+        const byType: Record<string, number> = {};
+        selectedDocs.forEach((d) => { byType[d.type] = (byType[d.type] ?? 0) + 1; });
+        const opsCovered = new Set(selectedDocs.map((d) => d.operation.id)).size;
+        const dates = selectedDocs.map((d) => new Date(d.uploadedAt).getTime());
+        const minDate = new Date(Math.min(...dates));
+        const maxDate = new Date(Math.max(...dates));
+        const avgConfSel = selectedDocs.reduce((s, d) => s + d.confidence, 0) / selectedDocs.length;
+        const failedCheckCount = selectedDocs.filter((d) => getEvidenceChecks(d).some((c) => !c.passed)).length;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(4,6,10,0.65)", backdropFilter: "blur(8px)" }}
+            onClick={() => setReviewOpen(false)}
+          >
+            <div
+              className="glass-panel elev-3 w-full max-w-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="border-b p-5" style={{ borderColor: "var(--hair)" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold" style={{ color: "var(--ink)" }}>{t("reviewPackageTitle", lang)}</h3>
+                    <p className="mt-1 text-xs" style={{ color: "var(--ink-4)" }}>{t("reviewPackageSubtitle", lang)}</p>
+                  </div>
+                  <button onClick={() => setReviewOpen(false)} className="btn btn-ghost btn-sm" aria-label={t("auditExportDoneClose", lang)}>
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+              <div className="grid gap-3 p-5 sm:grid-cols-2">
+                <div className="rounded-lg border p-3" style={{ borderColor: "var(--hair)", background: "var(--surface-1)" }}>
+                  <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("reviewPackageDocs", lang)}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular" style={{ color: "var(--ink)" }}>{selectedDocs.length}</p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: "var(--hair)", background: "var(--surface-1)" }}>
+                  <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("reviewPackageOps", lang)}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular" style={{ color: "var(--ink)" }}>{opsCovered}</p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: "var(--hair)", background: "var(--surface-1)" }}>
+                  <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("reviewPackageAvgConf", lang)}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular" style={{ color: avgConfSel >= 0.95 ? "var(--ok)" : avgConfSel >= 0.90 ? "var(--warn)" : "var(--risk)" }}>
+                    {(avgConfSel * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: "var(--hair)", background: "var(--surface-1)" }}>
+                  <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("reviewPackageFailedChecks", lang)}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular" style={{ color: failedCheckCount > 0 ? "var(--risk)" : "var(--ok)" }}>
+                    {failedCheckCount}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
+                <div>
+                  <p className="mb-1.5 text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("reviewPackageTypes", lang)}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(byType).map(([type, count]) => (
+                      <span key={type}
+                            className="rounded-full px-2 py-0.5 font-mono text-[10px]"
+                            style={{ background: "var(--surface-2)", color: "var(--ink-2)" }}>
+                        {getDocTypeLabel(type, lang)} · {count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("reviewPackageDateRange", lang)}</p>
+                  <p className="font-mono text-xs" style={{ color: "var(--ink-2)" }}>
+                    {formatDate(minDate.toISOString(), lang)} → {formatDate(maxDate.toISOString(), lang)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 border-t p-5" style={{ borderColor: "var(--hair)" }}>
+                <button onClick={() => setReviewOpen(false)} className="btn btn-secondary flex-1 justify-center">
+                  {t("reviewPackageBack", lang)}
+                </button>
+                <button onClick={confirmExport} className="btn btn-primary flex-1 justify-center">
+                  <Download size={13} /> {t("reviewPackageConfirm", lang)}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

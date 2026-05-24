@@ -133,6 +133,32 @@ const translations = {
     pullViewerClose: "Close inspector",
     pullExportLabel: "Export audit manifest",
     pullExportSelected: "Export selected",
+    // Playbook preview
+    playbookPreviewDocs: "docs match",
+    // Per-doc purpose label
+    purposeAuditReady: "Audit ready",
+    purposeNeedsReview: "Needs review",
+    purposeMismatch: "Mismatch",
+    purposeLowConfidence: "Low confidence",
+    // Confidence explanation
+    confidenceWhy: "Why this score?",
+    confidenceHigh: "High: pattern match + cross-doc validation passed.",
+    confidenceMid: "Medium: pattern match found, cross-doc validation partial.",
+    confidenceLow: "Low: pattern partial, manual review recommended.",
+    confidenceMismatch: "Conflict detected with companion document.",
+    // Review package modal (pre-export)
+    reviewPackageTitle: "Review package before export",
+    reviewPackageSubtitle: "Verify what is going into the audit manifest.",
+    reviewPackageDocs: "Documents",
+    reviewPackageTypes: "Types",
+    reviewPackageOps: "Operations",
+    reviewPackageDateRange: "Date range",
+    reviewPackageAvgConf: "Avg confidence",
+    reviewPackageFailedChecks: "With failed checks",
+    reviewPackageBack: "Back to selection",
+    reviewPackageConfirm: "Export now",
+    // OperationDetail integration
+    exportEvidencePack: "Export evidence pack",
     // Playbooks
     playbooksTitle: "Audit playbooks",
     playbooksSubtitle: "Start from a real scenario — filters apply automatically. Refine the selection, then export.",
@@ -514,6 +540,32 @@ const translations = {
     pullViewerClose: "Cerrar inspector",
     pullExportLabel: "Exportar manifiesto de auditoría",
     pullExportSelected: "Exportar seleccionados",
+    // Playbook preview
+    playbookPreviewDocs: "docs coinciden",
+    // Per-doc purpose label
+    purposeAuditReady: "Listo para auditoría",
+    purposeNeedsReview: "Requiere revisión",
+    purposeMismatch: "Discrepancia",
+    purposeLowConfidence: "Confianza baja",
+    // Confidence explanation
+    confidenceWhy: "¿Por qué este score?",
+    confidenceHigh: "Alta: patrón coincide + validación cruzada pasó.",
+    confidenceMid: "Media: patrón coincide, validación cruzada parcial.",
+    confidenceLow: "Baja: patrón parcial, se recomienda revisión manual.",
+    confidenceMismatch: "Conflicto detectado con documento relacionado.",
+    // Review package modal
+    reviewPackageTitle: "Revisa el paquete antes de exportar",
+    reviewPackageSubtitle: "Verifica qué va a entrar al manifiesto de auditoría.",
+    reviewPackageDocs: "Documentos",
+    reviewPackageTypes: "Tipos",
+    reviewPackageOps: "Operaciones",
+    reviewPackageDateRange: "Rango de fechas",
+    reviewPackageAvgConf: "Confianza promedio",
+    reviewPackageFailedChecks: "Con checks fallidos",
+    reviewPackageBack: "Volver a selección",
+    reviewPackageConfirm: "Exportar ahora",
+    // OperationDetail integration
+    exportEvidencePack: "Exportar paquete de evidencia",
     // Playbooks
     playbooksTitle: "Playbooks de auditoría",
     playbooksSubtitle: "Empieza desde un escenario real — los filtros se aplican automáticamente. Refina la selección y exporta.",
@@ -894,6 +946,32 @@ const translations = {
     pullViewerClose: "关闭查看器",
     pullExportLabel: "导出审计清单",
     pullExportSelected: "导出已选",
+    // Playbook preview
+    playbookPreviewDocs: "文件匹配",
+    // Per-doc purpose label
+    purposeAuditReady: "可审计",
+    purposeNeedsReview: "需审查",
+    purposeMismatch: "存在差异",
+    purposeLowConfidence: "低置信度",
+    // Confidence explanation
+    confidenceWhy: "为什么是这个分数？",
+    confidenceHigh: "高：模式匹配 + 跨文件验证通过。",
+    confidenceMid: "中：模式匹配，跨文件验证部分通过。",
+    confidenceLow: "低：模式部分匹配，建议人工复核。",
+    confidenceMismatch: "与关联文件存在冲突。",
+    // Review package modal
+    reviewPackageTitle: "导出前查看审计包",
+    reviewPackageSubtitle: "确认进入审计清单的内容。",
+    reviewPackageDocs: "文件",
+    reviewPackageTypes: "类型",
+    reviewPackageOps: "运营",
+    reviewPackageDateRange: "日期范围",
+    reviewPackageAvgConf: "平均置信度",
+    reviewPackageFailedChecks: "验证失败",
+    reviewPackageBack: "返回选择",
+    reviewPackageConfirm: "立即导出",
+    // OperationDetail integration
+    exportEvidencePack: "导出证据包",
     // Playbooks
     playbooksTitle: "审计剧本",
     playbooksSubtitle: "从真实场景开始 — 筛选自动应用。优化选择，然后导出。",
