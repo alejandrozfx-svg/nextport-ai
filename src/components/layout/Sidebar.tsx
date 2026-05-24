@@ -95,14 +95,14 @@ export function Sidebar({ onAiClick }: SidebarProps) {
               href={href}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all group relative",
-                active ? "text-white" : "hover:opacity-100"
+                active ? "" : "hover:opacity-100"
               )}
               style={
                 active
                   ? {
-                      background: "rgba(255,255,255,0.07)",
+                      background: "var(--surface-2)",
                       color: "var(--ink)",
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+                      boxShadow: "inset 0 1px 0 var(--surface-1)",
                     }
                   : { color: "var(--ink-3)" }
               }
@@ -203,7 +203,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
           aria-label={lang === "es" ? "Cerrar sesión" : lang === "zh" ? "退出登录" : "Log out"}
           title={lang === "es" ? "Cerrar sesión" : lang === "zh" ? "退出登录" : "Log out"}
           className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all hover:opacity-90"
-          style={{ border: "1px solid var(--hair)", color: "var(--ink-3)", background: "rgba(255,255,255,0.02)" }}
+          style={{ border: "1px solid var(--hair)", color: "var(--ink-3)", background: "var(--surface-1)" }}
         >
           <LogOut size={14} />
         </button>
@@ -220,8 +220,8 @@ export function Sidebar({ onAiClick }: SidebarProps) {
             style={
               active
                 ? {
-                    background: "rgba(255,255,255,0.08)",
-                    color: "white",
+                    background: "var(--surface-3)",
+                    color: "var(--ink)",
                     boxShadow: "inset 0 0 0 1px var(--hair-2)",
                   }
                 : { color: "var(--ink-4)" }

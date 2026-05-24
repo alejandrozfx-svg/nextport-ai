@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, ScanLine, Bell } from "lucide-react";
+import { Search, ScanLine, Bell, Sun, Moon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
+import { useTheme } from "@/lib/theme-context";
 import { t, type Lang } from "@/lib/i18n";
 
 const PAGE_TITLE_KEYS: Record<string, "pageTitleOperations" | "pageTitlePipeline" | "pageTitleDocuments" | "pageTitleIntelligence" | "pageTitleIntegrations" | "pageTitleSecurity" | "pageTitleAcademy" | "pageTitleSettings"> = {
@@ -31,6 +32,7 @@ export function TopBar({ onScan }: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { lang, setLang } = useLang();
+  const { theme, toggleTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export function TopBar({ onScan }: TopBarProps) {
     <header
       className="console-topbar fixed top-0 flex items-center gap-2 px-3 sm:gap-4 sm:px-6"
       style={{
-        background: "rgba(10, 13, 18, 0.85)",
+        background: "var(--topbar-bg)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--hair)",
         zIndex: 30,
@@ -116,8 +118,8 @@ export function TopBar({ onScan }: TopBarProps) {
               onClick={() => setLang(key)}
               className="rounded-full px-2.5 py-1 text-[11px] transition-all"
               style={{
-                background: lang === key ? "rgba(255,255,255,0.12)" : "transparent",
-                color: lang === key ? "white" : "var(--ink-4)",
+                background: lang === key ? "var(--surface-3)" : "transparent",
+                color: lang === key ? "var(--ink)" : "var(--ink-4)",
                 fontWeight: lang === key ? 600 : 400,
               }}
             >
@@ -134,6 +136,21 @@ export function TopBar({ onScan }: TopBarProps) {
         >
           <ScanLine size={13} />
           <span className="hidden sm:inline">{t("scanDocs", lang)}</span>
+        </button>
+
+        {/* Theme toggle (sun/moon) */}
+        <button
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
+          style={{ border: "1px solid var(--hair)" }}
+        >
+          {theme === "dark" ? (
+            <Sun size={14} style={{ color: "var(--ink-3)" }} />
+          ) : (
+            <Moon size={14} style={{ color: "var(--ink-3)" }} />
+          )}
         </button>
 
         {/* Bell with dropdown */}
