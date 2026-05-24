@@ -76,3 +76,17 @@ See `CODEX_TASKS.md` for prioritized work items. Key immediate priorities:
 3. TASK-09: Mobile responsive sidebar
 4. TASK-11: Export audit package action
 5. TASK-12: Wire Intelligence charts to real API data
+
+---
+
+## 2026-05-23 — P1 SaaS visual consistency pass
+
+Completed:
+- Added semantic SaaS design tokens in `globals.css`: surface, border, status, elevation, focus, chart and motion aliases.
+- Added reusable UI primitives: `PageHeader`, `MetricCard`, `StatusChip`, `ActionButton`, `SectionCard`, `DocumentIcon`, `IntegrationLogo`, `EmptyState`, `Skeleton`, `Modal`, `Toast` and shared `AppIcon`.
+- Migrated Operations, Documents, Integrations and Intelligence to use the new primitives.
+- Removed local inline SVG icon maps from Pipeline, UploadModal, Operations and Operation Detail. Icons now go through lucide-based `AppIcon` with canonical `strokeWidth=1.5`.
+- Replaced the old operations-only `StatCard` with shared `MetricCard`.
+
+Known follow-up:
+- There are still many legacy inline styles in dense pages, especially Operation Detail and Documents. Future passes should move text colors, row metadata and evidence viewer details to utility classes or primitives.

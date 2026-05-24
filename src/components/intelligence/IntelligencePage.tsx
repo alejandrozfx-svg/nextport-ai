@@ -16,7 +16,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { FileText, Cpu, CheckCheck, TrendingUp } from "lucide-react";
-import { StatCard } from "@/components/operations/StatCard";
+import { MetricCard, PageHeader, SectionCard } from "@/components/ui";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 
@@ -42,7 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const tooltipStyle = {
-  background: "rgba(15,19,24,0.82)",
+  background: "var(--chart-tooltip)",
   border: "1px solid var(--hair-2)",
   borderRadius: 12,
   boxShadow: "var(--elev-3)",
@@ -84,23 +84,20 @@ export function IntelligencePage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <div>
-        <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("dataIntelligence", lang)}</h2>
-        <p className="text-sm" style={{ color: "var(--ink-4)" }}>{t("aiPerformanceSubtitle", lang)}</p>
-      </div>
+      <PageHeader title={t("dataIntelligence", lang)} subtitle={t("aiPerformanceSubtitle", lang)} />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label={t("kpiDocumentsClassified", lang)} value={kpis.documentsClassified} icon={<FileText size={14} />} color="var(--brand)" />
-        <StatCard label={t("kpiFieldsExtracted", lang)} value={kpis.fieldsExtracted} icon={<Cpu size={14} />} color="var(--brand)" />
-        <StatCard label={t("kpiValidationsRun", lang)} value={kpis.validationsRun} icon={<CheckCheck size={14} />} color="var(--ok)" />
-        <StatCard label={t("kpiAvgConfidence", lang)} value={`${(kpis.avgConfidence * 100).toFixed(1)}%`} icon={<TrendingUp size={14} />} color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"} sub={`${(kpis.passRate * 100).toFixed(1)}${t("passRateSuffix", lang)}`} />
+        <MetricCard label={t("kpiDocumentsClassified", lang)} value={kpis.documentsClassified} icon={<FileText size={14} strokeWidth={1.5} />} color="var(--brand)" />
+        <MetricCard label={t("kpiFieldsExtracted", lang)} value={kpis.fieldsExtracted} icon={<Cpu size={14} strokeWidth={1.5} />} color="var(--brand)" />
+        <MetricCard label={t("kpiValidationsRun", lang)} value={kpis.validationsRun} icon={<CheckCheck size={14} strokeWidth={1.5} />} color="var(--ok)" />
+        <MetricCard label={t("kpiAvgConfidence", lang)} value={`${(kpis.avgConfidence * 100).toFixed(1)}%`} icon={<TrendingUp size={14} strokeWidth={1.5} />} color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"} sub={`${(kpis.passRate * 100).toFixed(1)}${t("passRateSuffix", lang)}`} />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Operations by status pie */}
-        <div className="glass-panel p-4">
+        <SectionCard className="p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>
             {t("chartOpsByStatus", lang)}
           </h3>
@@ -150,10 +147,10 @@ export function IntelligencePage() {
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Docs over time */}
-        <div className="glass-panel p-4">
+        <SectionCard className="p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>
             {t("chartDocsOverTime", lang)}
           </h3>
@@ -169,7 +166,7 @@ export function IntelligencePage() {
                     <stop offset="100%" stopColor="oklch(0.92 0.05 235)" stopOpacity="0.88" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.055)" />
+                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                 <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <Tooltip
@@ -182,10 +179,10 @@ export function IntelligencePage() {
               </LineChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </SectionCard>
 
         {/* Confidence distribution */}
-        <div className="glass-panel p-4">
+        <SectionCard className="p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>
             {t("chartConfidenceDist", lang)}
           </h3>
@@ -200,7 +197,7 @@ export function IntelligencePage() {
                     <stop offset="100%" stopColor="oklch(0.82 0.13 195)" stopOpacity="0.92" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.055)" />
+                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                 <XAxis dataKey="range" tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <Tooltip
@@ -213,7 +210,7 @@ export function IntelligencePage() {
               </BarChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

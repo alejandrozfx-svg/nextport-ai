@@ -14,6 +14,31 @@ Source of truth for visual design decisions. Read before touching styles.
 
 All colors are CSS custom properties on `:root` in `src/app/globals.css`. Never hardcode hex values in components — use `var(--*)` instead.
 
+## P1 SaaS token layer
+
+New UI should prefer the semantic aliases below instead of raw `rgba(...)`, `oklch(...)`, or one-off inline styles:
+
+| Token | Purpose |
+|-------|---------|
+| `--surface`, `--surface-hover`, `--surface-active` | Card, row, control and selected-state fills |
+| `--border`, `--border-strong` | Default and emphasized hairlines |
+| `--shadow-elev-0` .. `--shadow-elev-3` | Flat, card, selected/hover and overlay elevations |
+| `--status-risk`, `--status-warn`, `--status-ok`, `--status-brand` | Shared semantic status colors |
+| `--status-*-soft` | Soft fills for status chips, icon tiles and alerts |
+| `--focus-ring` | Keyboard focus ring for controls |
+| `--chart-grid`, `--chart-tooltip` | Recharts grid and tooltip surfaces |
+| `--motion-fast`, `--motion-normal`, `--motion-slow` | Canonical transitions |
+
+Base reusable classes:
+
+- `.section-card` for larger page sections.
+- `.metric-card` for KPI cards and stat summaries.
+- `.interactive-surface` for hoverable cards/rows.
+- `.app-input` for inputs and selects.
+- `.icon-tile` for icon containers.
+- `.document-icon` for consistent document glyphs.
+- `.modal-scrim`, `.modal-panel`, `.toast-card` for overlays.
+
 ### Core palette
 
 | Variable | Value | Use |
@@ -121,6 +146,18 @@ Circular avatar with initials. Accepts `size: "sm" | "md" | "lg"`. Color is deri
 `src/components/ui/BrandMark.tsx`
 The Nextport AI logo mark — radial gradient square with nested inner mark. Do not change this without updating the brand.
 
+### P1 base library
+Use these before creating new one-off UI:
+
+- `PageHeader` — shared page title, subtitle and action alignment.
+- `MetricCard` — KPI cards with tokenized elevation, focus and sparkline.
+- `StatusChip` — wrapper around `.chip-*` for consistent status pills.
+- `ActionButton` — wrapper around `.btn` variants.
+- `SectionCard` — tokenized section surface.
+- `DocumentIcon` — shared document glyph system for invoice, BL, packing list, pedimento, MVE and related docs.
+- `IntegrationLogo` — shared brand/logo tile for connectors.
+- `EmptyState`, `Skeleton`, `Modal`, `Toast` — shared state and overlay primitives.
+
 ---
 
 ## Status color rules
@@ -137,10 +174,10 @@ Table rows have a 3px left border rule as a quick visual status scan. Do not rem
 
 ## Interaction patterns
 
-- **Hover state:** `rgba(255,255,255,0.02)` background lift
-- **Active state:** `rgba(255,255,255,0.06)` + inset border
-- **Focus ring:** Brand blue, `outline: 2px solid var(--brand)`
-- **Transitions:** `150ms ease` for color/background, no transform on most elements
+- **Hover state:** `var(--surface-hover)` with subtle lift on cards and controls.
+- **Active state:** `var(--surface-active)` plus border and brand glow via `.is-active` / `.lifted-active`.
+- **Focus ring:** `var(--focus-ring)` for keyboard focus.
+- **Transitions:** use `--motion-fast`, `--motion-normal`, `--motion-slow`.
 - **Animations:**
   - `.fade-up` — 350ms, used on cards appearing
   - `.shimmer` — loading skeleton

@@ -1,22 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactElement } from "react";
 import { useLang } from "@/lib/lang-context";
 import { sampleDocuments } from "@/lib/pipeline-data";
-
-function Icon({ name, size = 14 }: { name: string; size?: number }) {
-  const s = { width: size, height: size, flexShrink: 0 as const };
-  const icons: Record<string, ReactElement> = {
-    upload:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={s}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
-    inbox:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={s}><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>,
-    file:        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={s}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 13h8" /><path d="M8 17h6" /></svg>,
-    x:           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={s}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
-    alert:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={s}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
-    arrow_right: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={s}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>,
-  };
-  return icons[name] ?? <svg style={s} />;
-}
+import { AppIcon as Icon } from "@/components/ui/AppIcon";
+import { Modal } from "@/components/ui/Modal";
 
 export function UploadModal({ onClose }: { onClose: () => void }) {
   const { lang } = useLang();
@@ -72,8 +60,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 sm:px-6" style={{ background: "rgba(4,6,10,0.65)", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div className="glass-panel fade-up" style={{ width: "min(780px, calc(100vw - 24px))", maxHeight: "85vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <div className="flex items-start justify-between gap-3 border-b px-4 pb-4 pt-5 sm:items-center sm:px-6" style={{ borderColor: "var(--hair)" }}>
           <div className="flex items-center gap-2.5">
             <Icon name="inbox" size={16} />
@@ -190,7 +177,6 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

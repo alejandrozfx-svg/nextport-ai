@@ -14,15 +14,21 @@ import {
   FileCheck2,
   FileText,
   Filter,
+  Gavel,
   LayoutGrid,
   List,
   Landmark,
   Package,
+  RotateCcw,
   Scan,
   ScanLine,
+  Scale,
   Search as SearchIcon,
+  Shield,
   ShieldCheck,
   Ship,
+  Shuffle,
+  Sparkles,
   TrendingDown,
   X,
   XCircle,
@@ -31,6 +37,7 @@ import {
 import { formatDate, formatDateTime, cn } from "@/lib/utils";
 import { useLang } from "@/lib/lang-context";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
+import { ActionButton, DocumentIcon, EmptyState, MetricCard, PageHeader, SectionCard } from "@/components/ui";
 
 interface EvidenceField {
   id: string;
@@ -357,6 +364,105 @@ function FragmentRow({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/* ── Audit playbooks ─────────────────────────────────────────────────
+ * Real-world starting points. Each playbook applies a preset combination
+ * of filters that maps to a specific compliance scenario the user actually
+ * encounters. Picking one immediately narrows the table so the user goes
+ * from "open page → pick scenario → refine → export" in 3 clicks.
+ * ────────────────────────────────────────────────────────────────────*/
+type PlaybookId = "sat" | "quarterly" | "supplier" | "soc2" | "qa";
+
+interface PlaybookPreset {
+  filter?: string;
+  period?: PeriodFilter;
+  confFilter?: ConfidenceFilter;
+  statusFilter?: string;
+  sourceFilter?: string;
+  supplierFilter?: string;
+  operationFilter?: string;
+  search?: string;
+  sortKey?: SortKey;
+}
+
+interface Playbook {
+  id: PlaybookId;
+  icon: LucideIcon;
+  accent: string;
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+  preset: PlaybookPreset;
+}
+
+const PLAYBOOKS: Playbook[] = [
+  {
+    id: "sat",
+    icon: Landmark,
+    accent: "var(--warn)",
+    titleKey: "playbookSatTitle",
+    descKey: "playbookSatDesc",
+    preset: { period: "30d", statusFilter: "ready", sortKey: "recent" },
+  },
+  {
+    id: "quarterly",
+    icon: Scale,
+    accent: "var(--brand)",
+    titleKey: "playbookQuarterlyTitle",
+    descKey: "playbookQuarterlyDesc",
+    preset: { period: "quarter", statusFilter: "validated", sortKey: "supplier" },
+  },
+  {
+    id: "supplier",
+    icon: Gavel,
+    accent: "var(--accent)",
+    titleKey: "playbookSupplierTitle",
+    descKey: "playbookSupplierDesc",
+    preset: { sortKey: "supplier" }, // user picks supplier afterwards
+  },
+  {
+    id: "soc2",
+    icon: ShieldCheck,
+    accent: "var(--ok)",
+    titleKey: "playbookSocTitle",
+    descKey: "playbookSocDesc",
+    preset: { sortKey: "recent" }, // sampling handled at export time
+  },
+  {
+    id: "qa",
+    icon: ScanLine,
+    accent: "var(--risk)",
+    titleKey: "playbookQaTitle",
+    descKey: "playbookQaDesc",
+    preset: { confFilter: "low", sortKey: "confAsc" },
+  },
+];
+
+/* ── Recent pulls ────────────────────────────────────────────────────
+ * Demo history of past evidence exports. Reinforces that this is a
+ * recurring workflow (audit defense is a routine, not a one-off) and
+ * makes the chain-of-custody concept visible.
+ * ────────────────────────────────────────────────────────────────────*/
+interface RecentPull {
+  id: string;
+  user: { name: string; initials: string };
+  reasonKey: TranslationKey;
+  docCount: number;
+  manifestSha: string;
+  createdAt: string;
+}
+
+const DEMO_RECENT_PULLS: RecentPull[] = [
+  { id: "pull-001", user: { name: "Mariana López", initials: "ML" }, reasonKey: "playbookSatTitle",      docCount: 18, manifestSha: "7f3c·b29a·4d11", createdAt: "2026-05-22T11:14:00Z" },
+  { id: "pull-002", user: { name: "Sofía Galván",  initials: "SG" }, reasonKey: "playbookQuarterlyTitle", docCount: 47, manifestSha: "9e0d·a4f2·6c83", createdAt: "2026-05-19T16:02:00Z" },
+  { id: "pull-003", user: { name: "Ana Ramírez",   initials: "AR" }, reasonKey: "playbookSupplierTitle",  docCount:  9, manifestSha: "2b18·c8e0·9a37", createdAt: "2026-05-15T09:48:00Z" },
+  { id: "pull-004", user: { name: "Diego Solórzano", initials: "DS" }, reasonKey: "playbookSocTitle",     docCount: 10, manifestSha: "5d72·4119·b806", createdAt: "2026-05-08T14:25:00Z" },
+];
+
+function generateManifestSha() {
+  const chars = "0123456789abcdef";
+  const seg = (n: number) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * 16)]).join("");
+  return `${seg(4)}·${seg(4)}·${seg(4)}`;
+}
+
 function DocumentSpecificPreview({ doc, compact }: { doc: DocumentItem; compact?: boolean }) {
   const visual = getVisualConfig(doc.type);
   const Icon = visual.Icon;
@@ -425,7 +531,6 @@ function DocumentSpecificPreview({ doc, compact }: { doc: DocumentItem; compact?
 
 function DocumentThumbnail({ doc, variant = "card" }: { doc: DocumentItem; variant?: "card" | "large" }) {
   const visual = getVisualConfig(doc.type);
-  const Icon = visual.Icon;
   const isLarge = variant === "large";
 
   return (
@@ -441,12 +546,7 @@ function DocumentThumbnail({ doc, variant = "card" }: { doc: DocumentItem; varia
       <div className="relative z-10 flex w-full flex-col">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div
-              className={cn("grid place-items-center rounded-lg border", isLarge ? "h-10 w-10" : "h-9 w-9")}
-              style={{ borderColor: "var(--hair-2)", background: "rgba(0,0,0,0.30)" }}
-            >
-              <Icon size={isLarge ? 18 : 16} style={{ color: visual.accent }} />
-            </div>
+            <DocumentIcon type={doc.type} classified size={isLarge ? "lg" : "md"} />
             {/* Single, unambiguous label: just the type short code (PED / INV / BL / PKG / MVE / CFDI) */}
             <p className="font-mono text-[11px] font-semibold tracking-[0.20em]" style={{ color: visual.accent }}>
               {visual.short}
@@ -758,6 +858,9 @@ export function DocumentsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportState, setExportState] = useState<"idle" | "preparing" | "done">("idle");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [activePlaybook, setActivePlaybook] = useState<PlaybookId | null>(null);
+  const [recentPulls, setRecentPulls] = useState<RecentPull[]>(DEMO_RECENT_PULLS);
+  const [lastExport, setLastExport] = useState<{ docCount: number; sha: string; reasonKey: TranslationKey | null } | null>(null);
 
   useEffect(() => {
     setDocuments(DEMO_DOCUMENTS);
@@ -836,6 +939,23 @@ export function DocumentsPage() {
     setSupplierFilter("all");
     setOperationFilter("all");
     setFilter("all");
+    setActivePlaybook(null);
+  }
+
+  function applyPlaybook(playbook: Playbook) {
+    // Reset all filters first so a previous playbook does not leak its filters in.
+    clearAllFilters();
+    const p = playbook.preset;
+    if (p.filter)          setFilter(p.filter);
+    if (p.period)          setPeriod(p.period);
+    if (p.confFilter)      setConfFilter(p.confFilter);
+    if (p.statusFilter)    setStatusFilter(p.statusFilter);
+    if (p.sourceFilter)    setSourceFilter(p.sourceFilter);
+    if (p.supplierFilter)  setSupplierFilter(p.supplierFilter);
+    if (p.operationFilter) setOperationFilter(p.operationFilter);
+    if (p.search)          setSearch(p.search);
+    if (p.sortKey)         setSortKey(p.sortKey);
+    setActivePlaybook(playbook.id);
   }
 
   async function handleExportZip() {
@@ -845,8 +965,23 @@ export function DocumentsPage() {
     // Simulate package prep with a short delay so the user sees the state transition
     await new Promise((r) => setTimeout(r, 700));
     downloadAuditManifest(selectedDocs);
+
+    // Register the pull in the recent-pulls history so the audit-trail feels real.
+    const playbook = PLAYBOOKS.find((p) => p.id === activePlaybook);
+    const sha = generateManifestSha();
+    const newPull: RecentPull = {
+      id: `pull-${Date.now()}`,
+      user: { name: "Diego Solórzano", initials: "DS" },
+      reasonKey: playbook?.titleKey ?? "auditPullTitle",
+      docCount: selectedDocs.length,
+      manifestSha: sha,
+      createdAt: new Date().toISOString(),
+    };
+    setRecentPulls((prev) => [newPull, ...prev].slice(0, 8));
+    setLastExport({ docCount: selectedDocs.length, sha, reasonKey: playbook?.titleKey ?? null });
+
     setExportState("done");
-    setTimeout(() => setExportState("idle"), 2000);
+    setTimeout(() => setExportState("idle"), 2500);
   }
 
   async function handleScan() {
@@ -882,52 +1017,121 @@ export function DocumentsPage() {
   return (
     <div className="space-y-4 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>
-            {t("auditPullTitle", lang)}
-          </h2>
-          <p className="text-sm" style={{ color: "var(--ink-4)" }}>
-            {t("auditPullSubtitle", lang)}
-          </p>
-        </div>
-        <button onClick={() => setScanOpen(true)} className="btn btn-primary w-full justify-center sm:w-auto">
-          <ScanLine size={14} />
-          {t("scanDocumentBtn", lang)}
-        </button>
-      </div>
+      <PageHeader
+        title={t("auditPullTitle", lang)}
+        subtitle={t("auditPullSubtitle", lang)}
+        actions={(
+          <ActionButton variant="primary" className="w-full justify-center sm:w-auto" onClick={() => setScanOpen(true)}>
+            <ScanLine size={14} strokeWidth={1.5} />
+            {t("scanDocumentBtn", lang)}
+          </ActionButton>
+        )}
+      />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="glass-panel-tight p-3">
-          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiTotal", lang)}</p>
-          <p className="mt-1 text-2xl font-semibold tabular" style={{ color: "var(--ink)" }}>{total}</p>
-        </div>
-        <div className="glass-panel-tight p-3">
-          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiNeedsReview", lang)}</p>
-          <p className="mt-1 text-2xl font-semibold tabular" style={{ color: needsReview > 0 ? "var(--warn)" : "var(--ok)" }}>{needsReview}</p>
-        </div>
-        <div className="glass-panel-tight p-3">
-          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiAvgConf", lang)}</p>
-          <p className="mt-1 text-2xl font-semibold tabular" style={{ color: avgConf >= 0.95 ? "var(--ok)" : avgConf >= 0.90 ? "var(--warn)" : "var(--risk)" }}>
-            {(avgConf * 100).toFixed(1)}%
-          </p>
-        </div>
-        <div className="glass-panel-tight p-3">
-          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiMismatch", lang)}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-2xl font-semibold tabular" style={{ color: mismatchCount > 0 ? "var(--risk)" : "var(--ok)" }}>
-            {mismatchCount > 0 && <TrendingDown size={16} />}
-            {mismatchCount}
-          </p>
-        </div>
+        <MetricCard label={t("auditKpiTotal", lang)} value={total} />
+        <MetricCard label={t("auditKpiNeedsReview", lang)} value={needsReview} color={needsReview > 0 ? "var(--warn)" : "var(--ok)"} />
+        <MetricCard label={t("auditKpiAvgConf", lang)} value={`${(avgConf * 100).toFixed(1)}%`} color={avgConf >= 0.95 ? "var(--ok)" : avgConf >= 0.90 ? "var(--warn)" : "var(--risk)"} />
+        <MetricCard
+          label={t("auditKpiMismatch", lang)}
+          value={mismatchCount}
+          color={mismatchCount > 0 ? "var(--risk)" : "var(--ok)"}
+          icon={mismatchCount > 0 ? <TrendingDown size={16} strokeWidth={1.5} /> : undefined}
+        />
       </div>
 
+      {/* Audit playbooks — preset starting points for real compliance scenarios. */}
+      <section className="space-y-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{t("playbooksTitle", lang)}</h3>
+            <p className="text-xs" style={{ color: "var(--ink-4)" }}>{t("playbooksSubtitle", lang)}</p>
+          </div>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {PLAYBOOKS.map((pb) => {
+            const Icon = pb.icon;
+            const isActive = activePlaybook === pb.id;
+            return (
+              <button
+                key={pb.id}
+                onClick={() => isActive ? clearAllFilters() : applyPlaybook(pb)}
+                className={cn(
+                  "glass-panel-tight relative flex flex-col gap-2 p-3 text-left transition-all hover:-translate-y-0.5",
+                  isActive ? "lifted-active" : "",
+                )}
+                style={isActive ? { background: `${pb.accent}14`, borderColor: pb.accent } : undefined}
+                aria-pressed={isActive}
+              >
+                {isActive && (
+                  <span
+                    className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                    style={{ background: pb.accent, color: "#0A0D12" }}
+                  >
+                    {t("playbookActive", lang)}
+                  </span>
+                )}
+                <div
+                  className="grid h-8 w-8 place-items-center rounded-lg"
+                  style={{ background: `${pb.accent}1f`, border: `1px solid ${pb.accent}66`, color: pb.accent }}
+                >
+                  <Icon size={15} />
+                </div>
+                <p className="text-[13px] font-semibold leading-snug" style={{ color: "var(--ink)" }}>
+                  {t(pb.titleKey, lang)}
+                </p>
+                <p className="text-[11.5px] leading-snug line-clamp-3" style={{ color: "var(--ink-4)" }}>
+                  {t(pb.descKey, lang)}
+                </p>
+                <span className="mt-1 flex items-center gap-1 text-[10.5px] font-medium" style={{ color: pb.accent }}>
+                  {isActive ? <X size={10} /> : <Sparkles size={10} />}
+                  {isActive ? t("auditClearFilters", lang) : t("playbookUsePreset", lang)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Export-success banner — confirms the manifest hash & links to audit trail. */}
+      {lastExport && exportState === "done" && (
+        <div
+          className="glass-panel relative flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+          style={{ background: "var(--ok-soft)", borderColor: "oklch(0.78 0.13 155 / 0.4)" }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="grid h-9 w-9 place-items-center rounded-full" style={{ background: "oklch(0.78 0.13 155 / 0.2)" }}>
+              <Shield size={16} style={{ color: "var(--ok)" }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                {t("auditExportSummaryTitle", lang)}
+              </p>
+              <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+                {lastExport.docCount} {t("auditExportSummaryDocs", lang)} · {t("auditExportSummaryHash", lang)}
+              </p>
+              <p className="mt-1 font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>
+                {t("auditExportHashLabel", lang)}: <span style={{ color: "var(--ok)" }}>{lastExport.sha}</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/console/security" className="btn btn-secondary">
+              {t("auditExportTrailLink", lang)} <ArrowUpRight size={11} />
+            </Link>
+            <button onClick={() => setLastExport(null)} aria-label={t("auditExportDoneClose", lang)} className="btn btn-ghost btn-sm">
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar: search + view toggle + filters trigger */}
-      <div className="glass-panel-tight p-3 space-y-3">
+      <SectionCard className="space-y-3 p-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           {/* Search */}
-          <div className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2"
-               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)" }}>
+          <div className="app-input flex flex-1 items-center gap-2 rounded-lg px-3 py-2">
             <SearchIcon size={14} style={{ color: "var(--ink-4)" }} />
             <input
               value={search}
@@ -949,8 +1153,7 @@ export function DocumentsPage() {
             <select
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
-              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
             >
               <option value="recent">{t("auditSortRecent", lang)}</option>
               <option value="confAsc">{t("auditSortConfAsc", lang)}</option>
@@ -1003,8 +1206,7 @@ export function DocumentsPage() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
-              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
               aria-label={t("auditPeriodAll", lang)}
             >
               <option value="all">{t("auditPeriodAll", lang)}</option>
@@ -1015,8 +1217,7 @@ export function DocumentsPage() {
             <select
               value={confFilter}
               onChange={(e) => setConfFilter(e.target.value as ConfidenceFilter)}
-              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
               aria-label={t("auditConfAll", lang)}
             >
               <option value="all">{t("auditConfAll", lang)}</option>
@@ -1027,8 +1228,7 @@ export function DocumentsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
               aria-label={t("auditStatusAll", lang)}
             >
               <option value="all">{t("auditStatusAll", lang)}</option>
@@ -1051,8 +1251,7 @@ export function DocumentsPage() {
             <select
               value={operationFilter}
               onChange={(e) => setOperationFilter(e.target.value)}
-              className="rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              className="app-input rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none"
               aria-label={t("auditColOperation", lang)}
             >
               <option value="all">{t("auditColOperation", lang)} — {t("auditSourceAll", lang).toLowerCase()}</option>
@@ -1063,8 +1262,7 @@ export function DocumentsPage() {
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
               aria-label={t("auditSourceAll", lang)}
             >
               <option value="all">{t("auditSourceAll", lang)}</option>
@@ -1079,7 +1277,7 @@ export function DocumentsPage() {
             )}
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {/* Type filter chips (existing) */}
       <div className="flex flex-wrap gap-1.5">
@@ -1467,9 +1665,12 @@ export function DocumentsPage() {
             )}
 
             {sorted.length === 0 && (
-              <div className="glass-panel p-12 text-center" style={{ color: "var(--ink-4)" }}>
-                {hasActiveFilter ? t("auditNoResults", lang) : t("noDocumentsFound", lang)}
-              </div>
+              <SectionCard className="p-8">
+                <EmptyState
+                  icon="file"
+                  description={hasActiveFilter ? t("auditNoResults", lang) : t("noDocumentsFound", lang)}
+                />
+              </SectionCard>
             )}
           </div>
 
@@ -1478,6 +1679,56 @@ export function DocumentsPage() {
           </div>
         </div>
       )}
+
+      {/* Recent evidence pulls — every export from this vault leaves a trail. */}
+      <section className="space-y-2 pt-2">
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{t("recentPullsTitle", lang)}</h3>
+          <p className="text-xs" style={{ color: "var(--ink-4)" }}>{t("recentPullsSubtitle", lang)}</p>
+        </div>
+        <div className="glass-panel overflow-hidden">
+          <ul className="divide-y" style={{ borderColor: "var(--hair)" }}>
+            {recentPulls.map((pull) => (
+              <li key={pull.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-3 sm:flex-1">
+                  <div
+                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-[10px] font-semibold"
+                    style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)", color: "var(--brand)" }}
+                  >
+                    {pull.user.initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
+                      {t(pull.reasonKey, lang)}
+                    </p>
+                    <p className="text-[11px]" style={{ color: "var(--ink-4)" }}>
+                      {t("recentPullsBy", lang)} {pull.user.name} · {formatDateTime(pull.createdAt, lang)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:gap-4">
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono tabular text-sm font-semibold" style={{ color: "var(--ink)" }}>{pull.docCount}</span>
+                    <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("recentPullsDocs", lang)}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono tabular text-[11px]" style={{ color: "var(--ok)" }}>{pull.manifestSha}</span>
+                    <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("recentPullsHash", lang)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    title={t("recentPullsReplay", lang)}
+                    aria-label={t("recentPullsReplay", lang)}
+                  >
+                    <RotateCcw size={11} />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
       {scanOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>

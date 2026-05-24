@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { DemoOperation } from "@/lib/demo-data";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
+import { DocumentIcon, StatusChip } from "@/components/ui";
 
 const ruleClass: Record<string, string> = {
   risk:   "row-risk-rule",
@@ -11,19 +12,16 @@ const ruleClass: Record<string, string> = {
   ready:  "row-ok-rule",
 };
 
-const chipKind: Record<string, string> = {
+const chipKind: Record<string, "risk" | "warn" | "ok"> = {
   risk:   "risk",
   review: "warn",
   ready:  "ok",
 };
 
-const docGlyphs = ["A1", "$", "BL", "PL", "MV", "CF", "CP"];
-
 function MiniDocIcon({ classified, index = 0 }: { classified: boolean; index?: number }) {
+  const docTypes = ["pedimento", "invoice", "bl", "packing_list", "mve", "cfdi", "carta_porte"];
   return (
-    <div className={`doc-mini ${classified ? "classified" : ""}`}>
-      {classified ? docGlyphs[index % docGlyphs.length] : ""}
-    </div>
+    <DocumentIcon type={docTypes[index % docTypes.length]} classified={classified} size="mini" />
   );
 }
 
@@ -42,9 +40,9 @@ export function OperationRow({ op, index = 0 }: { op: DemoOperation; index?: num
     <tr className={`row-link ${rule} ops-row-animate transition-colors`} style={{ cursor: "pointer", animationDelay: `${index * 45}ms` }}>
       <td style={{ paddingLeft: 16 }}>
         <Link href={`/console/operations/${op.id}`} className="block">
-          <span className={`chip chip-${chipKind[op.status]}`}>
-            <span className="dot" />{chipLabel[op.status]}
-          </span>
+          <StatusChip tone={chipKind[op.status]}>
+            {chipLabel[op.status]}
+          </StatusChip>
           <div className="font-mono text-[10.5px] mt-1" style={{ color: "var(--ink-4)" }}>{op.id}</div>
         </Link>
       </td>
