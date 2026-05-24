@@ -62,7 +62,7 @@ function localizedStep(step: (typeof workflowSteps)[number], lang: "en" | "es" |
 
 function EvidencePackLinks() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
       {sampleDocuments.map((doc) => (
         <a
           key={doc.name}
@@ -88,7 +88,7 @@ function EvidencePackLinks() {
 
 function WorkflowRibbon({ lang }: { lang: "en" | "es" | "zh" }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {workflowSteps.map((step, index) => {
         const color = toneColor(step.statusTone);
         const loc = localizedStep(step, lang);
@@ -132,7 +132,7 @@ export function PipelinePage() {
   };
 
   return (
-    <div className="px-8 py-7 space-y-5">
+    <div className="space-y-5 px-4 py-5 sm:px-6 md:px-8 md:py-7">
       {/* Header */}
       <div className="flex items-start justify-between mb-1 gap-4">
         <div className="max-w-3xl">
@@ -175,7 +175,7 @@ export function PipelinePage() {
 
       {/* The story: how operations enter + the 6-step workflow + evidence pack */}
       <section className="grid grid-cols-1 xl:grid-cols-[minmax(360px,0.86fr)_minmax(520px,1.14fr)] gap-3">
-        <div className="glass-panel p-5">
+        <div className="glass-panel p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="chip chip-brand"><span className="dot" />{lang === "es" ? "Disparador entrante" : lang === "zh" ? "进入触发器" : "Incoming trigger"}</span>
             <span className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "var(--ink-4)" }}>
@@ -235,7 +235,7 @@ export function PipelinePage() {
           </div>
         </div>
 
-        <div className="glass-panel p-5">
+        <div className="glass-panel p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="flex items-center gap-2 mb-3">

@@ -83,14 +83,14 @@ export function IntelligencePage() {
   const { kpis, operationsByStatus, docsByDay, confidenceDistribution } = data;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div>
         <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("dataIntelligence", lang)}</h2>
         <p className="text-sm" style={{ color: "var(--ink-4)" }}>{t("aiPerformanceSubtitle", lang)}</p>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label={t("kpiDocumentsClassified", lang)} value={kpis.documentsClassified} icon={<FileText size={14} />} color="var(--brand)" />
         <StatCard label={t("kpiFieldsExtracted", lang)} value={kpis.fieldsExtracted} icon={<Cpu size={14} />} color="var(--brand)" />
         <StatCard label={t("kpiValidationsRun", lang)} value={kpis.validationsRun} icon={<CheckCheck size={14} />} color="var(--ok)" />
@@ -98,7 +98,7 @@ export function IntelligencePage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Operations by status pie */}
         <div className="glass-panel p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>

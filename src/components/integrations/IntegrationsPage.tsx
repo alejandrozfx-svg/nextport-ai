@@ -223,7 +223,7 @@ export function IntegrationsPage() {
   ];
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-7 p-4 sm:p-6">
       <div>
         <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("integrations", lang)}</h2>
         <p className="text-sm" style={{ color: "var(--ink-4)" }}>
@@ -242,7 +242,7 @@ export function IntegrationsPage() {
             >
               {categoryKeys[category] ? t(categoryKeys[category], lang) : category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {byCategory[category].map((integration) => {
                 const cfg = statusConfig[integration.status as keyof typeof statusConfig] ?? statusConfig.disconnected;
                 const Icon = cfg.icon;

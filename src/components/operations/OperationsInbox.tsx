@@ -291,9 +291,9 @@ export function OperationsInbox() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard label={t("activeOps", lang)} value={counts.all} sub={lang === "es" ? "Este mes" : lang === "zh" ? "本月" : "This month"} active={filter === "all"} onClick={() => setFilter("all")} />
-        <StatCard label={t("atRisk", lang)} value={counts.risk} sub={lang === "es" ? "Discrepancia bloqueante" : lang === "zh" ? "阻断性差异" : "Blocking mismatch"} color="var(--risk)" active={filter === "risk"} onClick={() => setFilter("risk")} />
-        <StatCard label={t("needsReview", lang)} value={counts.review} sub={lang === "es" ? "Documento faltante" : lang === "zh" ? "缺少文件" : "Missing document"} color="var(--warn)" active={filter === "review"} onClick={() => setFilter("review")} />
+        <StatCard label={t("activeOps", lang)} value={counts.all} sub={t("thisMonth", lang)} active={filter === "all"} onClick={() => setFilter("all")} />
+        <StatCard label={t("atRisk", lang)} value={counts.risk} sub={t("blockingMismatch", lang)} color="var(--risk)" active={filter === "risk"} onClick={() => setFilter("risk")} />
+        <StatCard label={t("needsReview", lang)} value={counts.review} sub={t("missingDocument", lang)} color="var(--warn)" active={filter === "review"} onClick={() => setFilter("review")} />
         <StatCard label={t("readyForHandoff", lang)} value={counts.ready} sub={t("closedExpediente", lang)} color="var(--ok)" active={filter === "ready"} onClick={() => setFilter("ready")} />
         <StatCard label={t("customsValueToday", lang)} value={`$${(totalValue / 1000).toFixed(0)}k`} sub={t("usdEquivalent", lang)} />
       </div>

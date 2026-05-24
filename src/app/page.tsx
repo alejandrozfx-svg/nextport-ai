@@ -292,7 +292,7 @@ export default function LandingPage() {
   return (
     <main
       id="landing"
-      className="relative min-h-screen overflow-hidden"
+      className="relative min-h-[100svh] overflow-hidden"
       style={{ background: "#000" }}
       data-screen-label="01 Landing"
     >
@@ -313,7 +313,7 @@ export default function LandingPage() {
       {!videoReady && videoEnabled && <HeroFallback />}
       <div className="hero-vignette" />
 
-      <nav className="relative z-20 px-3 py-4 sm:px-6 sm:py-6">
+      <nav className="relative z-20 px-3 py-3 sm:px-6 sm:py-6">
         <div className="liquid-glass mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-full px-3 py-2.5 sm:px-5">
           <div className="flex min-w-0 items-center gap-5 lg:gap-8">
             <a
@@ -365,17 +365,17 @@ export default function LandingPage() {
       </nav>
 
       <section
-        className="relative z-10 flex flex-col items-center justify-center px-4 pb-7 pt-5 text-center sm:px-6 sm:pt-10"
+        className="relative z-10 flex min-h-[calc(100svh-166px)] flex-col items-center justify-start px-4 pb-5 pt-3 text-center sm:min-h-0 sm:justify-center sm:px-6 sm:pt-10"
       >
-        <h1 className="hero-title fade-up max-w-[1100px] text-white">
+        <h1 className="hero-title fade-up max-w-[760px] text-white sm:max-w-[1100px]">
           {t(lang, "headline")}
         </h1>
 
-        <p className="fade-up mt-5 max-w-[640px] text-[14px] leading-6 text-white/70 sm:mt-7 md:text-[16px] md:leading-relaxed">
+        <p className="fade-up mt-4 max-w-[640px] text-[13.5px] leading-6 text-white/70 sm:mt-7 md:text-[16px] md:leading-relaxed">
           {t(lang, "sub")}
         </p>
 
-        <div className="fade-up mt-7 w-full max-w-xl space-y-4 sm:mt-9">
+        <div className="fade-up mt-5 w-full max-w-xl space-y-3 sm:mt-9 sm:space-y-4">
           <SignInCard lang={lang} onSuccess={enterConsole} />
           <p className="px-4 text-[12.5px] leading-relaxed text-white/55">
             {t(lang, "trust_line")}
@@ -393,7 +393,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="relative z-10 flex justify-center gap-3 pb-7 sm:pb-10">
+      <div className="relative z-10 hidden justify-center gap-3 pb-7 sm:flex sm:pb-10">
         <button
           type="button"
           aria-label="Instagram"

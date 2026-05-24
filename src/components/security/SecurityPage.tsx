@@ -93,7 +93,7 @@ export function SecurityPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div>
         <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("securityAuditTitle", lang)}</h2>
         <p className="text-sm" style={{ color: "var(--ink-4)" }}>
@@ -102,7 +102,7 @@ export function SecurityPage() {
       </div>
 
       {/* Compliance badges */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {complianceBadges.map((b) => (
           <div
             key={b.label}
@@ -191,7 +191,7 @@ export function SecurityPage() {
               {events.map((ev) => {
                 const color = eventColor[ev.event] ?? "var(--ink-4)";
                 return (
-                  <div key={ev.id} className="flex items-start gap-3 px-4 py-3">
+                  <div key={ev.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3">
                     <div
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
                       style={{ background: color }}
@@ -217,7 +217,7 @@ export function SecurityPage() {
                         <p className="text-xs mt-0.5" style={{ color: "var(--ink-3)" }}>{ev.detail}</p>
                       )}
                     </div>
-                    <span className="text-xs font-mono flex-shrink-0" style={{ color: "var(--ink-4)" }}>
+                    <span className="text-xs font-mono flex-shrink-0 sm:text-right" style={{ color: "var(--ink-4)" }}>
                       {formatDateTime(ev.createdAt, lang)}
                     </span>
                   </div>

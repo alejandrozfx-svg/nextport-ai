@@ -98,7 +98,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
     <div
       className="fixed right-0 top-0 h-screen flex flex-col fade-up"
       style={{
-        width: 380,
+        width: "min(100vw, 380px)",
         background: "var(--bg-2)",
         borderLeft: "1px solid var(--hair)",
         zIndex: 50,

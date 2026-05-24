@@ -143,15 +143,15 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>{t("settingsTitle", lang)}</h2>
           <p className="text-sm" style={{ color: "var(--ink-4)" }}>{t("settingsSubtitle", lang)}</p>
         </div>
         <button
           onClick={handleSave}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium sm:w-auto"
           style={{ background: saved ? "var(--ok)" : "var(--brand)", color: "#0A0D12" }}
         >
           <Save size={13} />

@@ -47,12 +47,12 @@ export function AcademyDashboard() {
     byLevel[l.level].push(l);
   });
 
-  const minutesLabel = lang === "es" ? "min" : lang === "zh" ? "分钟" : "min";
+  const minutesLabel = t("minutesShort", lang);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>
             {t("academyTitle", lang)}
@@ -63,7 +63,7 @@ export function AcademyDashboard() {
         </div>
         <button
           onClick={() => setTutorOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium"
+          className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium sm:w-auto"
           style={{ background: "var(--brand-soft)", color: "var(--brand)", border: "1px solid oklch(0.78 0.09 235 / 0.25)" }}
         >
           <Bot size={14} />
@@ -72,18 +72,14 @@ export function AcademyDashboard() {
       </div>
 
       {/* Overall progress */}
-      <div className="glass-panel p-4 flex items-center gap-4">
+      <div className="glass-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
         <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--brand-soft)" }}>
           <GraduationCap size={20} style={{ color: "var(--brand)" }} />
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm font-medium" style={{ color: "var(--ink)" }}>
-              {lang === "es"
-                ? `Tu progreso · ${completedCount}/${total} módulos completados`
-                : lang === "zh"
-                ? `你的进度 · ${completedCount}/${total} 个模块已完成`
-                : `Your progress · ${completedCount}/${total} modules completed`}
+              {`${t("yourProgress", lang)} · ${completedCount}/${total} ${t("modulesCompleted", lang)}`}
             </p>
             <span className="text-sm font-mono" style={{ color: "var(--brand)" }}>{progressPct}%</span>
           </div>
@@ -92,17 +88,17 @@ export function AcademyDashboard() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 sm:py-1.5"
           style={{ background: "var(--bg-2)", border: "1px solid var(--hair-2)" }}
         >
           <Search size={12} style={{ color: "var(--ink-4)" }} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={lang === "es" ? "Buscar módulos…" : lang === "zh" ? "搜索模块…" : "Search modules…"}
-            className="bg-transparent text-xs outline-none w-40"
+            placeholder={t("searchModules", lang)}
+            className="w-full bg-transparent text-xs outline-none sm:w-40"
             style={{ color: "var(--ink)" }}
           />
         </div>
@@ -118,7 +114,7 @@ export function AcademyDashboard() {
             }
           >
             {l === "all"
-              ? (lang === "es" ? "Todos los niveles" : lang === "zh" ? "所有级别" : "All levels")
+              ? t("allLevels", lang)
               : t(l, lang)}
           </button>
         ))}

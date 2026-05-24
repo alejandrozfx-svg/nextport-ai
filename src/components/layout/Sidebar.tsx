@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Workflow,
   LogOut,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -38,6 +39,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
   const router = useRouter();
   const { lang } = useLang();
   const [user, setUser] = useState<{ name: string; initials: string; role: string; photo?: string } | null>(null);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -58,6 +60,11 @@ export function Sidebar({ onAiClick }: SidebarProps) {
     { href: "/console/academy",      labelKey: "academy"      as const, icon: GraduationCap, badge: "NEW" },
     { href: "/console/settings",     labelKey: "settings"     as const, icon: Settings },
   ];
+
+  const primaryMobileItems = navItems.filter((item) =>
+    ["/console/pipeline", "/console/operations", "/console/documents", "/console/academy"].includes(item.href)
+  );
+  const secondaryMobileItems = navItems.filter((item) => !primaryMobileItems.includes(item));
 
   function handleLogout() {
     if (typeof window !== "undefined") {
@@ -213,8 +220,39 @@ export function Sidebar({ onAiClick }: SidebarProps) {
         </button>
       </div>
     </aside>
+    {mobileMoreOpen && (
+      <div
+        className="fixed inset-x-3 z-50 grid grid-cols-2 gap-2 rounded-2xl p-3 md:hidden"
+        style={{
+          bottom: "calc(76px + env(safe-area-inset-bottom))",
+          background: "var(--bg-2)",
+          border: "1px solid var(--hair)",
+          boxShadow: "var(--elev-3)",
+        }}
+      >
+        {secondaryMobileItems.map(({ href, labelKey, icon: Icon }) => {
+          const active = pathname === href || pathname.startsWith(href + "/");
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileMoreOpen(false)}
+              className="flex items-center gap-2 rounded-xl px-3 py-3 text-xs"
+              style={
+                active
+                  ? { background: "var(--surface-3)", color: "var(--ink)" }
+                  : { background: "var(--surface-1)", color: "var(--ink-3)" }
+              }
+            >
+              <Icon size={16} />
+              <span className="truncate">{t(labelKey, lang)}</span>
+            </Link>
+          );
+        })}
+      </div>
+    )}
     <nav className="console-bottom-nav md:hidden" aria-label="Console navigation">
-      {navItems.map(({ href, labelKey, icon: Icon }) => {
+      {primaryMobileItems.map(({ href, labelKey, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
           <Link
@@ -236,6 +274,23 @@ export function Sidebar({ onAiClick }: SidebarProps) {
           </Link>
         );
       })}
+      <button
+        type="button"
+        onClick={() => setMobileMoreOpen((v) => !v)}
+        className="flex min-w-[64px] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] transition-all"
+        style={
+          mobileMoreOpen
+            ? {
+                background: "var(--surface-3)",
+                color: "var(--ink)",
+                boxShadow: "inset 0 0 0 1px var(--hair-2)",
+              }
+            : { color: "var(--ink-4)" }
+        }
+      >
+        <MoreHorizontal size={16} />
+        <span className="max-w-full truncate">{t("more", lang)}</span>
+      </button>
     </nav>
     </>
   );

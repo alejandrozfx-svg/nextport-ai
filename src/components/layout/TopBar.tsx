@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, ScanLine, Bell, Sun, Moon } from "lucide-react";
+import { Search, ScanLine, Bell, Sun, Moon, MoreHorizontal } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
@@ -35,7 +35,9 @@ export function TopBar({ onScan }: TopBarProps) {
   const { theme, toggleTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [bellOpen, setBellOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const titleKey = Object.entries(PAGE_TITLE_KEYS).find(
     ([k]) => pathname === k || pathname.startsWith(k + "/")
@@ -60,10 +62,22 @@ export function TopBar({ onScan }: TopBarProps) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [bellOpen]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [mobileMenuOpen]);
+
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
+    setMobileMenuOpen(false);
     router.push(`/console/operations?q=${encodeURIComponent(q)}`);
   }
 
@@ -141,9 +155,9 @@ export function TopBar({ onScan }: TopBarProps) {
         {/* Theme toggle (sun/moon) */}
         <button
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          title={theme === "dark" ? "Light mode" : "Dark mode"}
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
+          aria-label={theme === "dark" ? t("switchToLight", lang) : t("switchToDark", lang)}
+          title={theme === "dark" ? t("lightMode", lang) : t("darkMode", lang)}
+          className="hidden w-8 h-8 rounded-lg sm:flex items-center justify-center transition-all hover:opacity-80"
           style={{ border: "1px solid var(--hair)" }}
         >
           {theme === "dark" ? (
@@ -154,7 +168,7 @@ export function TopBar({ onScan }: TopBarProps) {
         </button>
 
         {/* Bell with dropdown */}
-        <div ref={bellRef} className="relative">
+        <div ref={bellRef} className="relative hidden sm:block">
           <button
             onClick={() => setBellOpen((v) => !v)}
             className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
@@ -180,6 +194,92 @@ export function TopBar({ onScan }: TopBarProps) {
               <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>
                 {t("noNotifications", lang)}
               </div>
+            </div>
+          )}
+        </div>
+
+        <div ref={mobileMenuRef} className="relative sm:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            aria-label={t("mobileMenu", lang)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
+            style={{ border: "1px solid var(--hair)", color: "var(--ink-3)" }}
+          >
+            <MoreHorizontal size={15} />
+          </button>
+          {mobileMenuOpen && (
+            <div
+              className="absolute right-0 top-10 z-50 fade-up w-[min(330px,calc(100vw-24px))] p-3 space-y-3"
+              style={{
+                background: "var(--bg-2)",
+                border: "1px solid var(--hair)",
+                borderRadius: 14,
+                boxShadow: "var(--elev-3)",
+              }}
+            >
+              <form onSubmit={submitSearch}>
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                  style={{ background: "var(--bg)", border: "1px solid var(--hair-2)" }}
+                >
+                  <Search size={13} style={{ color: "var(--ink-4)" }} />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={t("searchTopBar", lang)}
+                    className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+                    style={{ color: "var(--ink)", caretColor: "var(--brand)" }}
+                  />
+                </div>
+              </form>
+
+              <div>
+                <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
+                  {t("language", lang)}
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {LANGS.map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setLang(key)}
+                      className="rounded-lg px-3 py-2 text-xs transition-all"
+                      style={{
+                        background: lang === key ? "var(--surface-3)" : "var(--surface-1)",
+                        color: lang === key ? "var(--ink)" : "var(--ink-4)",
+                        border: "1px solid var(--hair)",
+                        fontWeight: lang === key ? 600 : 400,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={toggleTheme} className="btn btn-sm justify-center">
+                  {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+                  {theme === "dark" ? t("lightMode", lang) : t("darkMode", lang)}
+                </button>
+                <button type="button" className="btn btn-sm justify-center" onClick={() => setBellOpen((v) => !v)}>
+                  <Bell size={13} />
+                  {t("notifications", lang)}
+                </button>
+              </div>
+
+              {bellOpen && (
+                <div className="glass-panel-tight p-3">
+                  <div className="text-[12px] font-medium mb-1" style={{ color: "var(--ink)" }}>
+                    {t("notifications", lang)}
+                  </div>
+                  <div className="text-[11.5px]" style={{ color: "var(--ink-4)" }}>
+                    {t("noNotifications", lang)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

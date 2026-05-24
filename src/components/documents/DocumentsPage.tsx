@@ -6,16 +6,24 @@ import {
   ArrowUpRight,
   BadgeDollarSign,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Database,
+  Download,
   FileCheck2,
   FileText,
+  Filter,
+  LayoutGrid,
+  List,
   Landmark,
   Package,
   Scan,
   ScanLine,
+  Search as SearchIcon,
   ShieldCheck,
   Ship,
+  TrendingDown,
   X,
   XCircle,
   type LucideIcon,
@@ -344,6 +352,11 @@ function getEvidenceChecks(doc: DocumentItem): EvidenceCheck[] {
   return getVisualConfig(doc.type).checks;
 }
 
+/** Tiny helper to render two <tr> rows under one keyed wrapper without breaking <tbody>. */
+function FragmentRow({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
 function DocumentSpecificPreview({ doc, compact }: { doc: DocumentItem; compact?: boolean }) {
   const visual = getVisualConfig(doc.type);
   const Icon = visual.Icon;
@@ -636,6 +649,97 @@ function EvidenceViewer({ doc, lang }: { doc: DocumentItem | null; lang: Lang })
   );
 }
 
+type PeriodFilter = "all" | "7d" | "30d" | "quarter";
+type ConfidenceFilter = "all" | "low" | "mid" | "high";
+type SortKey = "recent" | "confAsc" | "supplier" | "status";
+type ViewMode = "cards" | "table";
+
+function docMatchesPeriod(doc: DocumentItem, period: PeriodFilter): boolean {
+  if (period === "all") return true;
+  const uploaded = new Date(doc.uploadedAt).getTime();
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  if (period === "7d") return now - uploaded <= 7 * day;
+  if (period === "30d") return now - uploaded <= 30 * day;
+  if (period === "quarter") return now - uploaded <= 92 * day;
+  return true;
+}
+
+function docMatchesConfidence(doc: DocumentItem, filter: ConfidenceFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "low")  return doc.confidence < 0.90;
+  if (filter === "mid")  return doc.confidence >= 0.90 && doc.confidence < 0.95;
+  if (filter === "high") return doc.confidence >= 0.95;
+  return true;
+}
+
+function docMatchesSearch(doc: DocumentItem, q: string): boolean {
+  if (!q) return true;
+  const needle = q.toLowerCase();
+  if (doc.filename.toLowerCase().includes(needle)) return true;
+  if (doc.operation.id.toLowerCase().includes(needle)) return true;
+  if (doc.operation.supplier.shortName.toLowerCase().includes(needle)) return true;
+  if (doc.type.toLowerCase().includes(needle)) return true;
+  const fields = getEvidenceFields(doc);
+  return fields.some(
+    (f) => f.label.toLowerCase().includes(needle) || f.value.toLowerCase().includes(needle),
+  );
+}
+
+function sortDocs(list: DocumentItem[], key: SortKey): DocumentItem[] {
+  const copy = [...list];
+  if (key === "recent") {
+    copy.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  } else if (key === "confAsc") {
+    copy.sort((a, b) => a.confidence - b.confidence);
+  } else if (key === "supplier") {
+    copy.sort((a, b) => a.operation.supplier.shortName.localeCompare(b.operation.supplier.shortName));
+  } else if (key === "status") {
+    const rank: Record<string, number> = { uploaded: 0, classified: 1, extracted: 2, validated: 3, ready: 4 };
+    copy.sort((a, b) => (rank[a.status] ?? 99) - (rank[b.status] ?? 99));
+  }
+  return copy;
+}
+
+function buildAuditManifest(docs: DocumentItem[]) {
+  return {
+    generatedAt: new Date().toISOString(),
+    generator: "Nextport AI · Evidence vault",
+    documentCount: docs.length,
+    documents: docs.map((doc) => {
+      const fields = getEvidenceFields(doc);
+      const checks = getEvidenceChecks(doc);
+      return {
+        id: doc.id,
+        type: doc.type,
+        filename: doc.filename,
+        status: doc.status,
+        confidence: doc.confidence,
+        uploadedAt: doc.uploadedAt,
+        source: doc.source,
+        operation: { id: doc.operation.id, supplier: doc.operation.supplier.shortName },
+        extractedFields: fields.map((f) => ({ label: f.label, value: f.value, confidence: f.confidence, mismatch: !!f.mismatch })),
+        validationChecks: checks.map((c) => ({ name: c.checkName, passed: c.passed, detail: c.detail ?? null })),
+      };
+    }),
+  };
+}
+
+function downloadAuditManifest(docs: DocumentItem[]) {
+  if (typeof window === "undefined") return;
+  const manifest = buildAuditManifest(docs);
+  const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  link.download = `nextport-audit-${stamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function DocumentsPage() {
   const { lang } = useLang();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -646,6 +750,19 @@ export function DocumentsPage() {
   const [scanFilename, setScanFilename] = useState("");
   const [scanOpId, setScanOpId] = useState("NP-2026-001847");
   const [scanning, setScanning] = useState(false);
+
+  // Audit-pull state
+  const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [confFilter, setConfFilter] = useState<ConfidenceFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("recent");
+  const [view, setView] = useState<ViewMode>("cards");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exportState, setExportState] = useState<"idle" | "preparing" | "done">("idle");
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   useEffect(() => {
     setDocuments(DEMO_DOCUMENTS);
@@ -664,13 +781,72 @@ export function DocumentsPage() {
       .catch(() => {});
   }, []);
 
-  const filtered = filter === "all" ? documents : documents.filter((d) => d.type === filter);
+  // Master filter pipeline
+  const filtered = documents.filter((doc) => {
+    if (filter !== "all" && doc.type !== filter) return false;
+    if (statusFilter !== "all" && doc.status !== statusFilter) return false;
+    if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
+    if (!docMatchesPeriod(doc, period)) return false;
+    if (!docMatchesConfidence(doc, confFilter)) return false;
+    if (!docMatchesSearch(doc, search)) return false;
+    return true;
+  });
+  const sorted = sortDocs(filtered, sortKey);
+
   const selectedDoc =
-    (selectedDocId ? documents.find((doc) => doc.id === selectedDocId) : null) ??
-    filtered[0] ??
-    null;
-  const visibleSelectedId = filtered.some((doc) => doc.id === selectedDoc?.id) ? selectedDoc?.id : filtered[0]?.id;
-  const viewerDoc = filtered.find((doc) => doc.id === visibleSelectedId) ?? selectedDoc;
+    (selectedDocId ? documents.find((doc) => doc.id === selectedDocId) : null) ?? sorted[0] ?? null;
+  const visibleSelectedId = sorted.some((doc) => doc.id === selectedDoc?.id) ? selectedDoc?.id : sorted[0]?.id;
+  const viewerDoc = sorted.find((doc) => doc.id === visibleSelectedId) ?? selectedDoc;
+
+  // KPIs
+  const total = documents.length;
+  const needsReview = documents.filter((d) => d.status !== "ready" && d.status !== "validated").length;
+  const avgConf = total > 0
+    ? documents.reduce((sum, d) => sum + d.confidence, 0) / total
+    : 0;
+  const mismatchCount = documents.filter((d) =>
+    getEvidenceChecks(d).some((c) => !c.passed),
+  ).length;
+
+  const allStatuses = Array.from(new Set(documents.map((d) => d.status)));
+  const allSources = Array.from(new Set(documents.map((d) => d.source)));
+  const hasActiveFilter =
+    search !== "" || period !== "all" || confFilter !== "all" || statusFilter !== "all" || sourceFilter !== "all";
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const allVisibleIds = new Set(sorted.map((d) => d.id));
+    const allSelected = sorted.every((d) => selectedIds.has(d.id));
+    setSelectedIds(allSelected ? new Set() : allVisibleIds);
+  }
+
+  function clearAllFilters() {
+    setSearch("");
+    setPeriod("all");
+    setConfFilter("all");
+    setStatusFilter("all");
+    setSourceFilter("all");
+    setFilter("all");
+  }
+
+  async function handleExportZip() {
+    if (selectedIds.size === 0) return;
+    setExportState("preparing");
+    const selectedDocs = documents.filter((d) => selectedIds.has(d.id));
+    // Simulate package prep with a short delay so the user sees the state transition
+    await new Promise((r) => setTimeout(r, 700));
+    downloadAuditManifest(selectedDocs);
+    setExportState("done");
+    setTimeout(() => setExportState("idle"), 2000);
+  }
 
   async function handleScan() {
     if (!scanFilename.trim()) return;
@@ -696,15 +872,22 @@ export function DocumentsPage() {
     }
   }
 
+  const allVisibleSelected = sorted.length > 0 && sorted.every((d) => selectedIds.has(d.id));
+  const exportLabel =
+    exportState === "preparing" ? t("auditExportPreparing", lang)
+    : exportState === "done"    ? t("auditExportReady", lang)
+    : `${t("auditExportZip", lang)} (${selectedIds.size})`;
+
   return (
-    <div className="space-y-5 p-4 sm:p-6">
+    <div className="space-y-4 p-4 sm:p-6">
+      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold" style={{ color: "var(--ink)" }}>
-            {t("documentLibrary", lang)}
+            {t("auditPullTitle", lang)}
           </h2>
           <p className="text-sm" style={{ color: "var(--ink-4)" }}>
-            {documents.length} {t("documentsClassified", lang)}
+            {t("auditPullSubtitle", lang)}
           </p>
         </div>
         <button onClick={() => setScanOpen(true)} className="btn btn-primary w-full justify-center sm:w-auto">
@@ -713,6 +896,163 @@ export function DocumentsPage() {
         </button>
       </div>
 
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="glass-panel-tight p-3">
+          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiTotal", lang)}</p>
+          <p className="mt-1 text-2xl font-semibold tabular" style={{ color: "var(--ink)" }}>{total}</p>
+        </div>
+        <div className="glass-panel-tight p-3">
+          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiNeedsReview", lang)}</p>
+          <p className="mt-1 text-2xl font-semibold tabular" style={{ color: needsReview > 0 ? "var(--warn)" : "var(--ok)" }}>{needsReview}</p>
+        </div>
+        <div className="glass-panel-tight p-3">
+          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiAvgConf", lang)}</p>
+          <p className="mt-1 text-2xl font-semibold tabular" style={{ color: avgConf >= 0.95 ? "var(--ok)" : avgConf >= 0.90 ? "var(--warn)" : "var(--risk)" }}>
+            {(avgConf * 100).toFixed(1)}%
+          </p>
+        </div>
+        <div className="glass-panel-tight p-3">
+          <p className="text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditKpiMismatch", lang)}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-2xl font-semibold tabular" style={{ color: mismatchCount > 0 ? "var(--risk)" : "var(--ok)" }}>
+            {mismatchCount > 0 && <TrendingDown size={16} />}
+            {mismatchCount}
+          </p>
+        </div>
+      </div>
+
+      {/* Toolbar: search + view toggle + filters trigger */}
+      <div className="glass-panel-tight p-3 space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          {/* Search */}
+          <div className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2"
+               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)" }}>
+            <SearchIcon size={14} style={{ color: "var(--ink-4)" }} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("auditSearchPlaceholder", lang)}
+              className="flex-1 bg-transparent text-sm outline-none"
+              style={{ color: "var(--ink)" }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")} aria-label={t("auditClearFilters", lang)}>
+                <X size={13} style={{ color: "var(--ink-4)" }} />
+              </button>
+            )}
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs whitespace-nowrap" style={{ color: "var(--ink-4)" }}>{t("auditSortLabel", lang)}</label>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+            >
+              <option value="recent">{t("auditSortRecent", lang)}</option>
+              <option value="confAsc">{t("auditSortConfAsc", lang)}</option>
+              <option value="supplier">{t("auditSortSupplier", lang)}</option>
+              <option value="status">{t("auditSortStatus", lang)}</option>
+            </select>
+          </div>
+
+          {/* View toggle */}
+          <div className="flex items-center gap-1 rounded-lg p-0.5" style={{ background: "var(--surface-1)", border: "1px solid var(--hair-2)" }}>
+            <button
+              onClick={() => setView("cards")}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all"
+              style={view === "cards"
+                ? { background: "var(--surface-3)", color: "var(--ink)" }
+                : { color: "var(--ink-4)" }}
+            >
+              <LayoutGrid size={12} /> {t("auditViewCards", lang)}
+            </button>
+            <button
+              onClick={() => setView("table")}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all"
+              style={view === "table"
+                ? { background: "var(--surface-3)", color: "var(--ink)" }
+                : { color: "var(--ink-4)" }}
+            >
+              <List size={12} /> {t("auditViewTable", lang)}
+            </button>
+          </div>
+
+          {/* Filters toggle */}
+          <button
+            onClick={() => setFiltersOpen((v) => !v)}
+            className="btn btn-secondary"
+            style={{ minHeight: 34 }}
+          >
+            <Filter size={12} />
+            {t("auditFilters", lang)}
+            {hasActiveFilter && (
+              <span className="ml-1 rounded-full bg-[var(--brand)] px-1.5 text-[9px] font-bold" style={{ color: "#0A0D12" }}>
+                ON
+              </span>
+            )}
+            {filtersOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+        </div>
+
+        {filtersOpen && (
+          <div className="grid gap-2 border-t pt-3 md:grid-cols-2 lg:grid-cols-4" style={{ borderColor: "var(--hair)" }}>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
+              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+            >
+              <option value="all">{t("auditPeriodAll", lang)}</option>
+              <option value="7d">{t("auditPeriod7d", lang)}</option>
+              <option value="30d">{t("auditPeriod30d", lang)}</option>
+              <option value="quarter">{t("auditPeriodQuarter", lang)}</option>
+            </select>
+            <select
+              value={confFilter}
+              onChange={(e) => setConfFilter(e.target.value as ConfidenceFilter)}
+              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+            >
+              <option value="all">{t("auditConfAll", lang)}</option>
+              <option value="low">{t("auditConfLow", lang)}</option>
+              <option value="mid">{t("auditConfMid", lang)}</option>
+              <option value="high">{t("auditConfHigh", lang)}</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+            >
+              <option value="all">{t("auditStatusAll", lang)}</option>
+              {allStatuses.map((s) => (
+                <option key={s} value={s}>{t(statusKeys[s] ?? "statusReady", lang)}</option>
+              ))}
+            </select>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+            >
+              <option value="all">{t("auditSourceAll", lang)}</option>
+              {allSources.map((s) => (
+                <option key={s} value={s}>{getSourceLabel(s, lang)}</option>
+              ))}
+            </select>
+            {hasActiveFilter && (
+              <button onClick={clearAllFilters} className="btn btn-ghost col-span-full justify-center" style={{ minHeight: 30 }}>
+                <X size={12} /> {t("auditClearFilters", lang)}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Type filter chips (existing) */}
       <div className="flex flex-wrap gap-1.5">
         {["all", "pedimento", "invoice", "bl", "packing_list", "mve", "cfdi", "coo", "carta_porte"].map((typeKey) => (
           <button
@@ -733,6 +1073,30 @@ export function DocumentsPage() {
         ))}
       </div>
 
+      {/* Bulk action bar — appears when there's a selection */}
+      {selectedIds.size > 0 && (
+        <div className="glass-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
+             style={{ background: "var(--brand-soft)", borderColor: "oklch(0.78 0.09 235 / 0.35)" }}>
+          <div className="flex items-center gap-3 text-sm" style={{ color: "var(--ink)" }}>
+            <span className="font-mono tabular text-base font-semibold" style={{ color: "var(--brand)" }}>
+              {selectedIds.size}
+            </span>
+            <span style={{ color: "var(--ink-2)" }}>{t("auditSelectedCount", lang)}</span>
+            <button onClick={() => setSelectedIds(new Set())} className="btn btn-ghost btn-sm">
+              <X size={11} /> {t("auditClearSelection", lang)}
+            </button>
+          </div>
+          <button
+            onClick={handleExportZip}
+            disabled={exportState === "preparing"}
+            className="btn btn-primary justify-center disabled:opacity-60"
+          >
+            <Download size={13} />
+            {exportLabel}
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)]">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -745,77 +1109,278 @@ export function DocumentsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
           <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-              {filtered.map((doc) => {
-                const color = statusColor[doc.status] ?? "var(--ink-4)";
-                const isSelected = viewerDoc?.id === doc.id;
-                const fields = getEvidenceFields(doc);
-                const checks = getEvidenceChecks(doc);
+            {view === "cards" ? (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                {sorted.map((doc) => {
+                  const color = statusColor[doc.status] ?? "var(--ink-4)";
+                  const isSelected = viewerDoc?.id === doc.id;
+                  const isChecked = selectedIds.has(doc.id);
+                  const fields = getEvidenceFields(doc);
+                  const checks = getEvidenceChecks(doc);
+                  const hasFailedCheck = checks.some((c) => !c.passed);
 
-                return (
-                  <button
-                    key={doc.id}
-                    onClick={() => setSelectedDocId(doc.id)}
-                    className={cn(
-                      "glass-panel group overflow-hidden p-0 text-left transition-all hover:-translate-y-0.5",
-                      isSelected ? "lifted-active" : ""
-                    )}
-                    aria-label={`${viewerCopy[lang].selectedDocument}: ${doc.filename}`}
-                  >
-                    <DocumentThumbnail doc={doc} />
+                  return (
+                    <div
+                      key={doc.id}
+                      className={cn(
+                        "glass-panel group relative overflow-hidden p-0 text-left transition-all hover:-translate-y-0.5",
+                        isSelected ? "lifted-active" : ""
+                      )}
+                    >
+                      {/* Selection checkbox — top-left overlay */}
+                      <label
+                        className="absolute left-3 top-3 z-20 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md transition-all"
+                        style={{
+                          background: isChecked ? "var(--brand)" : "rgba(10,13,18,0.55)",
+                          border: `1px solid ${isChecked ? "var(--brand)" : "var(--hair-2)"}`,
+                          backdropFilter: "blur(6px)",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelect(doc.id)}
+                          className="sr-only"
+                        />
+                        {isChecked && <CheckCircle2 size={12} style={{ color: "#0A0D12" }} />}
+                      </label>
 
-                    <div className="space-y-3 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                              {getDocTypeLabel(doc.type, lang)}
-                            </p>
-                            {isSelected && (
-                              <span className="chip chip-brand py-0.5 text-[10px]">
-                                <span className="dot" />
-                                {viewerCopy[lang].selected}
-                              </span>
-                            )}
+                      {/* Failed-check indicator — top-right corner pulse */}
+                      {hasFailedCheck && (
+                        <span
+                          className="absolute right-3 top-3 z-20 h-2 w-2 rounded-full"
+                          style={{ background: "var(--risk)", boxShadow: "0 0 8px var(--risk)" }}
+                          title={`${checks.filter((c) => !c.passed).length} failed`}
+                        />
+                      )}
+
+                      <button
+                        onClick={() => setSelectedDocId(doc.id)}
+                        className="block w-full text-left"
+                        aria-label={`${viewerCopy[lang].selectedDocument}: ${doc.filename}`}
+                      >
+                        <DocumentThumbnail doc={doc} />
+
+                        <div className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                                  {getDocTypeLabel(doc.type, lang)}
+                                </p>
+                                {isSelected && (
+                                  <span className="chip chip-brand py-0.5 text-[10px]">
+                                    <span className="dot" />
+                                    {viewerCopy[lang].selected}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 truncate text-xs font-mono" style={{ color: "var(--ink-4)" }}>
+                                {doc.filename}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1 text-xs" style={{ color }}>
+                              {statusIcon[doc.status]}
+                              <span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
+                            </div>
                           </div>
-                          <p className="mt-1 truncate text-xs font-mono" style={{ color: "var(--ink-4)" }}>
-                            {doc.filename}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1 text-xs" style={{ color }}>
-                          {statusIcon[doc.status]}
-                          <span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
-                          <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("confidence", lang)}</p>
-                          <p className="font-mono text-xs font-semibold" style={{ color }}>{Math.round(doc.confidence * 100)}%</p>
-                        </div>
-                        <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
-                          <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].fields}</p>
-                          <p className="font-mono text-xs font-semibold" style={{ color: "var(--ink)" }}>{fields.length}</p>
-                        </div>
-                        <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
-                          <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].checks}</p>
-                          <p className="font-mono text-xs font-semibold" style={{ color: "var(--ink)" }}>{checks.length}</p>
-                        </div>
-                      </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
+                              <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("confidence", lang)}</p>
+                              <p className="font-mono text-xs font-semibold" style={{ color }}>{Math.round(doc.confidence * 100)}%</p>
+                            </div>
+                            <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
+                              <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].fields}</p>
+                              <p className="font-mono text-xs font-semibold" style={{ color: "var(--ink)" }}>{fields.length}</p>
+                            </div>
+                            <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
+                              <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].checks}</p>
+                              <p className="font-mono text-xs font-semibold" style={{ color: hasFailedCheck ? "var(--risk)" : "var(--ok)" }}>
+                                {checks.filter((c) => c.passed).length}/{checks.length}
+                              </p>
+                            </div>
+                          </div>
 
-                      <div className="flex items-center justify-between gap-3 text-xs" style={{ color: "var(--ink-4)" }}>
-                        <span className="min-w-0 truncate">{getSourceLabel(doc.source, lang)}</span>
-                        <span className="shrink-0 font-mono">{formatDate(doc.uploadedAt, lang)}</span>
-                      </div>
+                          <div className="flex items-center justify-between gap-3 text-xs" style={{ color: "var(--ink-4)" }}>
+                            <span className="min-w-0 truncate">{doc.operation.supplier.shortName} · {doc.operation.id}</span>
+                            <span className="shrink-0 font-mono">{formatDate(doc.uploadedAt, lang)}</span>
+                          </div>
+                        </div>
+                      </button>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* TABLE VIEW */
+              <div className="glass-panel overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid var(--hair)", background: "var(--surface-1)" }}>
+                        <th className="px-3 py-2.5 text-left" style={{ width: 36 }}>
+                          <input
+                            type="checkbox"
+                            checked={allVisibleSelected}
+                            onChange={toggleSelectAll}
+                            aria-label={t("auditSelectAll", lang)}
+                            className="accent-[var(--brand)]"
+                          />
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDoc", lang)}</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColType", lang)}</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColSupplier", lang)}</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColOperation", lang)}</th>
+                        <th className="px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColConfidence", lang)}</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColChecks", lang)}</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColStatus", lang)}</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDate", lang)}</th>
+                        <th className="px-3 py-2.5 text-right" style={{ width: 80 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sorted.map((doc) => {
+                        const visual = getVisualConfig(doc.type);
+                        const Icon = visual.Icon;
+                        const fields = getEvidenceFields(doc);
+                        const checks = getEvidenceChecks(doc);
+                        const passed = checks.filter((c) => c.passed).length;
+                        const hasFailed = passed < checks.length;
+                        const isChecked = selectedIds.has(doc.id);
+                        const isExpanded = expandedRow === doc.id;
+                        const color = statusColor[doc.status] ?? "var(--ink-4)";
+                        const confColor = doc.confidence < 0.90 ? "var(--risk)" : doc.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
 
-            {filtered.length === 0 && (
+                        return (
+                          <FragmentRow key={doc.id}>
+                            <tr
+                              className="transition-colors"
+                              style={{
+                                borderBottom: "1px solid var(--hair)",
+                                background: isChecked ? "var(--brand-soft)" : viewerDoc?.id === doc.id ? "var(--surface-1)" : "transparent",
+                              }}
+                            >
+                              <td className="px-3 py-2.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleSelect(doc.id)}
+                                  className="accent-[var(--brand)]"
+                                />
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <button onClick={() => setSelectedDocId(doc.id)} className="flex items-start gap-2 text-left">
+                                  <div
+                                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg"
+                                    style={{ background: visual.previewBg, border: "1px solid var(--hair)" }}
+                                  >
+                                    <Icon size={13} style={{ color: visual.accent }} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>
+                                      {getDocTypeLabel(doc.type, lang)}
+                                    </div>
+                                    <div className="truncate font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>
+                                      {doc.filename}
+                                    </div>
+                                  </div>
+                                </button>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <span className="font-mono text-[11px]" style={{ color: visual.accent }}>{visual.short}</span>
+                              </td>
+                              <td className="px-3 py-2.5 text-sm truncate" style={{ color: "var(--ink-2)" }}>
+                                {doc.operation.supplier.shortName}
+                              </td>
+                              <td className="px-3 py-2.5 font-mono text-[11px]" style={{ color: "var(--ink-3)" }}>
+                                {doc.operation.id}
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="h-1 w-14 rounded-full" style={{ background: "var(--hair)" }}>
+                                    <div
+                                      className="h-full rounded-full transition-all"
+                                      style={{ width: `${doc.confidence * 100}%`, background: confColor }}
+                                    />
+                                  </div>
+                                  <span className="font-mono text-xs tabular" style={{ color: confColor }}>
+                                    {Math.round(doc.confidence * 100)}%
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  {hasFailed
+                                    ? <XCircle size={12} style={{ color: "var(--risk)" }} />
+                                    : <CheckCircle2 size={12} style={{ color: "var(--ok)" }} />}
+                                  <span className="font-mono text-[11px]" style={{ color: hasFailed ? "var(--risk)" : "var(--ok)" }}>
+                                    {passed}/{checks.length}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1 text-xs" style={{ color }}>
+                                  {statusIcon[doc.status]}
+                                  <span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 font-mono text-[11px]" style={{ color: "var(--ink-4)" }}>
+                                {formatDate(doc.uploadedAt, lang)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                <button
+                                  onClick={() => setExpandedRow(isExpanded ? null : doc.id)}
+                                  className="btn btn-ghost btn-sm"
+                                  aria-label={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
+                                  title={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
+                                >
+                                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                </button>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr style={{ background: "var(--surface-1)", borderBottom: "1px solid var(--hair)" }}>
+                                <td colSpan={10} className="px-3 py-3">
+                                  <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+                                    {fields.map((field) => {
+                                      const fConfColor = field.confidence < 0.90 ? "var(--risk)" : field.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
+                                      return (
+                                        <div
+                                          key={field.id}
+                                          className="rounded-lg border p-2"
+                                          style={{
+                                            borderColor: field.mismatch ? "oklch(0.66 0.20 25 / 0.5)" : "var(--hair)",
+                                            background: field.mismatch ? "var(--risk-soft)" : "var(--surface-1)",
+                                          }}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{field.label}</p>
+                                            <span className="font-mono text-[10px]" style={{ color: fConfColor }}>{Math.round(field.confidence * 100)}%</span>
+                                          </div>
+                                          <p className="mt-1 truncate text-xs font-medium" style={{ color: field.mismatch ? "var(--risk)" : "var(--ink)" }}>
+                                            {field.value}
+                                          </p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </FragmentRow>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {sorted.length === 0 && (
               <div className="glass-panel p-12 text-center" style={{ color: "var(--ink-4)" }}>
-                {t("noDocumentsFound", lang)}
+                {hasActiveFilter ? t("auditNoResults", lang) : t("noDocumentsFound", lang)}
               </div>
             )}
           </div>
