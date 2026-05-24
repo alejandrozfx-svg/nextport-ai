@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
   BadgeDollarSign,
@@ -393,6 +394,11 @@ interface Playbook {
   preset: PlaybookPreset;
 }
 
+/* Playbooks kept after the 2026-05-23 cleanup (ADR-0001):
+ * Only the 3 presets that genuinely compose multi-filter combinations beyond what a single
+ * manual control does. "SOC 2 sample" and "Supplier dispute" were removed because their
+ * presets only set sort order and required the user to do the real work manually — they
+ * were named like features but did nothing. See docs/decisions/0001-documents-cleanup.md. */
 const PLAYBOOKS: Playbook[] = [
   {
     id: "sat",
@@ -409,22 +415,6 @@ const PLAYBOOKS: Playbook[] = [
     titleKey: "playbookQuarterlyTitle",
     descKey: "playbookQuarterlyDesc",
     preset: { period: "quarter", statusFilter: "validated", sortKey: "supplier" },
-  },
-  {
-    id: "supplier",
-    icon: Gavel,
-    accent: "var(--accent)",
-    titleKey: "playbookSupplierTitle",
-    descKey: "playbookSupplierDesc",
-    preset: { sortKey: "supplier" }, // user picks supplier afterwards
-  },
-  {
-    id: "soc2",
-    icon: ShieldCheck,
-    accent: "var(--ok)",
-    titleKey: "playbookSocTitle",
-    descKey: "playbookSocDesc",
-    preset: { sortKey: "recent" }, // sampling handled at export time
   },
   {
     id: "qa",
@@ -450,17 +440,26 @@ interface RecentPull {
   createdAt: string;
 }
 
-const DEMO_RECENT_PULLS: RecentPull[] = [
-  { id: "pull-001", user: { name: "Mariana López", initials: "ML" }, reasonKey: "playbookSatTitle",      docCount: 18, manifestSha: "7f3c·b29a·4d11", createdAt: "2026-05-22T11:14:00Z" },
-  { id: "pull-002", user: { name: "Sofía Galván",  initials: "SG" }, reasonKey: "playbookQuarterlyTitle", docCount: 47, manifestSha: "9e0d·a4f2·6c83", createdAt: "2026-05-19T16:02:00Z" },
-  { id: "pull-003", user: { name: "Ana Ramírez",   initials: "AR" }, reasonKey: "playbookSupplierTitle",  docCount:  9, manifestSha: "2b18·c8e0·9a37", createdAt: "2026-05-15T09:48:00Z" },
-  { id: "pull-004", user: { name: "Diego Solórzano", initials: "DS" }, reasonKey: "playbookSocTitle",     docCount: 10, manifestSha: "5d72·4119·b806", createdAt: "2026-05-08T14:25:00Z" },
-];
+/* Empty by default — the list only populates after the user actually exports something
+ * in-session. ADR-0001 removed the demo-seeded entries because pre-populating a "trail" the
+ * user did not create was theatre. */
+const DEMO_RECENT_PULLS: RecentPull[] = [];
 
-function generateManifestSha() {
-  const chars = "0123456789abcdef";
-  const seg = (n: number) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * 16)]).join("");
-  return `${seg(4)}·${seg(4)}·${seg(4)}`;
+/* Real SHA-256 over the manifest JSON via the Web Crypto API. Falls back to a clearly-marked
+ * placeholder only if crypto.subtle is unavailable (very old browsers). The previous version
+ * used Math.random() and called the result a hash — ADR-0001 forbids that. */
+async function computeManifestSha(payload: unknown): Promise<string> {
+  if (typeof window === "undefined" || !window.crypto?.subtle) {
+    return "sha-unavailable";
+  }
+  const json = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(json);
+  const hashBuf = await window.crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  // Display chunks for readability: 4-4-4 hex segments.
+  return `${hex.slice(0, 4)}·${hex.slice(4, 8)}·${hex.slice(8, 12)}`;
 }
 
 function DocumentSpecificPreview({ doc, compact }: { doc: DocumentItem; compact?: boolean }) {
@@ -833,57 +832,68 @@ function downloadAuditManifest(docs: DocumentItem[]) {
   URL.revokeObjectURL(url);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ * DocumentsPage — Evidence Vault (post ADR-0001 P0 cleanup, 2026-05-23)
+ *
+ * Single job: find evidence + select + export audit manifest.
+ *
+ * Removed in this iteration (do not re-introduce without updating ADR-0001):
+ *   • Cards view + view-toggle (table is the only view now)
+ *   • Type chips row above the table (filter type lives in the drawer)
+ *   • Scan Document button + scan modal (lives in the global TopBar)
+ *   • Always-on EvidenceViewer side panel (now opens as modal on row click)
+ *   • Recent pulls section (will move to /console/security as Evidence exports tab)
+ *   • KPI strip 4 cards (collapsed into header subtitle + 2 clickable chips)
+ *   • 2 fake playbooks (SOC 2 sample + Supplier dispute) — kept only the 3 honest ones
+ *
+ * If you need any of those back, justify the regression in a new ADR.
+ * ════════════════════════════════════════════════════════════════════ */
 export function DocumentsPage() {
   const { lang } = useLang();
+  const searchParams = useSearchParams();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [filter, setFilter] = useState("all");
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [scanOpen, setScanOpen] = useState(false);
-  const [scanFilename, setScanFilename] = useState("");
-  const [scanOpId, setScanOpId] = useState("NP-2026-001847");
-  const [scanning, setScanning] = useState(false);
 
-  // Audit-pull state
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [confFilter, setConfFilter] = useState<ConfidenceFilter>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [operationFilter, setOperationFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
-  const [view, setView] = useState<ViewMode>("table"); // Default to dense table per audit-pull spec
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportState, setExportState] = useState<"idle" | "preparing" | "done">("idle");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [activePlaybook, setActivePlaybook] = useState<PlaybookId | null>(null);
-  const [recentPulls, setRecentPulls] = useState<RecentPull[]>(DEMO_RECENT_PULLS);
   const [lastExport, setLastExport] = useState<{ docCount: number; sha: string; reasonKey: TranslationKey | null } | null>(null);
+  const [viewerDocId, setViewerDocId] = useState<string | null>(null);
 
   useEffect(() => {
     setDocuments(DEMO_DOCUMENTS);
-    setSelectedDocId(DEMO_DOCUMENTS[0]?.id ?? null);
     setLoading(false);
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 2000);
     fetch("/api/documents", { signal: ctrl.signal })
       .then((r) => r.json())
-      .then((d) => {
-        if (d.documents?.length) {
-          setDocuments(d.documents);
-          setSelectedDocId(d.documents[0]?.id ?? null);
-        }
-      })
+      .then((d) => { if (d.documents?.length) setDocuments(d.documents); })
       .catch(() => {});
   }, []);
 
-  // Master filter pipeline
+  // Deep-link ?op=NP-XXX (ADR-0001 §"Behavior contract" item 5).
+  useEffect(() => {
+    const opParam = searchParams.get("op");
+    if (!opParam || documents.length === 0) return;
+    const matchingDocs = documents.filter((d) => d.operation.id === opParam);
+    if (matchingDocs.length === 0) return;
+    setOperationFilter(opParam);
+    setSelectedIds(new Set(matchingDocs.map((d) => d.id)));
+  }, [searchParams, documents]);
+
   const filtered = documents.filter((doc) => {
     if (filter !== "all" && doc.type !== filter) return false;
     if (statusFilter !== "all" && doc.status !== statusFilter) return false;
-    if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
     if (supplierFilter !== "all" && doc.operation.supplier.shortName !== supplierFilter) return false;
     if (operationFilter !== "all" && doc.operation.id !== operationFilter) return false;
     if (!docMatchesPeriod(doc, period)) return false;
@@ -892,69 +902,47 @@ export function DocumentsPage() {
     return true;
   });
   const sorted = sortDocs(filtered, sortKey);
+  const viewerDoc = viewerDocId ? documents.find((doc) => doc.id === viewerDocId) ?? null : null;
 
-  const selectedDoc =
-    (selectedDocId ? documents.find((doc) => doc.id === selectedDocId) : null) ?? sorted[0] ?? null;
-  const visibleSelectedId = sorted.some((doc) => doc.id === selectedDoc?.id) ? selectedDoc?.id : sorted[0]?.id;
-  const viewerDoc = sorted.find((doc) => doc.id === visibleSelectedId) ?? selectedDoc;
-
-  // KPIs
   const total = documents.length;
   const needsReview = documents.filter((d) => d.status !== "ready" && d.status !== "validated").length;
-  const avgConf = total > 0
-    ? documents.reduce((sum, d) => sum + d.confidence, 0) / total
-    : 0;
-  const mismatchCount = documents.filter((d) =>
-    getEvidenceChecks(d).some((c) => !c.passed),
-  ).length;
-
+  const avgConf = total > 0 ? documents.reduce((sum, d) => sum + d.confidence, 0) / total : 0;
+  const mismatchCount = documents.filter((d) => getEvidenceChecks(d).some((c) => !c.passed)).length;
   const allStatuses = Array.from(new Set(documents.map((d) => d.status)));
-  const allSources = Array.from(new Set(documents.map((d) => d.source)));
   const allSuppliers = Array.from(new Set(documents.map((d) => d.operation.supplier.shortName))).sort();
   const allOperations = Array.from(new Set(documents.map((d) => d.operation.id))).sort();
+  const opContext = searchParams.get("op");
+  const contextSupplier = opContext ? documents.find((d) => d.operation.id === opContext)?.operation.supplier.shortName : null;
   const hasActiveFilter =
-    search !== "" || period !== "all" || confFilter !== "all" || statusFilter !== "all" || sourceFilter !== "all" || supplierFilter !== "all" || operationFilter !== "all";
+    search !== "" || period !== "all" || confFilter !== "all" || statusFilter !== "all" ||
+    supplierFilter !== "all" || operationFilter !== "all" || filter !== "all";
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }
-
   function toggleSelectAll() {
-    const allVisibleIds = new Set(sorted.map((d) => d.id));
     const allSelected = sorted.every((d) => selectedIds.has(d.id));
-    setSelectedIds(allSelected ? new Set() : allVisibleIds);
+    setSelectedIds(allSelected ? new Set() : new Set(sorted.map((d) => d.id)));
   }
-
   function clearAllFilters() {
-    setSearch("");
-    setPeriod("all");
-    setConfFilter("all");
-    setStatusFilter("all");
-    setSourceFilter("all");
-    setSupplierFilter("all");
-    setOperationFilter("all");
-    setFilter("all");
-    setActivePlaybook(null);
+    setSearch(""); setPeriod("all"); setConfFilter("all"); setStatusFilter("all");
+    setSupplierFilter("all"); setOperationFilter("all"); setFilter("all"); setActivePlaybook(null);
   }
-
   function applyPlaybook(playbook: Playbook) {
-    // Reset all filters first so a previous playbook does not leak its filters in.
     clearAllFilters();
     const p = playbook.preset;
-    if (p.filter)          setFilter(p.filter);
-    if (p.period)          setPeriod(p.period);
-    if (p.confFilter)      setConfFilter(p.confFilter);
-    if (p.statusFilter)    setStatusFilter(p.statusFilter);
-    if (p.sourceFilter)    setSourceFilter(p.sourceFilter);
-    if (p.supplierFilter)  setSupplierFilter(p.supplierFilter);
+    if (p.filter) setFilter(p.filter);
+    if (p.period) setPeriod(p.period);
+    if (p.confFilter) setConfFilter(p.confFilter);
+    if (p.statusFilter) setStatusFilter(p.statusFilter);
+    if (p.supplierFilter) setSupplierFilter(p.supplierFilter);
     if (p.operationFilter) setOperationFilter(p.operationFilter);
-    if (p.search)          setSearch(p.search);
-    if (p.sortKey)         setSortKey(p.sortKey);
+    if (p.search) setSearch(p.search);
+    if (p.sortKey) setSortKey(p.sortKey);
     setActivePlaybook(playbook.id);
   }
 
@@ -962,312 +950,199 @@ export function DocumentsPage() {
     if (selectedIds.size === 0) return;
     setExportState("preparing");
     const selectedDocs = documents.filter((d) => selectedIds.has(d.id));
-    // Simulate package prep with a short delay so the user sees the state transition
-    await new Promise((r) => setTimeout(r, 700));
-    downloadAuditManifest(selectedDocs);
-
-    // Register the pull in the recent-pulls history so the audit-trail feels real.
+    const manifest = buildAuditManifest(selectedDocs);
+    const sha = await computeManifestSha(manifest);
+    if (typeof window !== "undefined") {
+      const blob = new Blob([JSON.stringify({ ...manifest, manifestSha: sha }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `nextport-audit-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
     const playbook = PLAYBOOKS.find((p) => p.id === activePlaybook);
-    const sha = generateManifestSha();
-    const newPull: RecentPull = {
-      id: `pull-${Date.now()}`,
-      user: { name: "Diego Solórzano", initials: "DS" },
-      reasonKey: playbook?.titleKey ?? "auditPullTitle",
-      docCount: selectedDocs.length,
-      manifestSha: sha,
-      createdAt: new Date().toISOString(),
-    };
-    setRecentPulls((prev) => [newPull, ...prev].slice(0, 8));
     setLastExport({ docCount: selectedDocs.length, sha, reasonKey: playbook?.titleKey ?? null });
-
     setExportState("done");
     setTimeout(() => setExportState("idle"), 2500);
   }
 
-  async function handleScan() {
-    if (!scanFilename.trim()) return;
-    setScanning(true);
-    try {
-      const res = await fetch("/api/documents/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationId: scanOpId, filename: scanFilename }),
-      });
-      const data = await res.json();
-      if (data.document) {
-        const newDoc = { ...data.document, operation: { id: scanOpId, supplier: { shortName: "Manual" } } };
-        setDocuments((prev) => [newDoc, ...prev]);
-        setSelectedDocId(newDoc.id);
-      }
-      setScanOpen(false);
-      setScanFilename("");
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setScanning(false);
-    }
-  }
-
-  const allVisibleSelected = sorted.length > 0 && sorted.every((d) => selectedIds.has(d.id));
   const exportLabel =
     exportState === "preparing" ? t("auditExportPreparing", lang)
     : exportState === "done"    ? t("auditExportReady", lang)
-    : `${t("auditExportZip", lang)} (${selectedIds.size})`;
+    : `${t("pullExportSelected", lang)} (${selectedIds.size})`;
 
   return (
     <div className="space-y-4 p-4 sm:p-6">
-      {/* Header */}
       <PageHeader
         title={t("auditPullTitle", lang)}
-        subtitle={t("auditPullSubtitle", lang)}
-        actions={(
-          <ActionButton variant="primary" className="w-full justify-center sm:w-auto" onClick={() => setScanOpen(true)}>
-            <ScanLine size={14} strokeWidth={1.5} />
-            {t("scanDocumentBtn", lang)}
-          </ActionButton>
-        )}
+        subtitle={`${t("auditPullSubtitle", lang)} · ${total} ${t("auditKpiTotal", lang).toLowerCase()} · ${(avgConf * 100).toFixed(1)}% ${t("auditKpiAvgConf", lang).toLowerCase()}`}
       />
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label={t("auditKpiTotal", lang)} value={total} />
-        <MetricCard label={t("auditKpiNeedsReview", lang)} value={needsReview} color={needsReview > 0 ? "var(--warn)" : "var(--ok)"} />
-        <MetricCard label={t("auditKpiAvgConf", lang)} value={`${(avgConf * 100).toFixed(1)}%`} color={avgConf >= 0.95 ? "var(--ok)" : avgConf >= 0.90 ? "var(--warn)" : "var(--risk)"} />
-        <MetricCard
-          label={t("auditKpiMismatch", lang)}
-          value={mismatchCount}
-          color={mismatchCount > 0 ? "var(--risk)" : "var(--ok)"}
-          icon={mismatchCount > 0 ? <TrendingDown size={16} strokeWidth={1.5} /> : undefined}
-        />
+      {opContext && (
+        <div className="flex flex-col gap-2 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+             style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.35)" }}>
+          <div className="flex items-center gap-2 text-sm">
+            <Database size={14} strokeWidth={1.6} style={{ color: "var(--brand)" }} />
+            <span style={{ color: "var(--ink-2)" }}>
+              {t("pullContextLabel", lang)}{" "}
+              <span className="font-mono" style={{ color: "var(--ink)" }}>{opContext}</span>
+              {contextSupplier && <span style={{ color: "var(--ink-3)" }}> · {contextSupplier}</span>}
+            </span>
+          </div>
+          <Link href="/console/documents" className="btn btn-ghost btn-sm">
+            <X size={11} /> {t("pullContextClear", lang)}
+          </Link>
+        </div>
+      )}
+
+      {(needsReview > 0 || mismatchCount > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {needsReview > 0 && (
+            <button onClick={() => setStatusFilter(statusFilter === "classified" ? "all" : "classified")}
+                    className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all"
+                    style={statusFilter === "classified"
+                      ? { background: "var(--warn-soft)", borderColor: "var(--warn)", color: "var(--warn)" }
+                      : { background: "transparent", borderColor: "var(--hair-2)", color: "var(--ink-3)" }}>
+              <Clock size={11} strokeWidth={1.6} />
+              {needsReview} {t("pullChipNeedsReview", lang).toLowerCase()}
+            </button>
+          )}
+          {mismatchCount > 0 && (
+            <button onClick={() => setConfFilter(confFilter === "low" ? "all" : "low")}
+                    className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all"
+                    style={confFilter === "low"
+                      ? { background: "var(--risk-soft)", borderColor: "var(--risk)", color: "var(--risk)" }
+                      : { background: "transparent", borderColor: "var(--hair-2)", color: "var(--ink-3)" }}>
+              <TrendingDown size={11} strokeWidth={1.6} />
+              {mismatchCount} {t("pullChipMismatches", lang).toLowerCase()}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
+          {t("playbooksTitle", lang)}:
+        </span>
+        {PLAYBOOKS.map((pb) => {
+          const Icon = pb.icon;
+          const isActive = activePlaybook === pb.id;
+          return (
+            <button key={pb.id}
+                    onClick={() => isActive ? clearAllFilters() : applyPlaybook(pb)}
+                    className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all"
+                    style={isActive
+                      ? { background: `${pb.accent}24`, borderColor: pb.accent, color: pb.accent }
+                      : { background: "transparent", borderColor: "var(--hair-2)", color: "var(--ink-3)" }}
+                    title={t(pb.descKey, lang)}
+                    aria-pressed={isActive}>
+              <Icon size={11} strokeWidth={1.6} />
+              {t(pb.titleKey, lang)}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Audit playbooks — preset starting points for real compliance scenarios. */}
-      <section className="space-y-2">
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{t("playbooksTitle", lang)}</h3>
-            <p className="text-xs" style={{ color: "var(--ink-4)" }}>{t("playbooksSubtitle", lang)}</p>
-          </div>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {PLAYBOOKS.map((pb) => {
-            const Icon = pb.icon;
-            const isActive = activePlaybook === pb.id;
-            return (
-              <button
-                key={pb.id}
-                onClick={() => isActive ? clearAllFilters() : applyPlaybook(pb)}
-                className={cn(
-                  "glass-panel-tight relative flex flex-col gap-2 p-3 text-left transition-all hover:-translate-y-0.5",
-                  isActive ? "lifted-active" : "",
-                )}
-                style={isActive ? { background: `${pb.accent}14`, borderColor: pb.accent } : undefined}
-                aria-pressed={isActive}
-              >
-                {isActive && (
-                  <span
-                    className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-                    style={{ background: pb.accent, color: "#0A0D12" }}
-                  >
-                    {t("playbookActive", lang)}
-                  </span>
-                )}
-                <div
-                  className="grid h-8 w-8 place-items-center rounded-lg"
-                  style={{ background: `${pb.accent}1f`, border: `1px solid ${pb.accent}66`, color: pb.accent }}
-                >
-                  <Icon size={15} />
-                </div>
-                <p className="text-[13px] font-semibold leading-snug" style={{ color: "var(--ink)" }}>
-                  {t(pb.titleKey, lang)}
-                </p>
-                <p className="text-[11.5px] leading-snug line-clamp-3" style={{ color: "var(--ink-4)" }}>
-                  {t(pb.descKey, lang)}
-                </p>
-                <span className="mt-1 flex items-center gap-1 text-[10.5px] font-medium" style={{ color: pb.accent }}>
-                  {isActive ? <X size={10} /> : <Sparkles size={10} />}
-                  {isActive ? t("auditClearFilters", lang) : t("playbookUsePreset", lang)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Export-success banner — confirms the manifest hash & links to audit trail. */}
       {lastExport && exportState === "done" && (
-        <div
-          className="glass-panel relative flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-          style={{ background: "var(--ok-soft)", borderColor: "oklch(0.78 0.13 155 / 0.4)" }}
-        >
+        <div className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between"
+             style={{ background: "var(--ok-soft)", border: "1px solid oklch(0.78 0.13 155 / 0.4)" }}>
           <div className="flex items-start gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full" style={{ background: "oklch(0.78 0.13 155 / 0.2)" }}>
               <Shield size={16} style={{ color: "var(--ok)" }} />
             </div>
             <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                {t("auditExportSummaryTitle", lang)}
-              </p>
-              <p className="text-xs" style={{ color: "var(--ink-3)" }}>
-                {lastExport.docCount} {t("auditExportSummaryDocs", lang)} · {t("auditExportSummaryHash", lang)}
-              </p>
+              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{t("auditExportSummaryTitle", lang)}</p>
+              <p className="text-xs" style={{ color: "var(--ink-3)" }}>{lastExport.docCount} {t("auditExportSummaryDocs", lang)}</p>
               <p className="mt-1 font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>
                 {t("auditExportHashLabel", lang)}: <span style={{ color: "var(--ok)" }}>{lastExport.sha}</span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/console/security" className="btn btn-secondary">
-              {t("auditExportTrailLink", lang)} <ArrowUpRight size={11} />
-            </Link>
-            <button onClick={() => setLastExport(null)} aria-label={t("auditExportDoneClose", lang)} className="btn btn-ghost btn-sm">
-              <X size={12} />
-            </button>
-          </div>
+          <button onClick={() => setLastExport(null)} aria-label={t("auditExportDoneClose", lang)} className="btn btn-ghost btn-sm">
+            <X size={12} />
+          </button>
         </div>
       )}
 
-      {/* Toolbar: search + view toggle + filters trigger */}
       <SectionCard className="space-y-3 p-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          {/* Search */}
-          <div className="app-input flex flex-1 items-center gap-2 rounded-lg px-3 py-2">
+          <div className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2"
+               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)" }}>
             <SearchIcon size={14} style={{ color: "var(--ink-4)" }} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("auditSearchPlaceholder", lang)}
-              className="flex-1 bg-transparent text-sm outline-none"
-              style={{ color: "var(--ink)" }}
-            />
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
+                   placeholder={t("auditSearchPlaceholder", lang)}
+                   className="flex-1 bg-transparent text-sm outline-none"
+                   style={{ color: "var(--ink)" }} />
             {search && (
               <button onClick={() => setSearch("")} aria-label={t("auditClearFilters", lang)}>
                 <X size={13} style={{ color: "var(--ink-4)" }} />
               </button>
             )}
           </div>
-
-          {/* Sort */}
           <div className="flex items-center gap-2">
-            <label className="text-xs whitespace-nowrap" style={{ color: "var(--ink-4)" }}>{t("auditSortLabel", lang)}</label>
-            <select
-              value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
-              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
-            >
+            <label className="whitespace-nowrap text-xs" style={{ color: "var(--ink-4)" }}>{t("auditSortLabel", lang)}</label>
+            <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
+                    className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
               <option value="recent">{t("auditSortRecent", lang)}</option>
               <option value="confAsc">{t("auditSortConfAsc", lang)}</option>
               <option value="supplier">{t("auditSortSupplier", lang)}</option>
-              <option value="status">{t("auditSortStatus", lang)}</option>
             </select>
           </div>
-
-          {/* View toggle */}
-          <div className="flex items-center gap-1 rounded-lg p-0.5" style={{ background: "var(--surface-1)", border: "1px solid var(--hair-2)" }}>
-            <button
-              onClick={() => setView("cards")}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all"
-              style={view === "cards"
-                ? { background: "var(--surface-3)", color: "var(--ink)" }
-                : { color: "var(--ink-4)" }}
-            >
-              <LayoutGrid size={12} /> {t("auditViewCards", lang)}
-            </button>
-            <button
-              onClick={() => setView("table")}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all"
-              style={view === "table"
-                ? { background: "var(--surface-3)", color: "var(--ink)" }
-                : { color: "var(--ink-4)" }}
-            >
-              <List size={12} /> {t("auditViewTable", lang)}
-            </button>
-          </div>
-
-          {/* Filters toggle */}
-          <button
-            onClick={() => setFiltersOpen((v) => !v)}
-            className="btn btn-secondary"
-            style={{ minHeight: 34 }}
-          >
+          <button onClick={() => setFiltersOpen((v) => !v)} className="btn btn-secondary" style={{ minHeight: 34 }}>
             <Filter size={12} />
             {t("auditFilters", lang)}
-            {hasActiveFilter && (
-              <span className="ml-1 rounded-full bg-[var(--brand)] px-1.5 text-[9px] font-bold" style={{ color: "#0A0D12" }}>
-                ON
-              </span>
-            )}
+            {hasActiveFilter && <span className="ml-1 rounded-full bg-[var(--brand)] px-1.5 text-[9px] font-bold" style={{ color: "#0A0D12" }}>ON</span>}
             {filtersOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
 
         {filtersOpen && (
           <div className="grid gap-2 border-t pt-3 md:grid-cols-2 lg:grid-cols-3" style={{ borderColor: "var(--hair)" }}>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
-              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              aria-label={t("auditPeriodAll", lang)}
-            >
+            <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
+                    className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
               <option value="all">{t("auditPeriodAll", lang)}</option>
               <option value="7d">{t("auditPeriod7d", lang)}</option>
               <option value="30d">{t("auditPeriod30d", lang)}</option>
               <option value="quarter">{t("auditPeriodQuarter", lang)}</option>
             </select>
-            <select
-              value={confFilter}
-              onChange={(e) => setConfFilter(e.target.value as ConfidenceFilter)}
-              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              aria-label={t("auditConfAll", lang)}
-            >
+            <select value={confFilter} onChange={(e) => setConfFilter(e.target.value as ConfidenceFilter)}
+                    className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
               <option value="all">{t("auditConfAll", lang)}</option>
               <option value="low">{t("auditConfLow", lang)}</option>
               <option value="mid">{t("auditConfMid", lang)}</option>
               <option value="high">{t("auditConfHigh", lang)}</option>
             </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              aria-label={t("auditStatusAll", lang)}
-            >
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                    className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
               <option value="all">{t("auditStatusAll", lang)}</option>
-              {allStatuses.map((s) => (
-                <option key={s} value={s}>{t(statusKeys[s] ?? "statusReady", lang)}</option>
-              ))}
+              {allStatuses.map((s) => <option key={s} value={s}>{t(statusKeys[s] ?? "statusReady", lang)}</option>)}
             </select>
-            <select
-              value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
-              aria-label={t("auditColSupplier", lang)}
-            >
-              <option value="all">{t("auditColSupplier", lang)} — {t("auditSourceAll", lang).toLowerCase()}</option>
-              {allSuppliers.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
+            <select value={supplierFilter} onChange={(e) => setSupplierFilter(e.target.value)}
+                    className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
+              <option value="all">{t("auditColSupplier", lang)}</option>
+              {allSuppliers.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            <select
-              value={operationFilter}
-              onChange={(e) => setOperationFilter(e.target.value)}
-              className="app-input rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none"
-              aria-label={t("auditColOperation", lang)}
-            >
-              <option value="all">{t("auditColOperation", lang)} — {t("auditSourceAll", lang).toLowerCase()}</option>
-              {allOperations.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
+            <select value={operationFilter} onChange={(e) => setOperationFilter(e.target.value)}
+                    className="rounded-lg px-2.5 py-1.5 font-mono text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
+              <option value="all">{t("auditColOperation", lang)}</option>
+              {allOperations.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="app-input rounded-lg px-2.5 py-1.5 text-xs outline-none"
-              aria-label={t("auditSourceAll", lang)}
-            >
-              <option value="all">{t("auditSourceAll", lang)}</option>
-              {allSources.map((s) => (
-                <option key={s} value={s}>{getSourceLabel(s, lang)}</option>
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}
+                    className="rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                    style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}>
+              <option value="all">{t("allTypes", lang)}</option>
+              {["pedimento","invoice","bl","packing_list","mve","cfdi","coo","carta_porte"].map((k) => (
+                <option key={k} value={k}>{t(docTypeKeys[k] ?? "documentsLabel", lang)}</option>
               ))}
             </select>
             {hasActiveFilter && (
@@ -1279,45 +1154,18 @@ export function DocumentsPage() {
         )}
       </SectionCard>
 
-      {/* Type filter chips (existing) */}
-      <div className="flex flex-wrap gap-1.5">
-        {["all", "pedimento", "invoice", "bl", "packing_list", "mve", "cfdi", "coo", "carta_porte"].map((typeKey) => (
-          <button
-            key={typeKey}
-            onClick={() => setFilter(typeKey)}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-all",
-              filter === typeKey ? "lifted-active" : ""
-            )}
-            style={
-              filter === typeKey
-                ? { background: "var(--brand-soft)", color: "var(--brand)", border: "1px solid oklch(0.78 0.09 235 / 0.3)" }
-                : { background: "var(--hair)", color: "var(--ink-4)", border: "1px solid transparent" }
-            }
-          >
-            {typeKey === "all" ? t("allTypes", lang) : t(docTypeKeys[typeKey] ?? "documentsLabel", lang)}
-          </button>
-        ))}
-      </div>
-
-      {/* Bulk action bar — appears when there's a selection */}
       {selectedIds.size > 0 && (
-        <div className="glass-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
-             style={{ background: "var(--brand-soft)", borderColor: "oklch(0.78 0.09 235 / 0.35)" }}>
+        <div className="flex flex-col gap-3 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between"
+             style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.35)" }}>
           <div className="flex items-center gap-3 text-sm" style={{ color: "var(--ink)" }}>
-            <span className="font-mono tabular text-base font-semibold" style={{ color: "var(--brand)" }}>
-              {selectedIds.size}
-            </span>
+            <span className="font-mono text-base font-semibold tabular" style={{ color: "var(--brand)" }}>{selectedIds.size}</span>
             <span style={{ color: "var(--ink-2)" }}>{t("auditSelectedCount", lang)}</span>
             <button onClick={() => setSelectedIds(new Set())} className="btn btn-ghost btn-sm">
               <X size={11} /> {t("auditClearSelection", lang)}
             </button>
           </div>
-          <button
-            onClick={handleExportZip}
-            disabled={exportState === "preparing"}
-            className="btn btn-primary justify-center disabled:opacity-60"
-          >
+          <button onClick={handleExportZip} disabled={exportState === "preparing"}
+                  className="btn btn-primary justify-center disabled:opacity-60">
             <Download size={13} />
             {exportLabel}
           </button>
@@ -1325,452 +1173,161 @@ export function DocumentsPage() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)]">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="glass-panel h-72 shimmer" />
-            ))}
-          </div>
-          <div className="glass-panel h-[720px] shimmer" />
-        </div>
+        <div className="glass-panel h-96 shimmer" />
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
-          <div className="space-y-3">
-            {view === "cards" ? (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-                {sorted.map((doc) => {
-                  const color = statusColor[doc.status] ?? "var(--ink-4)";
-                  const isSelected = viewerDoc?.id === doc.id;
-                  const isChecked = selectedIds.has(doc.id);
-                  const fields = getEvidenceFields(doc);
-                  const checks = getEvidenceChecks(doc);
-                  const hasFailedCheck = checks.some((c) => !c.passed);
-                  const hasLowConfidenceField = fields.some((f) => f.confidence < 0.90);
-                  const pdfUrl = getVisualConfig(doc.type).pdfUrl;
-
-                  return (
-                    <div
-                      key={doc.id}
-                      className={cn(
-                        "glass-panel group relative overflow-hidden p-0 text-left transition-all hover:-translate-y-0.5",
-                        isSelected ? "lifted-active" : ""
-                      )}
-                    >
-                      {/* Selection checkbox — top-left overlay on the slim thumbnail */}
-                      <label
-                        className="absolute left-3 top-3 z-20 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md transition-all"
-                        style={{
-                          background: isChecked ? "var(--brand)" : "rgba(10,13,18,0.55)",
-                          border: `1px solid ${isChecked ? "var(--brand)" : "var(--hair-2)"}`,
-                          backdropFilter: "blur(6px)",
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleSelect(doc.id)}
-                          className="sr-only"
-                        />
-                        {isChecked && <CheckCircle2 size={12} style={{ color: "#0A0D12" }} />}
-                      </label>
-
-                      {/* Indicators stacked top-right */}
-                      <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
-                        {hasLowConfidenceField && (
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ background: "var(--warn)", boxShadow: "0 0 8px var(--warn)" }}
-                            title={`${fields.filter((f) => f.confidence < 0.90).length} fields below 90%`}
-                          />
-                        )}
-                        {hasFailedCheck && (
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ background: "var(--risk)", boxShadow: "0 0 8px var(--risk)" }}
-                            title={`${checks.filter((c) => !c.passed).length} failed checks`}
-                          />
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => setSelectedDocId(doc.id)}
-                        className="block w-full text-left"
-                        aria-label={`${viewerCopy[lang].selectedDocument}: ${doc.filename}`}
-                      >
-                        <DocumentThumbnail doc={doc} />
-
-                        <div className="space-y-3 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                                  {getDocTypeLabel(doc.type, lang)}
-                                </p>
-                                {isSelected && (
-                                  <span className="chip chip-brand py-0.5 text-[10px]">
-                                    <span className="dot" />
-                                    {viewerCopy[lang].selected}
-                                  </span>
-                                )}
+        <>
+          <div className="glass-panel overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--hair)", background: "var(--surface-1)" }}>
+                    <th className="px-3 py-2.5 text-left" style={{ width: 36 }}>
+                      <input type="checkbox"
+                             checked={sorted.length > 0 && sorted.every((d) => selectedIds.has(d.id))}
+                             onChange={toggleSelectAll}
+                             aria-label={t("auditSelectAll", lang)}
+                             className="accent-[var(--brand)]" />
+                    </th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDoc", lang)}</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColSupplier", lang)}</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColOperation", lang)}</th>
+                    <th className="px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColConfidence", lang)}</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColChecks", lang)}</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColStatus", lang)}</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDate", lang)}</th>
+                    <th className="px-3 py-2.5 text-right" style={{ width: 120 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((doc) => {
+                    const visual = getVisualConfig(doc.type);
+                    const Icon = visual.Icon;
+                    const fields = getEvidenceFields(doc);
+                    const checks = getEvidenceChecks(doc);
+                    const passed = checks.filter((c) => c.passed).length;
+                    const hasFailed = passed < checks.length;
+                    const isChecked = selectedIds.has(doc.id);
+                    const isExpanded = expandedRow === doc.id;
+                    const color = statusColor[doc.status] ?? "var(--ink-4)";
+                    const confColor = doc.confidence < 0.90 ? "var(--risk)" : doc.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
+                    return (
+                      <FragmentRow key={doc.id}>
+                        <tr style={{ borderBottom: "1px solid var(--hair)", background: isChecked ? "var(--brand-soft)" : "transparent" }}>
+                          <td className="px-3 py-2.5">
+                            <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(doc.id)} className="accent-[var(--brand)]" />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <button onClick={() => setViewerDocId(doc.id)} className="flex items-start gap-2 text-left">
+                              <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg"
+                                   style={{ background: visual.previewBg, border: "1px solid var(--hair)" }}>
+                                <Icon size={13} style={{ color: visual.accent }} />
                               </div>
-                              <p className="mt-1 truncate text-xs font-mono" style={{ color: "var(--ink-4)" }}>
-                                {doc.filename}
-                              </p>
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>{getDocTypeLabel(doc.type, lang)}</div>
+                                <div className="truncate font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>{doc.filename}</div>
+                              </div>
+                            </button>
+                          </td>
+                          <td className="px-3 py-2.5 text-sm truncate" style={{ color: "var(--ink-2)" }}>{doc.operation.supplier.shortName}</td>
+                          <td className="px-3 py-2.5 font-mono text-[11px]" style={{ color: "var(--ink-3)" }}>{doc.operation.id}</td>
+                          <td className="px-3 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="h-1 w-14 rounded-full" style={{ background: "var(--hair)" }}>
+                                <div className="h-full rounded-full transition-all" style={{ width: `${doc.confidence * 100}%`, background: confColor }} />
+                              </div>
+                              <span className="font-mono text-xs tabular" style={{ color: confColor }}>{Math.round(doc.confidence * 100)}%</span>
                             </div>
-                            <div className="flex shrink-0 items-center gap-1 text-xs" style={{ color }}>
-                              {statusIcon[doc.status]}
-                              <span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              {hasFailed ? <XCircle size={12} style={{ color: "var(--risk)" }} /> : <CheckCircle2 size={12} style={{ color: "var(--ok)" }} />}
+                              <span className="font-mono text-[11px]" style={{ color: hasFailed ? "var(--risk)" : "var(--ok)" }}>{passed}/{checks.length}</span>
                             </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
-                              <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("confidence", lang)}</p>
-                              <p className="font-mono text-xs font-semibold" style={{ color }}>{Math.round(doc.confidence * 100)}%</p>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1 text-xs" style={{ color }}>
+                              {statusIcon[doc.status]}<span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
                             </div>
-                            <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
-                              <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].fields}</p>
-                              <p className="font-mono text-xs font-semibold" style={{ color: hasLowConfidenceField ? "var(--warn)" : "var(--ink)" }}>{fields.length}</p>
+                          </td>
+                          <td className="px-3 py-2.5 font-mono text-[11px]" style={{ color: "var(--ink-4)" }}>{formatDate(doc.uploadedAt, lang)}</td>
+                          <td className="px-3 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-0.5">
+                              {visual.pdfUrl && (
+                                <a href={visual.pdfUrl} download onClick={(e) => e.stopPropagation()} className="btn btn-ghost btn-sm" title="Download PDF">
+                                  <Download size={11} />
+                                </a>
+                              )}
+                              <Link href={`/console/operations/${doc.operation.id}`} onClick={(e) => e.stopPropagation()} className="btn btn-ghost btn-sm" title={viewerCopy[lang].openExpediente}>
+                                <ArrowUpRight size={11} />
+                              </Link>
+                              <button onClick={() => setExpandedRow(isExpanded ? null : doc.id)} className="btn btn-ghost btn-sm">
+                                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              </button>
                             </div>
-                            <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--hair)", background: "rgba(255,255,255,0.025)" }}>
-                              <p className="text-[10px]" style={{ color: "var(--ink-4)" }}>{viewerCopy[lang].checks}</p>
-                              <p className="font-mono text-xs font-semibold" style={{ color: hasFailedCheck ? "var(--risk)" : "var(--ok)" }}>
-                                {checks.filter((c) => c.passed).length}/{checks.length}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3 text-xs" style={{ color: "var(--ink-4)" }}>
-                            <span className="min-w-0 truncate">{doc.operation.supplier.shortName} · <span className="font-mono">{doc.operation.id}</span></span>
-                            <span className="shrink-0 font-mono">{formatDate(doc.uploadedAt, lang)}</span>
-                          </div>
-                        </div>
-                      </button>
-
-                      {/* Inline action bar — surfaces Download + Open expediente outside the row click */}
-                      <div className="flex items-center gap-1.5 border-t px-3 py-2" style={{ borderColor: "var(--hair)", background: "var(--surface-1)" }}>
-                        {pdfUrl && (
-                          <a
-                            href={pdfUrl}
-                            download
-                            onClick={(e) => e.stopPropagation()}
-                            className="btn btn-ghost btn-sm"
-                            aria-label="Download PDF"
-                            title="Download PDF"
-                          >
-                            <Download size={12} />
-                          </a>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr style={{ background: "var(--surface-1)", borderBottom: "1px solid var(--hair)" }}>
+                            <td colSpan={9} className="px-3 py-3">
+                              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+                                {fields.map((field) => {
+                                  const fc = field.confidence < 0.90 ? "var(--risk)" : field.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
+                                  return (
+                                    <div key={field.id} className="rounded-lg border p-2"
+                                         style={{ borderColor: field.mismatch ? "oklch(0.66 0.20 25 / 0.5)" : "var(--hair)", background: field.mismatch ? "var(--risk-soft)" : "var(--surface-1)" }}>
+                                      <div className="flex items-center justify-between">
+                                        <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{field.label}</p>
+                                        <span className="font-mono text-[10px]" style={{ color: fc }}>{Math.round(field.confidence * 100)}%</span>
+                                      </div>
+                                      <p className="mt-1 truncate text-xs font-medium" style={{ color: field.mismatch ? "var(--risk)" : "var(--ink)" }}>{field.value}</p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                        <Link
-                          href={`/console/operations/${doc.operation.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="btn btn-ghost btn-sm ml-auto"
-                          title={viewerCopy[lang].openExpediente}
-                        >
-                          {viewerCopy[lang].openExpediente}
-                          <ArrowUpRight size={11} />
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* TABLE VIEW */
-              <div className="glass-panel overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid var(--hair)", background: "var(--surface-1)" }}>
-                        <th className="px-3 py-2.5 text-left" style={{ width: 36 }}>
-                          <input
-                            type="checkbox"
-                            checked={allVisibleSelected}
-                            onChange={toggleSelectAll}
-                            aria-label={t("auditSelectAll", lang)}
-                            className="accent-[var(--brand)]"
-                          />
-                        </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDoc", lang)}</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColType", lang)}</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColSupplier", lang)}</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColOperation", lang)}</th>
-                        <th className="px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColConfidence", lang)}</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColChecks", lang)}</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColStatus", lang)}</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{t("auditColDate", lang)}</th>
-                        <th className="px-3 py-2.5 text-right" style={{ width: 120 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sorted.map((doc) => {
-                        const visual = getVisualConfig(doc.type);
-                        const Icon = visual.Icon;
-                        const fields = getEvidenceFields(doc);
-                        const checks = getEvidenceChecks(doc);
-                        const passed = checks.filter((c) => c.passed).length;
-                        const hasFailed = passed < checks.length;
-                        const isChecked = selectedIds.has(doc.id);
-                        const isExpanded = expandedRow === doc.id;
-                        const color = statusColor[doc.status] ?? "var(--ink-4)";
-                        const confColor = doc.confidence < 0.90 ? "var(--risk)" : doc.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
-
-                        return (
-                          <FragmentRow key={doc.id}>
-                            <tr
-                              className="transition-colors"
-                              style={{
-                                borderBottom: "1px solid var(--hair)",
-                                background: isChecked ? "var(--brand-soft)" : viewerDoc?.id === doc.id ? "var(--surface-1)" : "transparent",
-                              }}
-                            >
-                              <td className="px-3 py-2.5">
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => toggleSelect(doc.id)}
-                                  className="accent-[var(--brand)]"
-                                />
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <button onClick={() => setSelectedDocId(doc.id)} className="flex items-start gap-2 text-left">
-                                  <div
-                                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg"
-                                    style={{ background: visual.previewBg, border: "1px solid var(--hair)" }}
-                                  >
-                                    <Icon size={13} style={{ color: visual.accent }} />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="truncate text-sm font-medium" style={{ color: "var(--ink)" }}>
-                                      {getDocTypeLabel(doc.type, lang)}
-                                    </div>
-                                    <div className="truncate font-mono text-[10.5px]" style={{ color: "var(--ink-4)" }}>
-                                      {doc.filename}
-                                    </div>
-                                  </div>
-                                </button>
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <span className="font-mono text-[11px]" style={{ color: visual.accent }}>{visual.short}</span>
-                              </td>
-                              <td className="px-3 py-2.5 text-sm truncate" style={{ color: "var(--ink-2)" }}>
-                                {doc.operation.supplier.shortName}
-                              </td>
-                              <td className="px-3 py-2.5 font-mono text-[11px]" style={{ color: "var(--ink-3)" }}>
-                                {doc.operation.id}
-                              </td>
-                              <td className="px-3 py-2.5 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <div className="h-1 w-14 rounded-full" style={{ background: "var(--hair)" }}>
-                                    <div
-                                      className="h-full rounded-full transition-all"
-                                      style={{ width: `${doc.confidence * 100}%`, background: confColor }}
-                                    />
-                                  </div>
-                                  <span className="font-mono text-xs tabular" style={{ color: confColor }}>
-                                    {Math.round(doc.confidence * 100)}%
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-1.5">
-                                  {hasFailed
-                                    ? <XCircle size={12} style={{ color: "var(--risk)" }} />
-                                    : <CheckCircle2 size={12} style={{ color: "var(--ok)" }} />}
-                                  <span className="font-mono text-[11px]" style={{ color: hasFailed ? "var(--risk)" : "var(--ok)" }}>
-                                    {passed}/{checks.length}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-1 text-xs" style={{ color }}>
-                                  {statusIcon[doc.status]}
-                                  <span>{t(statusKeys[doc.status] ?? "statusReady", lang)}</span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2.5 font-mono text-[11px]" style={{ color: "var(--ink-4)" }}>
-                                {formatDate(doc.uploadedAt, lang)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right">
-                                <div className="flex items-center justify-end gap-0.5">
-                                  {visual.pdfUrl && (
-                                    <a
-                                      href={visual.pdfUrl}
-                                      download
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="btn btn-ghost btn-sm"
-                                      aria-label="Download PDF"
-                                      title="Download PDF"
-                                    >
-                                      <Download size={11} />
-                                    </a>
-                                  )}
-                                  <Link
-                                    href={`/console/operations/${doc.operation.id}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label={viewerCopy[lang].openExpediente}
-                                    title={viewerCopy[lang].openExpediente}
-                                  >
-                                    <ArrowUpRight size={11} />
-                                  </Link>
-                                  <button
-                                    onClick={() => setExpandedRow(isExpanded ? null : doc.id)}
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
-                                    title={isExpanded ? t("auditRowCollapse", lang) : t("auditRowExpand", lang)}
-                                  >
-                                    {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                            {isExpanded && (
-                              <tr style={{ background: "var(--surface-1)", borderBottom: "1px solid var(--hair)" }}>
-                                <td colSpan={10} className="px-3 py-3">
-                                  <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
-                                    {fields.map((field) => {
-                                      const fConfColor = field.confidence < 0.90 ? "var(--risk)" : field.confidence < 0.95 ? "var(--warn)" : "var(--ok)";
-                                      return (
-                                        <div
-                                          key={field.id}
-                                          className="rounded-lg border p-2"
-                                          style={{
-                                            borderColor: field.mismatch ? "oklch(0.66 0.20 25 / 0.5)" : "var(--hair)",
-                                            background: field.mismatch ? "var(--risk-soft)" : "var(--surface-1)",
-                                          }}
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{field.label}</p>
-                                            <span className="font-mono text-[10px]" style={{ color: fConfColor }}>{Math.round(field.confidence * 100)}%</span>
-                                          </div>
-                                          <p className="mt-1 truncate text-xs font-medium" style={{ color: field.mismatch ? "var(--risk)" : "var(--ink)" }}>
-                                            {field.value}
-                                          </p>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </FragmentRow>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {sorted.length === 0 && (
-              <SectionCard className="p-8">
-                <EmptyState
-                  icon="file"
-                  description={hasActiveFilter ? t("auditNoResults", lang) : t("noDocumentsFound", lang)}
-                />
-              </SectionCard>
-            )}
+                      </FragmentRow>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="xl:sticky xl:top-20 xl:self-start">
-            <EvidenceViewer doc={viewerDoc} lang={lang} />
+          <div className="flex flex-wrap items-center gap-4 px-1 text-[11px]" style={{ color: "var(--ink-4)" }}>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--warn)" }} /> {t("pullLegendLowConf", lang)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--risk)" }} /> {t("pullLegendFailedCheck", lang)}
+            </span>
           </div>
-        </div>
+
+          {sorted.length === 0 && (
+            <div className="glass-panel p-12 text-center" style={{ color: "var(--ink-4)" }}>
+              {hasActiveFilter ? t("auditNoResults", lang) : t("noDocumentsFound", lang)}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Recent evidence pulls — every export from this vault leaves a trail. */}
-      <section className="space-y-2 pt-2">
-        <div>
-          <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{t("recentPullsTitle", lang)}</h3>
-          <p className="text-xs" style={{ color: "var(--ink-4)" }}>{t("recentPullsSubtitle", lang)}</p>
-        </div>
-        <div className="glass-panel overflow-hidden">
-          <ul className="divide-y" style={{ borderColor: "var(--hair)" }}>
-            {recentPulls.map((pull) => (
-              <li key={pull.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
-                <div className="flex items-center gap-3 sm:flex-1">
-                  <div
-                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-[10px] font-semibold"
-                    style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)", color: "var(--brand)" }}
-                  >
-                    {pull.user.initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
-                      {t(pull.reasonKey, lang)}
-                    </p>
-                    <p className="text-[11px]" style={{ color: "var(--ink-4)" }}>
-                      {t("recentPullsBy", lang)} {pull.user.name} · {formatDateTime(pull.createdAt, lang)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs sm:gap-4">
-                  <div className="flex flex-col items-end">
-                    <span className="font-mono tabular text-sm font-semibold" style={{ color: "var(--ink)" }}>{pull.docCount}</span>
-                    <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("recentPullsDocs", lang)}</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="font-mono tabular text-[11px]" style={{ color: "var(--ok)" }}>{pull.manifestSha}</span>
-                    <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("recentPullsHash", lang)}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    title={t("recentPullsReplay", lang)}
-                    aria-label={t("recentPullsReplay", lang)}
-                  >
-                    <RotateCcw size={11} />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {scanOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-          <div className="glass-panel elev-3 w-full max-w-md space-y-4 p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold" style={{ color: "var(--ink)" }}>{t("scanDocumentModal", lang)}</h3>
-              <button onClick={() => setScanOpen(false)} aria-label={t("cancel", lang)}>
-                <X size={16} style={{ color: "var(--ink-4)" }} />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--ink-4)" }}>{t("filename", lang)}</label>
-                <input
-                  value={scanFilename}
-                  onChange={(e) => setScanFilename(e.target.value)}
-                  placeholder={t("scanFilenamePlaceholder", lang)}
-                  className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                  style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--ink-4)" }}>{t("operationId", lang)}</label>
-                <input
-                  value={scanOpId}
-                  onChange={(e) => setScanOpId(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 font-mono text-sm outline-none"
-                  style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setScanOpen(false)} className="btn btn-secondary flex-1 justify-center">
-                {t("cancel", lang)}
-              </button>
-              <button onClick={handleScan} disabled={scanning} className="btn btn-primary flex-1 justify-center disabled:opacity-60">
-                {scanning ? t("scanning", lang) : t("scanClassify", lang)}
-              </button>
-            </div>
+      {viewerDoc && (
+        <div className="fixed inset-0 z-50 flex items-start justify-end p-4 sm:p-6"
+             style={{ background: "rgba(4,6,10,0.65)", backdropFilter: "blur(8px)" }}
+             onClick={() => setViewerDocId(null)}>
+          <div className="w-full max-w-xl" style={{ maxHeight: "calc(100vh - 32px)", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <EvidenceViewer doc={viewerDoc} lang={lang} />
+            <button onClick={() => setViewerDocId(null)}
+                    className="fixed right-6 top-6 grid h-9 w-9 place-items-center rounded-full"
+                    aria-label={t("pullViewerClose", lang)}
+                    style={{ background: "var(--bg-2)", border: "1px solid var(--hair-2)", color: "var(--ink-2)" }}>
+              <X size={14} />
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 }
+

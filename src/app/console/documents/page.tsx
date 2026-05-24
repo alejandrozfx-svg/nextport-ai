@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { DocumentsPage } from "@/components/documents/DocumentsPage";
 
 export default function DocumentsRoute() {
-  return <DocumentsPage />;
+  return (
+    <Suspense fallback={null}>
+      <DocumentsPage />
+    </Suspense>
+  );
 }
