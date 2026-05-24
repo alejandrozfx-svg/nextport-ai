@@ -266,7 +266,7 @@ function InvoicePreview({ op, hf }: { op: DemoOperation; hf: Set<string> }) {
           <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, color: "white" }}>{op.supplierShort}</div>
           <div style={{ fontSize: 10, color: "var(--ink-3)" }}>{op.origin}</div>
         </div>
-        <div style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)" }}>
+        <div style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)", marginTop: 28 }}>
           INV-LMT-44218<br/>Issued · {op.eta}
         </div>
       </div>
@@ -312,7 +312,7 @@ function BLPreview({ op, hf }: { op: DemoOperation; hf: Set<string> }) {
     <PreviewFrame stamp="BILL OF LADING">
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, color: "white" }}>MAERSK LINE</div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)", textAlign: "right" }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)", textAlign: "right", marginTop: 28 }}>
           MAEU-7741229<br/>Vessel: SAN AGUSTÍN · V.2026/14
         </div>
       </div>
