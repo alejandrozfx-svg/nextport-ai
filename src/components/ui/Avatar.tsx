@@ -26,7 +26,7 @@ export function Avatar({ initials, src, size = "md", color, className, alt }: Av
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-semibold flex-shrink-0 overflow-hidden",
+        "avatar-ring rounded-full flex items-center justify-center font-semibold flex-shrink-0 overflow-hidden",
         cfg.box,
         className
       )}

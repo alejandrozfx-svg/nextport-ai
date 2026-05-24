@@ -38,32 +38,52 @@ function Icon({ name, size = 14 }: { name: string; size?: number }) {
   return icons[name] ?? <svg style={s} />;
 }
 
-function MiniDocIcon({ classified }: { classified: boolean }) {
+const docGlyphs = ["A1", "$", "BL", "PL", "MV", "CF", "CP"];
+
+function MiniDocIcon({ classified, index = 0 }: { classified: boolean; index?: number }) {
   return (
-    <div className="w-4 h-5 rounded-[2px] flex-shrink-0 relative" style={{
-      background: classified
-        ? "linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))"
-        : "rgba(255,255,255,0.03)",
-      border: `1px solid ${classified ? "var(--hair-2)" : "var(--hair)"}`,
-      borderStyle: classified ? "solid" : "dashed",
-    }}>
-      {classified && (
-        <div style={{ position: "absolute", top: 0, right: 0, width: 5, height: 5, background: "var(--bg)", borderLeft: "1px solid var(--hair-2)", borderBottom: "1px solid var(--hair-2)" }} />
-      )}
+    <div className={`doc-mini ${classified ? "classified" : ""}`}>
+      {classified ? docGlyphs[index % docGlyphs.length] : ""}
     </div>
+  );
+}
+
+function Sparkline({ points, color = "var(--brand)" }: { points: number[]; color?: string }) {
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const span = Math.max(max - min, 1);
+  const d = points.map((point, index) => {
+    const x = (index / Math.max(points.length - 1, 1)) * 100;
+    const y = 24 - ((point - min) / span) * 20;
+    return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(" ");
+
+  return (
+    <svg className="stat-sparkline" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+      <path d={`${d} L 100 28 L 0 28 Z`} fill={color} opacity="0.08" />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
   );
 }
 
 function StatCard({ label, value, sub, color, active, onClick }: {
   label: string; value: string | number; sub: string; color?: string; active?: boolean; onClick?: () => void;
 }) {
+  const activeBg =
+    color === "var(--risk)" ? "var(--risk-soft)" :
+    color === "var(--warn)" ? "var(--warn-soft)" :
+    color === "var(--ok)" ? "var(--ok-soft)" :
+    "var(--brand-soft)";
+  const spark = typeof value === "number"
+    ? [Math.max(0, value - 2), value + 1, Math.max(0, value - 1), value + 2, value + 1, value + 3]
+    : [8, 9, 8, 11, 10, 12];
+
   return (
     <div
-      className="glass-panel p-4 cursor-pointer transition-all"
+      className={`glass-panel p-4 cursor-pointer transition-all hover:-translate-y-0.5 ${active ? "lifted-active" : ""}`}
       onClick={onClick}
       style={{
-        outline: active ? `1px solid ${color ?? "var(--brand)"}` : undefined,
-        background: active ? `${color ?? "var(--brand)"}1a` : undefined,
+        background: active ? activeBg : undefined,
       }}
     >
       <div className="text-[11px] mb-1" style={{ color: "var(--ink-4)" }}>{label}</div>
@@ -71,6 +91,16 @@ function StatCard({ label, value, sub, color, active, onClick }: {
         {value}
       </div>
       <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>{sub}</div>
+      <Sparkline points={spark} color={color ?? "var(--brand)"} />
+    </div>
+  );
+}
+
+function EmptyOperationsState({ label }: { label: string }) {
+  return (
+    <div className="text-center">
+      <div className="empty-illustration" />
+      <div className="text-[13px]" style={{ color: "var(--ink-3)" }}>{label}</div>
     </div>
   );
 }
@@ -137,7 +167,7 @@ function OperationMobileCard({ op }: { op: DemoOperation }) {
         <div className="min-w-0">
           <div className="flex items-center gap-0.5">
             {Array.from({ length: op.docsExpected }).map((_, i) => (
-              <MiniDocIcon key={i} classified={i < op.docCount} />
+              <MiniDocIcon key={i} classified={i < op.docCount} index={i} />
             ))}
           </div>
           <div className="mt-1 text-[11px] font-mono tabular" style={{ color: docColor }}>
@@ -303,10 +333,14 @@ export function OperationsInbox() {
       <div className="space-y-3 md:hidden">
         {filtered.length === 0 ? (
           <div className="glass-panel p-5 text-center text-[13px]" style={{ color: "var(--ink-4)" }}>
-            {t("noOpsMatch", lang)}
+            <EmptyOperationsState label={t("noOpsMatch", lang)} />
           </div>
         ) : (
-          filtered.map((op) => <OperationMobileCard key={op.id} op={op} />)
+          filtered.map((op, index) => (
+            <div key={`${filter}-${op.id}`} className="ops-row-animate" style={{ animationDelay: `${index * 45}ms` }}>
+              <OperationMobileCard op={op} />
+            </div>
+          ))
         )}
       </div>
 
@@ -334,11 +368,13 @@ export function OperationsInbox() {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-center py-10" style={{ color: "var(--ink-4)" }}>
-                  {t("noOpsMatch", lang)}
+                  <EmptyOperationsState label={t("noOpsMatch", lang)} />
                 </td>
               </tr>
             ) : (
-              filtered.map((op) => <OperationRow key={op.id} op={op} />)
+              filtered.map((op, index) => (
+                <OperationRow key={`${filter}-${op.id}`} op={op} index={index} />
+              ))
             )}
           </tbody>
         </table>

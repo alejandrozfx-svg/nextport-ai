@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
+import { Wordmark } from "@/components/ui/Wordmark";
 import { Avatar } from "@/components/ui/Avatar";
 import { useState, useEffect } from "react";
 import { useLang } from "@/lib/lang-context";
@@ -79,8 +80,11 @@ export function Sidebar({ onAiClick }: SidebarProps) {
     >
       {/* Brand */}
       <div className="px-4 py-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--hair)" }}>
-        <BrandMark />
-        <p className="text-xs mt-0.5 font-mono" style={{ color: "var(--ink-4)" }}>
+        <div className="flex items-center gap-2.5">
+          <BrandMark size={28} />
+          <Wordmark size="sm" />
+        </div>
+        <p className="text-xs mt-1.5 font-mono" style={{ color: "var(--ink-4)" }}>
           {t("importControlTower", lang)}
         </p>
       </div>

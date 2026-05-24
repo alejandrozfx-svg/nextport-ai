@@ -16,12 +16,22 @@
   --hair-2: rgba(255, 255, 255, 0.14);
   --brand: oklch(0.78 0.09 235);
   --brand-soft: oklch(0.78 0.09 235 / 0.14);
-  --risk: oklch(0.70 0.16 25);
-  --risk-soft: oklch(0.70 0.16 25 / 0.14);
-  --warn: oklch(0.82 0.14 78);
-  --warn-soft: oklch(0.82 0.14 78 / 0.14);
-  --ok: oklch(0.78 0.13 155);
-  --ok-soft: oklch(0.78 0.13 155 / 0.14);
+  --risk: oklch(0.66 0.20 25);
+  --risk-soft: oklch(0.66 0.20 25 / 0.16);
+  --warn: oklch(0.76 0.16 76);
+  --warn-soft: oklch(0.76 0.16 76 / 0.15);
+  --ok: oklch(0.76 0.15 165);
+  --ok-soft: oklch(0.76 0.15 165 / 0.15);
+  --elev-0: none;
+  --elev-1: inset 0 1px 0 rgba(255,255,255,0.055), 0 24px 55px -36px rgba(0,0,0,0.76);
+  --elev-2: inset 0 1px 0 rgba(255,255,255,0.08), 0 32px 80px -34px rgba(0,0,0,0.86), 0 0 0 1px rgba(122,176,224,0.10);
+  --elev-3: inset 0 1px 0 rgba(255,255,255,0.10), 0 40px 120px -34px rgba(0,0,0,0.92), 0 0 0 1px rgba(122,176,224,0.16);
+  --active-glow: 0 0 0 1px oklch(0.78 0.09 235 / 0.50), 0 0 32px oklch(0.78 0.09 235 / 0.13);
+  /* Secondary brand accent — electric teal. Used for AI-clasificado chips,
+   * "live" indicators, the brand-mark AI dot. Distinct from --brand (blue). */
+  --accent: oklch(0.82 0.13 195);
+  --accent-soft: oklch(0.82 0.13 195 / 0.14);
+  --accent-glow: oklch(0.82 0.13 195 / 0.35);
   --glass-tint: 4px;
   /* Surface tokens — used for translucent fills that need to flip in light mode. */
   --surface-1: rgba(255, 255, 255, 0.04);
@@ -55,6 +65,9 @@ html.theme-light {
   --warn-soft: oklch(0.62 0.16 78 / 0.10);
   --ok: oklch(0.55 0.15 155);
   --ok-soft: oklch(0.55 0.15 155 / 0.10);
+  --accent: oklch(0.55 0.14 195);
+  --accent-soft: oklch(0.55 0.14 195 / 0.10);
+  --accent-glow: oklch(0.55 0.14 195 / 0.25);
   --glass-tint: 6px;
   --surface-1: rgba(10, 13, 18, 0.03);
   --surface-2: rgba(10, 13, 18, 0.06);
@@ -67,12 +80,32 @@ html.theme-light {
 html, body { height: 100%; margin: 0; }
 html { scroll-behavior: smooth; }
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(900px 520px at 50% -18%, rgba(122,176,224,0.11), transparent 64%),
+    radial-gradient(760px 460px at 92% 4%, rgba(37,211,102,0.035), transparent 58%),
+    radial-gradient(720px 460px at 5% 14%, rgba(244,188,94,0.035), transparent 60%),
+    var(--bg);
   color: var(--ink);
   font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.75'/%3E%3C/svg%3E");
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ============ Console responsive shell ============ */
@@ -137,17 +170,32 @@ body {
 
 /* ============ Glass components ============ */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.025);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.042), rgba(255,255,255,0.018)),
+    rgba(255, 255, 255, 0.025);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   backdrop-filter: blur(14px) saturate(140%);
   border: 1px solid var(--hair);
   border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 30px 60px -30px rgba(0,0,0,0.5);
+  box-shadow: var(--elev-1);
 }
 .glass-panel-tight {
-  background: rgba(255,255,255,0.03);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.014)),
+    rgba(255,255,255,0.03);
   border: 1px solid var(--hair);
   border-radius: 12px;
+  box-shadow: var(--elev-0);
+}
+
+.elev-0 { box-shadow: var(--elev-0); }
+.elev-1 { box-shadow: var(--elev-1); }
+.elev-2 { box-shadow: var(--elev-2); }
+.elev-3 { box-shadow: var(--elev-3); }
+
+.lifted-active {
+  border-color: oklch(0.78 0.09 235 / 0.55) !important;
+  box-shadow: var(--active-glow), var(--elev-2) !important;
 }
 .liquid-glass {
   background: rgba(255, 255, 255, 0.01);
@@ -312,6 +360,20 @@ body {
 }
 .pulse-risk { animation: pulse-ring 1.8s ease-out infinite; border-radius: 999px; }
 
+@keyframes pulse-risk-dot {
+  0%, 100% { opacity: 0.72; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+
+@keyframes rowReveal {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ops-row-animate {
+  animation: rowReveal 0.28s ease both;
+}
+
 /* ============ Risk chips ============ */
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -324,7 +386,7 @@ body {
 }
 .chip .dot { width: 6px; height: 6px; border-radius: 999px; }
 .chip-risk  { color: oklch(0.86 0.10 25);  border-color: oklch(0.70 0.16 25 / 0.35); background: var(--risk-soft); }
-.chip-risk  .dot { background: var(--risk); box-shadow: 0 0 0 3px var(--risk-soft), 0 0 10px var(--risk); }
+.chip-risk  .dot { background: var(--risk); box-shadow: 0 0 0 3px var(--risk-soft), 0 0 10px var(--risk); animation: pulse-risk-dot 1.5s ease-in-out infinite; }
 .chip-warn  { color: oklch(0.92 0.10 78);  border-color: oklch(0.82 0.14 78 / 0.30); background: var(--warn-soft); }
 .chip-warn  .dot { background: var(--warn); }
 .chip-ok    { color: oklch(0.92 0.10 155); border-color: oklch(0.78 0.13 155 / 0.32); background: var(--ok-soft); }
@@ -332,7 +394,7 @@ body {
 .chip-neutral { color: var(--ink-2); border-color: var(--hair-2); background: rgba(255,255,255,0.03); }
 .chip-neutral .dot { background: var(--ink-3); }
 .chip-brand { color: oklch(0.92 0.05 235); border-color: oklch(0.78 0.09 235 / 0.4); background: var(--brand-soft); }
-.chip-brand .dot { background: var(--brand); }
+.chip-brand .dot { background: var(--brand); filter: drop-shadow(0 0 10px oklch(0.78 0.09 235 / 0.70)); }
 .chip-review { color: oklch(0.92 0.05 235); border-color: oklch(0.78 0.09 235 / 0.4); background: var(--brand-soft); }
 .chip-review .dot { background: var(--brand); }
 
@@ -351,11 +413,21 @@ body {
 .btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.20); }
 .btn:active { transform: translateY(0.5px); }
 .btn-primary {
-  background: linear-gradient(180deg, #ffffff, #d9dde3);
+  background: linear-gradient(145deg, #ffffff 0%, #eef4fb 42%, #c8d7e8 100%);
   color: #0A0D12;
   border-color: rgba(255,255,255,0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    inset 0 -10px 18px rgba(10,13,18,0.10),
+    0 12px 28px -18px rgba(122,176,224,0.55);
 }
-.btn-primary:hover { background: #ffffff; }
+.btn-primary:hover {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8fd 45%, #d5e4f3 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.96),
+    inset 0 -10px 18px rgba(10,13,18,0.08),
+    0 16px 34px -18px rgba(122,176,224,0.72);
+}
 .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
 .btn-ghost:hover { color: var(--ink); background: rgba(255,255,255,0.04); }
 .btn-danger {
@@ -451,6 +523,47 @@ body {
   border-bottom: 1px solid var(--hair-2);
 }
 
+.doc-mini {
+  width: 18px;
+  height: 22px;
+  border-radius: 4px;
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink-4);
+  background: rgba(255,255,255,0.025);
+  border: 1px dashed var(--hair);
+}
+
+.doc-mini::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 6px;
+  height: 6px;
+  border-left: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  border-bottom-left-radius: 2px;
+  background: var(--bg);
+  opacity: 0.55;
+}
+
+.doc-mini.classified {
+  color: var(--brand);
+  background: linear-gradient(180deg, rgba(122,176,224,0.16), rgba(255,255,255,0.035));
+  border-style: solid;
+  border-color: oklch(0.78 0.09 235 / 0.32);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
 /* ============ Doc preview surface ============ */
 .doc-preview {
   background:
@@ -461,15 +574,41 @@ body {
   position: relative;
   overflow: hidden;
 }
+
+.doc-preview::after {
+  content: "ADUANA\A A1";
+  white-space: pre;
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid oklch(0.78 0.09 235 / 0.32);
+  outline: 1px solid oklch(0.78 0.09 235 / 0.18);
+  outline-offset: -7px;
+  color: oklch(0.78 0.09 235 / 0.38);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: 0.09em;
+  text-align: center;
+  transform: rotate(-13deg);
+  pointer-events: none;
+}
+
 .doc-preview .stamp {
   position: absolute; right: 14px; top: 14px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: var(--ink-3);
-  border: 1px dashed var(--hair-2);
+  border: 1px solid oklch(0.78 0.09 235 / 0.25);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 999px;
   letter-spacing: 0.06em;
+  background: oklch(0.78 0.09 235 / 0.06);
 }
 
 /* ============ Progress bar ============ */
@@ -483,6 +622,22 @@ body {
   background: linear-gradient(90deg, oklch(0.78 0.09 235), oklch(0.92 0.05 235));
   border-radius: 999px;
   transition: width .25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress > span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: translateX(-130%);
+  animation: progressShimmer 1.45s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+  to { transform: translateX(260%); }
 }
 
 /* ============ Nav items ============ */
@@ -522,28 +677,39 @@ body {
   background-size: 32px 32px;
 }
 
+/* Legacy CSS brand-mark — renders the geometric N via inline SVG so it matches
+ * the React <BrandMark /> component pixel-for-pixel. Prefer the React component
+ * when possible; this class is kept for plain-HTML and marketing contexts. */
 .brand-mark {
   width: 28px; height: 28px; border-radius: 8px;
-  background:
-    radial-gradient(120% 120% at 30% 20%, oklch(0.86 0.09 235), oklch(0.55 0.10 235)),
-    #1a2230;
   position: relative;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px rgba(255,255,255,0.1);
-}
-.brand-mark::after {
-  content: "";
-  position: absolute; inset: 6px;
-  border-radius: 4px;
-  background: rgba(10, 13, 18, 0.6);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: linear-gradient(135deg, oklch(0.42 0.07 235) 0%, oklch(0.22 0.04 235) 55%, oklch(0.10 0.02 235) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 0 0 1px oklch(0.55 0.10 235 / 0.35),
+    0 4px 14px -6px oklch(0.10 0.02 235 / 0.6);
+  overflow: hidden;
 }
 .brand-mark::before {
   content: "";
   position: absolute;
-  inset: 11px;
-  border-radius: 2px;
-  background: linear-gradient(135deg, #fff, oklch(0.86 0.09 235));
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'><rect x='8' y='8' width='3' height='16' rx='1.2' fill='%23ffffff'/><rect x='21' y='8' width='3' height='16' rx='1.2' fill='%23ffffff'/><path d='M11 9 L21 23' stroke='%23ffffff' stroke-width='3' stroke-linecap='round'/></svg>");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0.92;
   z-index: 1;
+}
+.brand-mark::after {
+  /* AI accent dot in top-right corner */
+  content: "";
+  position: absolute;
+  top: 16%; right: 16%;
+  width: 22%; height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.92 0.13 195) 0%, oklch(0.70 0.13 195) 100%);
+  box-shadow: 0 0 6px oklch(0.78 0.13 195 / 0.6);
+  z-index: 2;
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -553,10 +719,75 @@ body {
  * Only the surfaces that visibly fail in light mode are overridden here;
  * everything else picks up the new --bg / --ink / --hair values automatically.
  * ─────────────────────────────────────────────────────────────────────*/
+.avatar-ring {
+  position: relative;
+  box-shadow:
+    0 0 0 1px oklch(0.78 0.09 235 / 0.38),
+    0 0 0 4px oklch(0.78 0.09 235 / 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.avatar-ring::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ok);
+  border: 1.5px solid var(--bg-2);
+  box-shadow: 0 0 10px var(--ok);
+}
+
+.stat-sparkline {
+  margin-top: 10px;
+  height: 28px;
+  opacity: 0.72;
+}
+
+.empty-illustration {
+  width: 72px;
+  height: 48px;
+  margin: 0 auto 10px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 24% 42%, var(--brand-soft), transparent 32%),
+    radial-gradient(circle at 72% 52%, var(--warn-soft), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+  border: 1px solid var(--hair);
+  box-shadow: var(--elev-1);
+  position: relative;
+}
+
+.empty-illustration::before,
+.empty-illustration::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+}
+
+.empty-illustration::before {
+  left: 14px;
+  right: 14px;
+  top: 18px;
+  height: 1px;
+  background: var(--hair-2);
+}
+
+.empty-illustration::after {
+  width: 8px;
+  height: 8px;
+  left: 32px;
+  top: 14px;
+  background: var(--brand);
+  box-shadow: 0 0 16px var(--brand);
+}
+
 html.theme-light .glass-panel {
   background: var(--bg-2);
   border-color: var(--hair);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 30px -22px rgba(10, 13, 18, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 16px 36px -24px rgba(10, 13, 18, 0.22);
 }
 html.theme-light .glass-panel-tight {
   background: var(--bg-2);
@@ -577,12 +808,12 @@ html.theme-light .btn:hover {
   border-color: var(--ink-3);
 }
 html.theme-light .btn-primary {
-  background: linear-gradient(180deg, oklch(0.62 0.13 235), oklch(0.50 0.13 235));
+  background: linear-gradient(145deg, oklch(0.66 0.13 235), oklch(0.50 0.13 235));
   color: #ffffff;
   border-color: oklch(0.50 0.13 235 / 0.6);
 }
 html.theme-light .btn-primary:hover {
-  background: linear-gradient(180deg, oklch(0.58 0.13 235), oklch(0.46 0.13 235));
+  background: linear-gradient(145deg, oklch(0.70 0.13 235), oklch(0.54 0.13 235));
 }
 html.theme-light .btn-ghost {
   background: transparent;

@@ -13,6 +13,8 @@ import {
   Shield,
   User,
 } from "lucide-react";
+import { BrandMark as RealBrandMark } from "@/components/ui/BrandMark";
+import { Wordmark } from "@/components/ui/Wordmark";
 
 const VIDEO_SOURCES = ["/assets/tracker.mp4"];
 
@@ -319,10 +321,8 @@ export default function LandingPage() {
               aria-label="Nextport AI home"
               className="flex shrink-0 items-center gap-2.5"
             >
-              <BrandMark size={24} />
-              <span className="text-[14px] font-semibold tracking-tight text-white sm:text-[15px]">
-                Nextport <span style={{ color: "var(--ink-3)" }}>AI</span>
-              </span>
+              <RealBrandMark size={26} />
+              <Wordmark size="sm" color="#ffffff" />
             </a>
 
             <div className="hidden items-center gap-7 text-[13px] md:flex">
@@ -782,10 +782,6 @@ function HeroFallback() {
       <div className="hero-fallback__pulse" />
     </div>
   );
-}
-
-function BrandMark({ size = 28 }: { size?: number }) {
-  return <span className="brand-mark block" style={{ width: size, height: size }} />;
 }
 
 function SpinnerDot({ dark = false }: { dark?: boolean }) {

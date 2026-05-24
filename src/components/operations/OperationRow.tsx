@@ -17,23 +17,17 @@ const chipKind: Record<string, string> = {
   ready:  "ok",
 };
 
-function MiniDocIcon({ classified }: { classified: boolean }) {
+const docGlyphs = ["A1", "$", "BL", "PL", "MV", "CF", "CP"];
+
+function MiniDocIcon({ classified, index = 0 }: { classified: boolean; index?: number }) {
   return (
-    <div className="w-4 h-5 rounded-[2px] flex-shrink-0 relative" style={{
-      background: classified
-        ? "linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))"
-        : "rgba(255,255,255,0.03)",
-      border: `1px solid ${classified ? "var(--hair-2)" : "var(--hair)"}`,
-      borderStyle: classified ? "solid" : "dashed",
-    }}>
-      {classified && (
-        <div style={{ position: "absolute", top: 0, right: 0, width: 5, height: 5, background: "var(--bg)", borderLeft: "1px solid var(--hair-2)", borderBottom: "1px solid var(--hair-2)" }} />
-      )}
+    <div className={`doc-mini ${classified ? "classified" : ""}`}>
+      {classified ? docGlyphs[index % docGlyphs.length] : ""}
     </div>
   );
 }
 
-export function OperationRow({ op }: { op: DemoOperation }) {
+export function OperationRow({ op, index = 0 }: { op: DemoOperation; index?: number }) {
   const { lang } = useLang();
   const rule = ruleClass[op.status] ?? "";
   const docComplete = op.docCount >= op.docsExpected;
@@ -45,7 +39,7 @@ export function OperationRow({ op }: { op: DemoOperation }) {
   };
 
   return (
-    <tr className={`row-link ${rule} transition-colors`} style={{ cursor: "pointer" }}>
+    <tr className={`row-link ${rule} ops-row-animate transition-colors`} style={{ cursor: "pointer", animationDelay: `${index * 45}ms` }}>
       <td style={{ paddingLeft: 16 }}>
         <Link href={`/console/operations/${op.id}`} className="block">
           <span className={`chip chip-${chipKind[op.status]}`}>
@@ -90,7 +84,7 @@ export function OperationRow({ op }: { op: DemoOperation }) {
         <Link href={`/console/operations/${op.id}`} className="block">
           <div className="flex items-center gap-0.5 mb-1">
             {Array.from({ length: op.docsExpected }).map((_, i) => (
-              <MiniDocIcon key={i} classified={i < op.docCount} />
+              <MiniDocIcon key={i} classified={i < op.docCount} index={i} />
             ))}
           </div>
           <div className="text-[10.5px] font-mono tabular" style={{ color: docColor }}>
