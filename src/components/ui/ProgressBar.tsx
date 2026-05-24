@@ -11,7 +11,7 @@ export function ProgressBar({ value, color, className, showLabel }: ProgressBarP
   const clamp = Math.max(0, Math.min(100, value));
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--hair)" }}>
+      <div className="progress flex-1">
         <div
           className="h-full rounded-full transition-all"
           style={{ width: `${clamp}%`, background: color ?? "var(--brand)" }}

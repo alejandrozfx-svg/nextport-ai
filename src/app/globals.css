@@ -617,7 +617,8 @@ body > * {
   background: rgba(255,255,255,0.05);
   overflow: hidden;
 }
-.progress > span {
+.progress > span,
+.progress > div {
   display: block; height: 100%;
   background: linear-gradient(90deg, oklch(0.78 0.09 235), oklch(0.92 0.05 235));
   border-radius: 999px;
@@ -626,7 +627,8 @@ body > * {
   overflow: hidden;
 }
 
-.progress > span::after {
+.progress > span::after,
+.progress > div::after {
   content: "";
   position: absolute;
   inset: 0;

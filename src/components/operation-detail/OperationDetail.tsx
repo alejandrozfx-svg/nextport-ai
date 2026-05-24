@@ -225,8 +225,8 @@ function PedimentoPreview({ op, hf }: { op: DemoOperation; hf: Set<string> }) {
           <div style={{ fontSize: 9, letterSpacing: "0.15em", color: "var(--ink-4)" }}>ADUANA · FORMATO A1</div>
           <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 16, color: "white" }}>Pedimento de Importación</div>
         </div>
-        <div style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)" }}>
-          {op.pedimento}<br/>Sección aduanera 470 · CDMX
+        <div style={{ textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)", marginTop: 28 }}>
+          Sección aduanera 470 · CDMX
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 12 }}>
@@ -418,6 +418,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
   const { lang } = useLang();
   const [activeDoc, setActiveDoc] = useState(0);
   const [decision, setDecision] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: "ok" | "warn" | "risk"; title: string; detail: string } | null>(null);
   const [focusedFlag, setFocusedFlag] = useState<number | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileDetailTab>("summary");
 
@@ -427,6 +428,32 @@ export function OperationDetail({ op }: OperationDetailProps) {
 
   const currentDoc = op.docs[activeDoc] ?? op.docs[0];
   const academyLesson = academyRecommendation(op.status);
+
+  function recordDecision(nextDecision: string | null) {
+    setDecision(nextDecision);
+
+    const title = nextDecision === "approved"
+      ? (lang === "es" ? "Operacion aprobada" : lang === "zh" ? "Operation approved" : "Operation approved")
+      : nextDecision === "held"
+      ? (lang === "es" ? "Operacion en espera" : lang === "zh" ? "Operation on hold" : "Operation on hold")
+      : nextDecision === "review"
+      ? (lang === "es" ? "Revision solicitada" : lang === "zh" ? "Review requested" : "Review requested")
+      : (lang === "es" ? "Decision revertida" : lang === "zh" ? "Decision undone" : "Decision undone");
+
+    const detail = lang === "es"
+      ? "Se registro en la trazabilidad de la operacion."
+      : lang === "zh"
+      ? "Decision logged in the audit trail."
+      : "Decision logged in the audit trail.";
+
+    setToast({
+      kind: nextDecision === "approved" ? "ok" : nextDecision === "held" ? "risk" : "warn",
+      title,
+      detail,
+    });
+
+    window.setTimeout(() => setToast(null), 4000);
+  }
 
   // When exception is clicked, jump to related doc
   useEffect(() => {
@@ -653,10 +680,10 @@ export function OperationDetail({ op }: OperationDetailProps) {
 
         <div className="fixed inset-x-0 z-40 px-3 md:hidden" style={{ bottom: "calc(70px + env(safe-area-inset-bottom))" }}>
           <div className="glass-panel flex items-center gap-2 p-2">
-            <button className="btn btn-sm flex-1 justify-center" onClick={() => setDecision("review")}>
+            <button className="btn btn-sm flex-1 justify-center" onClick={() => recordDecision("review")}>
               {lang === "es" ? "Corregir" : lang === "zh" ? "更正" : "Correct"}
             </button>
-            <button className="btn btn-danger btn-sm flex-1 justify-center" onClick={() => setDecision("held")}>
+            <button className="btn btn-danger btn-sm flex-1 justify-center" onClick={() => recordDecision("held")}>
               {lang === "es" ? "Escalar" : lang === "zh" ? "升级" : "Escalate"}
             </button>
             <button
@@ -665,7 +692,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
                 ? { background: "linear-gradient(180deg, oklch(0.86 0.13 155), oklch(0.62 0.13 155))", color: "#0A0D12", borderColor: "transparent" }
                 : { opacity: 0.45, cursor: "not-allowed" }}
               disabled={op.status !== "ready"}
-              onClick={() => setDecision("approved")}
+              onClick={() => recordDecision("approved")}
             >
               {lang === "es" ? "Aprobar" : lang === "zh" ? "批准" : "Approve"}
             </button>
@@ -847,14 +874,14 @@ export function OperationDetail({ op }: OperationDetailProps) {
                       ? { background: "linear-gradient(180deg, oklch(0.86 0.13 155), oklch(0.62 0.13 155))", color: "#0A0D12", borderColor: "transparent" }
                       : { opacity: 0.45, cursor: "not-allowed" }}
                     disabled={op.status !== "ready"}
-                    onClick={() => setDecision("approved")}
+                    onClick={() => recordDecision("approved")}
                   >
                     <Icon name="check" size={14} /> {lang === "es" ? "Aprobar y liberar" : lang === "zh" ? "批准并放行" : "Approve & release"}
                   </button>
-                  <button className="btn w-full justify-center" onClick={() => setDecision("review")}>
+                  <button className="btn w-full justify-center" onClick={() => recordDecision("review")}>
                     <Icon name="user" size={13} /> {lang === "es" ? "Enviar a revisión" : lang === "zh" ? "发送审查" : "Send for review"}
                   </button>
-                  <button className="btn btn-danger w-full justify-center" onClick={() => setDecision("held")}>
+                  <button className="btn btn-danger w-full justify-center" onClick={() => recordDecision("held")}>
                     <Icon name="flag" size={13} /> {lang === "es" ? "Poner en espera" : lang === "zh" ? "暂停运营" : "Hold operation"}
                   </button>
                 </>
@@ -865,7 +892,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
                     <div className="text-[12px]" style={{ color: "white" }}>{lang === "es" ? "Decisión registrada" : lang === "zh" ? "决策已记录" : "Decision recorded"}</div>
                     <div className="text-[11px] capitalize" style={{ color: "var(--ink-4)" }}>{decision} · {lang === "es" ? "registrado en trazabilidad" : lang === "zh" ? "已记录在审计轨迹" : "logged in audit trail"}</div>
                   </div>
-                  <button className="btn btn-sm btn-ghost" onClick={() => setDecision(null)}>{lang === "es" ? "Deshacer" : lang === "zh" ? "撤销" : "Undo"}</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => recordDecision(null)}>{lang === "es" ? "Deshacer" : lang === "zh" ? "撤销" : "Undo"}</button>
                 </div>
               )}
             </div>
@@ -876,6 +903,31 @@ export function OperationDetail({ op }: OperationDetailProps) {
           </div>
         </aside>
       </div>
+      {toast && (
+        <div
+          className="glass-panel elev-3 fixed z-50 flex w-[min(360px,calc(100vw-32px))] items-start gap-3 p-3"
+          style={{ right: 16, bottom: "calc(16px + env(safe-area-inset-bottom))" }}
+          role="status"
+        >
+          <div
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+            style={{
+              background: toast.kind === "ok" ? "var(--ok-soft)" : toast.kind === "risk" ? "var(--risk-soft)" : "var(--warn-soft)",
+              color: toast.kind === "ok" ? "var(--ok)" : toast.kind === "risk" ? "var(--risk)" : "var(--warn)",
+              border: "1px solid var(--hair-2)",
+            }}
+          >
+            <Icon name={toast.kind === "risk" ? "flag" : "check"} size={14} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-medium" style={{ color: "var(--ink)" }}>{toast.title}</div>
+            <div className="text-[11.5px]" style={{ color: "var(--ink-3)" }}>{toast.detail}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setToast(null)} aria-label="Dismiss">
+            <Icon name="x" size={12} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

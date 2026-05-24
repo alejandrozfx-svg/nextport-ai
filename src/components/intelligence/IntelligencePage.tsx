@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
   BarChart,
   Bar,
   ResponsiveContainer,
@@ -35,9 +36,18 @@ interface IntelData {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  risk: "oklch(0.70 0.16 25)",
-  review: "oklch(0.82 0.14 78)",
-  ready: "oklch(0.78 0.13 155)",
+  risk: "var(--risk)",
+  review: "var(--warn)",
+  ready: "var(--ok)",
+};
+
+const tooltipStyle = {
+  background: "rgba(15,19,24,0.82)",
+  border: "1px solid var(--hair-2)",
+  borderRadius: 12,
+  boxShadow: "var(--elev-3)",
+  backdropFilter: "blur(16px) saturate(140%)",
+  color: "var(--ink)",
 };
 
 const DEMO_INTEL: IntelData = {
@@ -99,6 +109,11 @@ export function IntelligencePage() {
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
+                <defs>
+                  <filter id="pieGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="rgba(122,176,224,0.25)" />
+                  </filter>
+                </defs>
                 <Pie
                   data={operationsByStatus}
                   dataKey="count"
@@ -107,14 +122,17 @@ export function IntelligencePage() {
                   cy="50%"
                   innerRadius={50}
                   outerRadius={70}
+                  paddingAngle={3}
+                  filter="url(#pieGlow)"
                 >
                   {operationsByStatus.map((entry) => (
                     <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? "var(--brand)"} />
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ background: "#0F1318", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8 }}
-                  labelStyle={{ color: "#fff" }}
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: "var(--ink)" }}
+                  itemStyle={{ color: "var(--ink-2)" }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -144,13 +162,23 @@ export function IntelligencePage() {
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={docsByDay}>
-                <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} />
+                <defs>
+                  <linearGradient id="docsLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="oklch(0.82 0.13 195)" stopOpacity="0.50" />
+                    <stop offset="55%" stopColor="oklch(0.78 0.09 235)" stopOpacity="1" />
+                    <stop offset="100%" stopColor="oklch(0.92 0.05 235)" stopOpacity="0.88" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.055)" />
+                <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <Tooltip
-                  contentStyle={{ background: "#0F1318", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8 }}
-                  labelStyle={{ color: "#fff" }}
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: "var(--ink)" }}
+                  itemStyle={{ color: "var(--ink-2)" }}
+                  cursor={{ stroke: "rgba(122,176,224,0.18)", strokeWidth: 1 }}
                 />
-                <Line type="monotone" dataKey="count" stroke="oklch(0.78 0.09 235)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="count" stroke="url(#docsLine)" strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: "oklch(0.82 0.13 195)", stroke: "var(--bg-2)", strokeWidth: 2 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -166,12 +194,22 @@ export function IntelligencePage() {
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={confidenceDistribution}>
-                <XAxis dataKey="range" tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} />
+                <defs>
+                  <linearGradient id="confidenceBars" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="oklch(0.78 0.09 235)" stopOpacity="0.32" />
+                    <stop offset="100%" stopColor="oklch(0.82 0.13 195)" stopOpacity="0.92" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.055)" />
+                <XAxis dataKey="range" tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: "var(--ink-4)" }} tickLine={false} axisLine={false} />
                 <Tooltip
-                  contentStyle={{ background: "#0F1318", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8 }}
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: "var(--ink)" }}
+                  itemStyle={{ color: "var(--ink-2)" }}
+                  cursor={{ fill: "rgba(122,176,224,0.045)" }}
                 />
-                <Bar dataKey="count" fill="oklch(0.78 0.09 235)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="url(#confidenceBars)" radius={[6, 6, 2, 2]} />
               </BarChart>
             </ResponsiveContainer>
           )}
