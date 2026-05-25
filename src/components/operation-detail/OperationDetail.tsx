@@ -7,6 +7,7 @@ import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/components/ui/ToastProvider";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { AppIcon as Icon } from "@/components/ui/AppIcon";
+import { AISparkleBurst, ShieldApprovalIllustration } from "@/components/motion/ProductMotion";
 
 function Chip({ kind, children }: { kind: string; children: React.ReactNode }) {
   return (
@@ -588,7 +589,10 @@ export function OperationDetail({ op }: OperationDetailProps) {
             <div className="glass-panel overflow-hidden p-0">
               <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--hair)" }}>
                 <div className="min-w-0 truncate text-[13px]" style={{ color: "white" }}>{currentDoc}</div>
-                <Chip kind="brand">AI 99.2%</Chip>
+                <span className="relative inline-flex">
+                  <Chip kind="brand">AI 99.2%</Chip>
+                  <AISparkleBurst className="-right-2 -top-3" />
+                </span>
               </div>
               <div className="p-3">
                 <DocPreview kind={currentDoc} op={op} highlightedFields={highlightedFields} />
@@ -652,6 +656,10 @@ export function OperationDetail({ op }: OperationDetailProps) {
             <div className="glass-panel p-4">
               <SectionTitle icon="shield">{lang === "es" ? "Revisión humana" : lang === "zh" ? "人工审核" : "Human review"}</SectionTitle>
               <div className="mb-3 text-[12px]" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Requerido antes de entrega a ERP / aduana." : lang === "zh" ? "ERP/海关移交前必须完成。" : "Required before ERP / customs handoff."}</div>
+              <ShieldApprovalIllustration
+                state={decision === "approved" ? "approved" : op.status === "ready" ? "ready" : "idle"}
+                className="mb-3"
+              />
               <ApprovalRow label={lang === "es" ? "Revisión de cumplimiento" : lang === "zh" ? "合规审查" : "Compliance review"} who="Mariana López" status={op.status === "ready" ? "done" : "pending"} />
               <ApprovalRow label={lang === "es" ? "Aprobación del manager" : lang === "zh" ? "经理审批" : "Manager sign-off"} who="Sofía Galván" status={op.status === "ready" ? "queued" : "blocked"} />
             </div>
@@ -739,7 +747,10 @@ export function OperationDetail({ op }: OperationDetailProps) {
               <div className="flex items-center gap-2.5 min-w-0">
                 <Icon name="file" size={14} style={{ opacity: 0.7, flexShrink: 0 }} />
                 <div className="text-[13px] truncate" style={{ color: "white" }}>{currentDoc}</div>
-                <Chip kind="brand">AI classified · 99.2%</Chip>
+                <span className="relative inline-flex">
+                  <Chip kind="brand">AI classified · 99.2%</Chip>
+                  <AISparkleBurst className="-right-2 -top-3" />
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <button className="btn btn-sm btn-ghost"><Icon name="eye" size={13} /> Preview</button>
@@ -844,6 +855,10 @@ export function OperationDetail({ op }: OperationDetailProps) {
           <div className="glass-panel p-4" style={{ position: "sticky", top: 16 }}>
             <SectionTitle icon="shield">{lang === "es" ? "Humano en el proceso" : lang === "zh" ? "人工参与" : "Human in the loop"}</SectionTitle>
             <div className="text-[12px] mb-3" style={{ color: "var(--ink-3)" }}>{lang === "es" ? "Requerido antes de entrega a ERP / aduana." : lang === "zh" ? "ERP/海关移交前必须完成。" : "Required before ERP / customs handoff."}</div>
+            <ShieldApprovalIllustration
+              state={decision === "approved" ? "approved" : op.status === "ready" ? "ready" : "idle"}
+              className="mb-3"
+            />
             <ApprovalRow label={lang === "es" ? "Revisión de cumplimiento" : lang === "zh" ? "合规审查" : "Compliance review"} who="Mariana López" status={op.status === "ready" ? "done" : "pending"} />
             <ApprovalRow label={lang === "es" ? "Aprobación del manager" : lang === "zh" ? "经理审批" : "Manager sign-off"} who="Sofía Galván" status={op.status === "ready" ? "queued" : "blocked"} />
             <div className="space-y-2 mt-4">

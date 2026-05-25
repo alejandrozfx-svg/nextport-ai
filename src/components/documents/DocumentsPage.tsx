@@ -39,6 +39,7 @@ import { formatDate, formatDateTime, cn } from "@/lib/utils";
 import { useLang } from "@/lib/lang-context";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 import { ActionButton, DocumentIcon, EmptyState, MetricCard, PageHeader, SectionCard } from "@/components/ui";
+import { CrossValidationIllustration } from "@/components/motion/ProductMotion";
 
 interface EvidenceField {
   id: string;
@@ -727,6 +728,20 @@ function EvidenceViewer({ doc, lang }: { doc: DocumentItem | null; lang: Lang })
             <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>{copy.uploaded}</p>
             <p className="mt-1 truncate text-sm font-medium" style={{ color: "var(--ink)" }}>{formatDateTime(doc.uploadedAt, lang)}</p>
           </div>
+        </section>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
+              {copy.validationChecks}
+            </p>
+            <span className="text-xs font-mono" style={{ color: passedChecks === checks.length ? "var(--ok)" : "var(--warn)" }}>
+              {passedChecks}/{checks.length}
+            </span>
+          </div>
+          <CrossValidationIllustration
+            state={passedChecks === checks.length ? "ok" : checks.some((check) => !check.passed) ? "risk" : "warn"}
+          />
         </section>
 
         <section className="space-y-2">
@@ -1631,4 +1646,3 @@ export function DocumentsPage() {
     </div>
   );
 }
-

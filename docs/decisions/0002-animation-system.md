@@ -44,9 +44,9 @@ Filled in as waves ship. See bottom of file for "Wave X" sections.
 
 ## Waves
 
-### Wave 1 — Microinteractions (in progress)
+### Wave 1 — Microinteractions (shipped)
 
-Items planned:
+Shipped in commit `7a7e6b7`:
 - A1 Toast system global
 - A2 Skeleton loaders by component type
 - A3 Number count-up in KPIs
@@ -58,17 +58,19 @@ Items planned:
 - A9 Assistant typing indicator
 - A10 Drawer/modal scale-fade
 
-### Wave 2 — SVG illustrations + background motion (pending)
+### Wave 2 — SVG illustrations + background motion (shipped)
 
-Items planned:
-- B1 Document scan line in UploadModal
-- B2 Pipeline 6-step sequential glow
-- B3 Cross-validation animation in EvidenceViewer
-- B4 Shield check on approve
-- B5 AI sparkle burst
-- E1 Aurora mesh on landing
-- E2 Grid pulse on /pipeline
-- E3 Noise displacement animated
+Shipped by Codex on top of `7a7e6b7`:
+- B1 Document scan visual in UploadModal, plus active scan beam during processing
+- B2 Pipeline 6-step sequential glow visual and step-card glow
+- B3 Cross-validation animation in the Documents EvidenceViewer
+- B4 Shield check verification in Operation Detail human-review rails
+- B5 AI sparkle burst on classified document chips
+- E1 Aurora mesh on landing, inherited from Wave 1 landing update
+- E2 Grid pulse on `/console/pipeline`
+- E3 Noise layer drift on the global app background
+
+Implementation note: Wave 2 lives in `src/components/motion/ProductMotion.tsx` with CSS in `src/app/globals.css`. Keep future product motion there unless a motion is truly one-off.
 
 ### Wave 3 — Chrome-sourced assets (pending)
 

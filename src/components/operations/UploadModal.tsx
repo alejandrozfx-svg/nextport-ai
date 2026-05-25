@@ -5,6 +5,7 @@ import { useLang } from "@/lib/lang-context";
 import { sampleDocuments } from "@/lib/pipeline-data";
 import { AppIcon as Icon } from "@/components/ui/AppIcon";
 import { Modal } from "@/components/ui/Modal";
+import { DocumentScanIllustration } from "@/components/motion/ProductMotion";
 
 export function UploadModal({ onClose }: { onClose: () => void }) {
   const { lang } = useLang();
@@ -79,6 +80,8 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
         <div className="p-4 sm:p-6">
           {phase === "idle" && (
             <div className="space-y-4">
+              <DocumentScanIllustration state="idle" />
+
               <div className="grid gap-3 md:grid-cols-3">
                 {[
                   [lang === "es" ? "Bandeja Gmail" : lang === "zh" ? "Gmail收件箱" : "Gmail inbox", lang === "es" ? "Correo del agente con 5 PDFs adjuntos" : lang === "zh" ? "报关行邮件附带5份PDF" : "Broker email with 5 attached PDFs", lang === "es" ? "Conectado" : lang === "zh" ? "已连接" : "Connected"],
@@ -112,6 +115,8 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
 
           {(phase === "scanning" || phase === "done") && (
             <div className="space-y-3">
+              <DocumentScanIllustration state={phase === "done" ? "done" : "scanning"} />
+
               <div className="flex items-center justify-between mb-1">
                 <div className="text-[12.5px] flex items-center gap-2" style={{ color: "white" }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{

@@ -4,6 +4,21 @@ Running log of major decisions, milestones and tradeoffs. Newest entries first.
 
 ---
 
+## 2026-05-24 — Animation Wave 2 completed
+
+Completed:
+- Confirmed Claude had already shipped Wave 1 in commit `7a7e6b7` and kept the tree clean before continuing.
+- Added reusable product motion primitives in `src/components/motion/ProductMotion.tsx`.
+- Added hand-built SVG/CSS motion for document scanning, pipeline flow, cross-document validation, approval verification and AI sparkle moments.
+- Wired the scan visual into `UploadModal`, the 6-step glow into `/console/pipeline`, the cross-validation visual into the Documents EvidenceViewer, and the shield verification visual into Operation Detail human-review rails.
+- Added subtle global noise drift and pipeline grid pulse in `globals.css`.
+- Updated `docs/decisions/0002-animation-system.md` to mark Waves 1 and 2 as shipped.
+
+Tradeoff:
+- No external Lottie/Spline assets were added in this pass. The goal was to capture 80% of the perceived product polish with code-only, theme-aware motion before sourcing any third-party animation.
+
+---
+
 ## 2026-05-21 — Initial implementation complete
 
 **Milestone: First working build**

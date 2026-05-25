@@ -1,11 +1,13 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 import { DEMO_OPERATIONS } from "@/lib/demo-data";
 import { sampleDocuments, workflowSteps } from "@/lib/pipeline-data";
 import { AppIcon as Icon } from "@/components/ui/AppIcon";
+import { PipelineGlowIllustration } from "@/components/motion/ProductMotion";
 
 function toneColor(tone: "ok" | "brand" | "warn" | "risk") {
   return {
@@ -76,7 +78,11 @@ function WorkflowRibbon({ lang }: { lang: "en" | "es" | "zh" }) {
         const color = toneColor(step.statusTone);
         const loc = localizedStep(step, lang);
         return (
-          <div key={step.key} className="glass-panel-tight p-3">
+          <div
+            key={step.key}
+            className="glass-panel-tight pipeline-step-card p-3"
+            style={{ "--step-delay": `${index * 180}ms` } as CSSProperties}
+          >
             <div className="flex items-start gap-2.5">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -115,7 +121,9 @@ export function PipelinePage() {
   };
 
   return (
-    <div className="space-y-5 px-4 py-5 sm:px-6 md:px-8 md:py-7">
+    <div className="relative space-y-5 overflow-hidden px-4 py-5 sm:px-6 md:px-8 md:py-7">
+      <div className="pointer-events-none absolute inset-0 grid-bg grid-pulse opacity-30" aria-hidden="true" />
+
       {/* Header */}
       <div className="flex items-start justify-between mb-1 gap-4">
         <div className="max-w-3xl">
@@ -238,6 +246,8 @@ export function PipelinePage() {
               {sampleDocuments.length} {lang === "es" ? "archivos de evidencia" : lang === "zh" ? "证据文件" : "evidence files"}
             </div>
           </div>
+
+          <PipelineGlowIllustration className="mt-4" />
 
           <div className="mt-4">
             <WorkflowRibbon lang={lang} />
