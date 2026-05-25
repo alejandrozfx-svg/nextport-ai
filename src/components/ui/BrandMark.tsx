@@ -11,9 +11,8 @@ interface BrandMarkProps {
 
 /**
  * Nextport AI brand mark.
- * A geometric "N" formed by two vertical bars + a diagonal bridge, sitting inside
- * a rounded square with a subtle deep-blue gradient. A small electric-teal accent
- * dot in the top-right corner represents the "AI" signal point.
+ * A premium graphite mark inspired by customs seals and control-tower consoles:
+ * deep black surface, crisp white N, and a small electric-teal AI signal.
  *
  * Scales cleanly from 16px (favicon) up to 96px (marketing hero).
  */
@@ -23,7 +22,7 @@ export function BrandMark({
   withAccent = true,
   glyphOnly = false,
 }: BrandMarkProps) {
-  // Unique gradient IDs so multiple marks on the same page don't collide.
+  // Unique gradient IDs so multiple marks on the same page do not collide.
   const id = (suffix: string) => `bm-${suffix}-${size}`;
 
   const svg = (
@@ -39,59 +38,71 @@ export function BrandMark({
     >
       <defs>
         <linearGradient id={id("base")} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="oklch(0.42 0.07 235)" />
-          <stop offset="0.55" stopColor="oklch(0.22 0.04 235)" />
-          <stop offset="1" stopColor="oklch(0.10 0.02 235)" />
+          <stop offset="0" stopColor="oklch(0.18 0.01 250)" />
+          <stop offset="0.55" stopColor="oklch(0.095 0.012 250)" />
+          <stop offset="1" stopColor="oklch(0.035 0.004 250)" />
         </linearGradient>
-        <linearGradient id={id("glyph")} x1="0" y1="6" x2="0" y2="26" gradientUnits="userSpaceOnUse">
+        <radialGradient id={id("halo")} cx="0.68" cy="0.22" r="0.72">
+          <stop offset="0" stopColor="oklch(0.78 0.14 195 / 0.32)" />
+          <stop offset="0.28" stopColor="oklch(0.62 0.12 215 / 0.14)" />
+          <stop offset="1" stopColor="oklch(0.08 0.01 250 / 0)" />
+        </radialGradient>
+        <linearGradient id={id("glyph")} x1="9" y1="7" x2="22" y2="25" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#ffffff" stopOpacity="1" />
-          <stop offset="1" stopColor="#ffffff" stopOpacity="0.78" />
+          <stop offset="0.58" stopColor="#ffffff" stopOpacity="0.94" />
+          <stop offset="1" stopColor="oklch(0.82 0.05 230)" stopOpacity="0.82" />
         </linearGradient>
         <radialGradient id={id("accent")} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="oklch(0.92 0.13 195)" />
-          <stop offset="1" stopColor="oklch(0.70 0.13 195)" />
+          <stop offset="0" stopColor="oklch(0.98 0.12 185)" />
+          <stop offset="0.46" stopColor="oklch(0.86 0.15 190)" />
+          <stop offset="1" stopColor="oklch(0.64 0.14 205)" />
         </radialGradient>
         <linearGradient id={id("highlight")} x1="0" y1="0" x2="0" y2="14" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.22" />
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.15" />
           <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
         </linearGradient>
       </defs>
 
-      {/* Rounded square background */}
-      <rect x="0" y="0" width="32" height="32" rx="8" fill={`url(#${id("base")})`} />
-      {/* Subtle inner highlight along the top edge for depth */}
-      <rect x="0" y="0" width="32" height="14" rx="8" fill={`url(#${id("highlight")})`} />
+      <rect x="0" y="0" width="32" height="32" rx="10" fill={`url(#${id("base")})`} />
+      <rect x="0" y="0" width="32" height="32" rx="10" fill={`url(#${id("halo")})`} />
+      <rect x="1" y="1" width="30" height="13" rx="9" fill={`url(#${id("highlight")})`} />
 
-      {/* Geometric N — left bar */}
-      <rect x="8" y="8" width="3" height="16" rx="1.2" fill={`url(#${id("glyph")})`} />
-      {/* Right bar */}
-      <rect x="21" y="8" width="3" height="16" rx="1.2" fill={`url(#${id("glyph")})`} />
-      {/* Diagonal bridge */}
       <path
-        d="M11 9 L21 23"
+        d="M10 23V9L22 23V9"
         stroke={`url(#${id("glyph")})`}
-        strokeWidth="3"
+        strokeWidth="2.8"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
+      <path d="M24 9V23" stroke="oklch(0.92 0.04 230 / 0.42)" strokeWidth="1.2" strokeLinecap="round" />
 
-      {/* AI accent dot (top-right) */}
       {withAccent && (
         <>
-          <circle cx="24" cy="8" r="3" fill={`url(#${id("accent")})`} />
-          <circle cx="24" cy="8" r="3" fill="none" stroke="oklch(0.90 0.13 195 / 0.55)" strokeWidth="0.6" />
+          <circle cx="24.2" cy="7.6" r="4.1" fill="oklch(0.72 0.14 195 / 0.16)" />
+          <circle cx="24.2" cy="7.6" r="2.7" fill={`url(#${id("accent")})`} />
+          <circle cx="24.2" cy="7.6" r="2.7" fill="none" stroke="oklch(0.96 0.11 190 / 0.72)" strokeWidth="0.55" />
         </>
       )}
 
-      {/* 1px inner hairline for crispness on the rounded corners */}
       <rect
-        x="0.5"
-        y="0.5"
-        width="31"
-        height="31"
-        rx="7.5"
+        x="0.7"
+        y="0.7"
+        width="30.6"
+        height="30.6"
+        rx="9.3"
         fill="none"
-        stroke="oklch(0.55 0.10 235 / 0.35)"
+        stroke="oklch(0.92 0.03 240 / 0.30)"
         strokeWidth="1"
+      />
+      <rect
+        x="1.6"
+        y="1.6"
+        width="28.8"
+        height="28.8"
+        rx="8.4"
+        fill="none"
+        stroke="oklch(0.10 0.01 250 / 0.68)"
+        strokeWidth="0.9"
       />
     </svg>
   );
