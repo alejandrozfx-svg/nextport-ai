@@ -496,6 +496,16 @@ function explainFieldConfidence(field: EvidenceField, lang: Lang): string {
   return t("confidenceLow", lang);
 }
 
+/** P2: derives the recommended "Next" action for a doc based on its purpose. */
+function getNextActionKey(purpose: DocPurpose): TranslationKey {
+  switch (purpose) {
+    case "auditReady":   return "nextActionAuditReady";
+    case "needsReview":  return "nextActionNeedsReview";
+    case "mismatch":     return "nextActionMismatch";
+    case "lowConfidence": return "nextActionLowConf";
+  }
+}
+
 /* Real SHA-256 over the manifest JSON via the Web Crypto API. Falls back to a clearly-marked
  * placeholder only if crypto.subtle is unavailable (very old browsers). The previous version
  * used Math.random() and called the result a hash — ADR-0001 forbids that. */
@@ -779,6 +789,33 @@ function EvidenceViewer({ doc, lang }: { doc: DocumentItem | null; lang: Lang })
           </div>
         </section>
 
+        {/* P2: Next action hint — tells the user what to DO with this doc based on its purpose. */}
+        {(() => {
+          const purpose = getDocPurpose(doc);
+          const meta = purposeMeta[purpose];
+          const actionKey = getNextActionKey(purpose);
+          return (
+            <section className="rounded-xl border p-4" style={{ borderColor: meta.color, background: meta.bg }}>
+              <div className="flex items-start gap-3">
+                <div
+                  className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full"
+                  style={{ background: meta.color + "22", color: meta.color }}
+                >
+                  <ArrowUpRight size={14} strokeWidth={1.8} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10.5px] uppercase tracking-wider" style={{ color: meta.color }}>
+                    {t("nextActionLabel", lang)} · {t(meta.labelKey, lang)}
+                  </p>
+                  <p className="mt-1 text-sm font-medium" style={{ color: "var(--ink)" }}>
+                    {t(actionKey, lang)}
+                  </p>
+                </div>
+              </div>
+            </section>
+          );
+        })()}
+
         <section className="rounded-xl border p-4" style={{ borderColor: "var(--hair-2)", background: "rgba(122,176,224,0.055)" }}>
           <div className="flex items-center gap-2">
             <Database size={15} style={{ color: "var(--brand)" }} />
@@ -1043,6 +1080,29 @@ export function DocumentsPage() {
     }
     const playbook = PLAYBOOKS.find((p) => p.id === activePlaybook);
     setLastExport({ docCount: selectedDocs.length, sha, reasonKey: playbook?.titleKey ?? null });
+
+    // P2: persist the export to sessionStorage so /console/security can show it under
+    // the Evidence exports tab. ADR-0001 committed to moving Recent pulls there — this
+    // is the simplest cross-page handoff without a global store.
+    if (typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("np_evidence_exports");
+        const prev = stored ? (JSON.parse(stored) as Array<{ id: string; sha: string; docCount: number; reasonKey: string | null; createdAt: string; actorInitials: string }>) : [];
+        const next = [
+          {
+            id: `exp-${Date.now()}`,
+            sha,
+            docCount: selectedDocs.length,
+            reasonKey: playbook?.titleKey ?? null,
+            createdAt: new Date().toISOString(),
+            actorInitials: "DS",
+          },
+          ...prev,
+        ].slice(0, 20);
+        sessionStorage.setItem("np_evidence_exports", JSON.stringify(next));
+      } catch {}
+    }
+
     setExportState("done");
     setTimeout(() => setExportState("idle"), 2500);
   }
@@ -1410,8 +1470,54 @@ export function DocumentsPage() {
           </div>
 
           {sorted.length === 0 && (
-            <div className="glass-panel p-12 text-center" style={{ color: "var(--ink-4)" }}>
-              {hasActiveFilter ? t("auditNoResults", lang) : t("noDocumentsFound", lang)}
+            // P2: guided empty state. Two variants depending on whether filters caused the empty result.
+            <div className="glass-panel flex flex-col items-center gap-4 p-10 text-center">
+              {hasActiveFilter ? (
+                <>
+                  <div
+                    className="grid h-12 w-12 place-items-center rounded-full"
+                    style={{ background: "var(--warn-soft)", color: "var(--warn)" }}
+                  >
+                    <SearchIcon size={20} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold" style={{ color: "var(--ink)" }}>{t("emptyStateNoMatchTitle", lang)}</p>
+                    <p className="mt-1 text-sm" style={{ color: "var(--ink-4)" }}>{t("emptyStateNoMatchSub", lang)}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button onClick={clearAllFilters} className="btn btn-secondary">
+                      <X size={11} /> {t("auditClearFilters", lang)}
+                    </button>
+                    {PLAYBOOKS.map((pb) => {
+                      const Icon = pb.icon;
+                      return (
+                        <button key={pb.id} onClick={() => applyPlaybook(pb)}
+                                className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium"
+                                style={{ background: "transparent", borderColor: "var(--hair-2)", color: pb.accent }}>
+                          <Icon size={11} strokeWidth={1.6} />
+                          {t(pb.titleKey, lang)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="grid h-12 w-12 place-items-center rounded-full"
+                    style={{ background: "var(--brand-soft)", color: "var(--brand)" }}
+                  >
+                    <FileText size={20} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold" style={{ color: "var(--ink)" }}>{t("emptyStateNoDocsTitle", lang)}</p>
+                    <p className="mt-1 text-sm" style={{ color: "var(--ink-4)" }}>{t("emptyStateNoDocsSub", lang)}</p>
+                  </div>
+                  <Link href="/console/pipeline" className="btn btn-primary">
+                    <ArrowUpRight size={11} /> {t("emptyStateGoPipeline", lang)}
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </>

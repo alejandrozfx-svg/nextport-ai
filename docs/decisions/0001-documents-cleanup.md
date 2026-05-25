@@ -200,3 +200,35 @@ P0 removed the noise. P1 adds the intelligence that justifies why this page dese
 - `src/components/operation-detail/OperationDetail.tsx` (Export evidence pack button)
 - `src/lib/i18n.ts` (P1 keys: `playbookPreviewDocs`, `purpose*`, `confidence*`, `reviewPackage*`, `exportEvidencePack`)
 - `docs/decisions/0001-documents-cleanup.md` (this file — iteration 3 log)
+
+---
+
+**Iteration 4 (2026-05-23) — P2 polish + structural completeness:**
+
+The synthesized plan listed two P2 items (search always visible, empty state guiado). Item 14 was already shipped in P0 (search has been always-visible from the start). This iteration covers item 15 plus the loose ends from Codex's audit that fit the same polish bucket.
+
+| Item | What it does | Where |
+|---|---|---|
+| Guided empty state | The previous empty state was a single line of grey text. Now: two variants. When the user over-filters and gets 0 results, the empty state shows a warning icon + clear copy + a `Clear filters` button + chips for each playbook to try instead. When the vault is genuinely empty (no docs at all), the empty state shows a file icon + copy explaining that docs arrive via Pipeline + a CTA linking to `/console/pipeline`. The page now tells the user what to do next. | DocumentsPage |
+| Next-action hint in EvidenceViewer | A new colored panel above the related-operation block reads e.g. `NEXT · MISMATCH → Request correction from broker` or `NEXT · AUDIT READY → Include in audit package`. Helper `getNextActionKey(purpose)` maps each doc purpose to its recommended action. Closes Codex's audit item #10 (the viewer must answer "what action follows"). | EvidenceViewer aside |
+| Recent pulls → Security & Audit | ADR-0001 §17 promised this move. P0 removed the section from DocumentsPage entirely (so it would not be visible in two places). P2 adds it to `/console/security` as `Evidence exports`. Implementation uses sessionStorage key `np_evidence_exports` populated by the DocumentsPage export flow; SecurityPage reads on mount. Read-only — no re-export button (that was theatre, removed per ADR-0001). Empty state links back to `/console/documents` to build one. | SecurityPage (new section) + DocumentsPage (persistence) |
+
+### Behavior contract additions (iteration 4)
+
+19. **The guided empty state is two distinct UIs.** Over-filtered (clear filters + playbook chips) and vault-empty (link to Pipeline) are different jobs. Do not collapse them into one.
+20. **Next-action hint MUST always be visible in the viewer.** It is what gives the audit-pull tool a workflow feel instead of a search-and-export feel.
+21. **Evidence exports live in `/console/security`, not in Documents.** Cross-page handoff is `sessionStorage["np_evidence_exports"]`. If you wire a real DB later, keep the same shape.
+22. **No `Re-export` button in the evidence exports list.** ADR-0001 marked it as theatre. The list is informational. Building a real re-export requires either persisting the original selection (not just metadata) or letting the user manually re-create the filter — neither is a P2 problem.
+
+### Files changed in iteration 4
+
+- `src/components/documents/DocumentsPage.tsx` (empty state, next-action hint, sessionStorage persistence)
+- `src/components/security/SecurityPage.tsx` (Evidence exports section + sessionStorage reader)
+- `src/lib/i18n.ts` (P2 keys: `emptyState*`, `nextAction*`, `viewerTab*`, `evidenceExports*`)
+- `docs/decisions/0001-documents-cleanup.md` (this file — iteration 4 log)
+
+### What remains (NOT executed — explicit non-goals)
+
+- **EvidenceViewer tabs** (Codex audit P2 #13: Preview / Fields / Validations / Lineage / Related operation as tabs). Considered but skipped: the viewer is a modal now, vertical scrolling works fine, tabs would fragment the info. Revisit only if a real lineage/history graph is added.
+- **Real lineage tracking** (versions of a doc, when it was reissued). Out of scope without backend.
+- **Real signing of the manifest** (Web Crypto subtle.sign with a key pair). Out of scope without key management story.

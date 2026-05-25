@@ -159,6 +159,27 @@ const translations = {
     reviewPackageConfirm: "Export now",
     // OperationDetail integration
     exportEvidencePack: "Export evidence pack",
+    // Empty state (P2)
+    emptyStateNoMatchTitle: "No documents match these filters",
+    emptyStateNoMatchSub: "Try clearing filters or start from one of the audit playbooks below.",
+    emptyStateNoDocsTitle: "Vault is empty",
+    emptyStateNoDocsSub: "Documents will appear here once they flow through the Pipeline.",
+    emptyStateGoPipeline: "Open Pipeline",
+    // Next action hint (P2)
+    nextActionLabel: "Next",
+    nextActionAuditReady: "Include in audit package",
+    nextActionNeedsReview: "Open operation to review",
+    nextActionMismatch: "Request correction from broker",
+    nextActionLowConf: "Verify field against source document",
+    // Viewer tabs (P2)
+    viewerTabPreview: "Preview",
+    viewerTabFields: "Fields",
+    viewerTabChecks: "Validations",
+    // Security page — Evidence exports tab
+    evidenceExportsTitle: "Evidence exports",
+    evidenceExportsSubtitle: "Audit packages pulled from /console/documents. Each one carries a manifest SHA-256.",
+    evidenceExportsEmpty: "No evidence packages have been exported yet.",
+    evidenceExportsTryIt: "Build one in Evidence Vault",
     // Playbooks
     playbooksTitle: "Audit playbooks",
     playbooksSubtitle: "Start from a real scenario — filters apply automatically. Refine the selection, then export.",
@@ -566,6 +587,27 @@ const translations = {
     reviewPackageConfirm: "Exportar ahora",
     // OperationDetail integration
     exportEvidencePack: "Exportar paquete de evidencia",
+    // Empty state (P2)
+    emptyStateNoMatchTitle: "Ningún documento coincide con estos filtros",
+    emptyStateNoMatchSub: "Limpia los filtros o empieza desde un playbook de abajo.",
+    emptyStateNoDocsTitle: "La bóveda está vacía",
+    emptyStateNoDocsSub: "Los documentos aparecerán aquí cuando fluyan por el Pipeline.",
+    emptyStateGoPipeline: "Abrir Pipeline",
+    // Next action hint (P2)
+    nextActionLabel: "Siguiente",
+    nextActionAuditReady: "Incluir en paquete de auditoría",
+    nextActionNeedsReview: "Abrir operación para revisar",
+    nextActionMismatch: "Solicitar corrección al agente",
+    nextActionLowConf: "Verificar campo contra documento fuente",
+    // Viewer tabs (P2)
+    viewerTabPreview: "Vista",
+    viewerTabFields: "Campos",
+    viewerTabChecks: "Validaciones",
+    // Security page — Evidence exports tab
+    evidenceExportsTitle: "Exportaciones de evidencia",
+    evidenceExportsSubtitle: "Paquetes de auditoría extraídos desde /console/documents. Cada uno lleva un SHA-256 de manifiesto.",
+    evidenceExportsEmpty: "Aún no se han exportado paquetes de evidencia.",
+    evidenceExportsTryIt: "Crear uno en la Bóveda de evidencia",
     // Playbooks
     playbooksTitle: "Playbooks de auditoría",
     playbooksSubtitle: "Empieza desde un escenario real — los filtros se aplican automáticamente. Refina la selección y exporta.",
@@ -972,6 +1014,27 @@ const translations = {
     reviewPackageConfirm: "立即导出",
     // OperationDetail integration
     exportEvidencePack: "导出证据包",
+    // Empty state (P2)
+    emptyStateNoMatchTitle: "没有文件符合这些筛选",
+    emptyStateNoMatchSub: "清除筛选或从下方的审计剧本开始。",
+    emptyStateNoDocsTitle: "证据库为空",
+    emptyStateNoDocsSub: "文件通过工作流后会显示在这里。",
+    emptyStateGoPipeline: "打开工作流",
+    // Next action hint (P2)
+    nextActionLabel: "下一步",
+    nextActionAuditReady: "加入审计包",
+    nextActionNeedsReview: "打开运营审查",
+    nextActionMismatch: "请报关行更正",
+    nextActionLowConf: "对照源文件验证字段",
+    // Viewer tabs (P2)
+    viewerTabPreview: "预览",
+    viewerTabFields: "字段",
+    viewerTabChecks: "验证",
+    // Security page — Evidence exports tab
+    evidenceExportsTitle: "证据导出",
+    evidenceExportsSubtitle: "从 /console/documents 提取的审计包。每个都带有清单 SHA-256。",
+    evidenceExportsEmpty: "尚未导出任何证据包。",
+    evidenceExportsTryIt: "在证据库中创建一个",
     // Playbooks
     playbooksTitle: "审计剧本",
     playbooksSubtitle: "从真实场景开始 — 筛选自动应用。优化选择，然后导出。",

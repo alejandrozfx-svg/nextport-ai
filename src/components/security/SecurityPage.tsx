@@ -1,10 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Shield, CheckCircle2, Clock, User, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Shield, CheckCircle2, Clock, User, AlertCircle, Download, ArrowUpRight } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/utils";
+
+/* P2 (ADR-0001 §17): Evidence exports moved from /console/documents to here.
+ * Sourced from sessionStorage key `np_evidence_exports` populated by the DocumentsPage
+ * export flow. Read-only view — re-export is intentionally absent (no fake buttons). */
+interface EvidenceExport {
+  id: string;
+  sha: string;
+  docCount: number;
+  reasonKey: string | null;
+  createdAt: string;
+  actorInitials: string;
+}
 
 interface AuditEvent {
   id: string;
@@ -59,6 +72,16 @@ export function SecurityPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  // P2 (ADR-0001): evidence exports moved here from /console/documents.
+  const [evidenceExports, setEvidenceExports] = useState<EvidenceExport[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = sessionStorage.getItem("np_evidence_exports");
+      if (stored) setEvidenceExports(JSON.parse(stored));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     // Start with demo data so the audit trail is never empty.
@@ -166,6 +189,76 @@ export function SecurityPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* P2 (ADR-0001 §17): Evidence exports — moved here from /console/documents.
+       * The data lives in sessionStorage; populated by the DocumentsPage export flow. */}
+      <div className="glass-panel overflow-hidden">
+        <div
+          className="flex items-center justify-between gap-3 px-4 py-3"
+          style={{ borderBottom: "1px solid var(--hair)", background: "rgba(255,255,255,0.015)" }}
+        >
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
+              {t("evidenceExportsTitle", lang)}
+            </h3>
+            <p className="mt-0.5 text-[11px]" style={{ color: "var(--ink-4)" }}>
+              {t("evidenceExportsSubtitle", lang)}
+            </p>
+          </div>
+          <Link href="/console/documents" className="btn btn-ghost btn-sm">
+            <ArrowUpRight size={11} />
+          </Link>
+        </div>
+        {evidenceExports.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 p-8 text-center">
+            <div
+              className="grid h-10 w-10 place-items-center rounded-full"
+              style={{ background: "var(--surface-1)", color: "var(--ink-4)" }}
+            >
+              <Download size={16} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm" style={{ color: "var(--ink-3)" }}>{t("evidenceExportsEmpty", lang)}</p>
+              <Link href="/console/documents" className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: "var(--brand)" }}>
+                {t("evidenceExportsTryIt", lang)} <ArrowUpRight size={10} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <ul className="divide-y" style={{ borderColor: "var(--hair)" }}>
+            {evidenceExports.map((exp) => (
+              <li key={exp.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-3 sm:flex-1">
+                  <div
+                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-[10px] font-semibold"
+                    style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)", color: "var(--brand)" }}
+                  >
+                    {exp.actorInitials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
+                      {exp.reasonKey ? t(exp.reasonKey as TranslationKey, lang) : t("auditPullTitle", lang)}
+                    </p>
+                    <p className="text-[11px]" style={{ color: "var(--ink-4)" }}>
+                      {formatDateTime(exp.createdAt, lang)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:gap-4">
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono text-sm font-semibold tabular" style={{ color: "var(--ink)" }}>{exp.docCount}</span>
+                    <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{t("auditKpiTotal", lang).toLowerCase()}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono text-[11px] tabular" style={{ color: "var(--ok)" }}>{exp.sha}</span>
+                    <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>SHA-256</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Audit trail */}
