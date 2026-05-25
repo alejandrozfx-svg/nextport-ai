@@ -15,6 +15,7 @@ import {
   Workflow,
   LogOut,
   MoreHorizontal,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -58,6 +59,7 @@ export function Sidebar({ onAiClick }: SidebarProps) {
     { href: "/console/integrations", labelKey: "integrations" as const, icon: Plug },
     { href: "/console/security",     labelKey: "security"     as const, icon: Shield },
     { href: "/console/academy",      labelKey: "academy"      as const, icon: GraduationCap, badge: "NEW" },
+    { href: "/console/marketplace",  labelKey: "marketplace"  as const, icon: Store, badge: "NEW" },
     { href: "/console/settings",     labelKey: "settings"     as const, icon: Settings },
   ];
 
