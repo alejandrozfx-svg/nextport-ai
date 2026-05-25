@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useWorkspace, type Vertical } from "@/lib/workspace-context";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { PageHeader, SectionCard } from "@/components/ui";
 
@@ -37,6 +38,8 @@ interface MarketplaceItem {
   cta: CtaKind;
   /** Optional small caption rendered under the title (e.g. price hint, regulators). */
   caption?: string;
+  /** When set, clicking the CTA also activates this vertical in the workspace. */
+  activatesVertical?: Vertical;
 }
 
 interface MarketplaceSection {
@@ -72,14 +75,16 @@ const SECTIONS: MarketplaceSection[] = [
     icon: Package,
     titleKey: "marketplaceSectionPacks",
     descKey: "marketplaceSectionPacksDesc",
+    /* All 3 priority packs (auto, medical, textile) are now Beta — Activate flips
+     * the workspace vertical (D-006 Camino A). The other 4 stay on waitlist. */
     items: [
-      { id: "auto",        icon: Car,           accent: "var(--brand)", titleKey: "packAuto",        descKey: "packAutoDesc",        status: "comingQ3", cta: "waitlist" },
-      { id: "medical",     icon: HeartPulse,    accent: "var(--risk)",  titleKey: "packMedical",     descKey: "packMedicalDesc",     status: "comingQ3", cta: "waitlist" },
-      { id: "textile",     icon: Shirt,         accent: "var(--ok)",    titleKey: "packTextile",     descKey: "packTextileDesc",     status: "comingQ3", cta: "waitlist" },
-      { id: "agrofood",    icon: Apple,         accent: "var(--ok)",    titleKey: "packAgrofood",    descKey: "packAgrofoodDesc",    status: "comingQ4", cta: "waitlist" },
-      { id: "electronics", icon: Cpu,           accent: "var(--brand)", titleKey: "packElectronics", descKey: "packElectronicsDesc", status: "comingQ4", cta: "waitlist" },
-      { id: "chemicals",   icon: FlaskConical,  accent: "var(--warn)",  titleKey: "packChemicals",   descKey: "packChemicalsDesc",   status: "comingLater", cta: "waitlist" },
-      { id: "cosmetics",   icon: Sparkles,      accent: "var(--accent)", titleKey: "packCosmetics",  descKey: "packCosmeticsDesc",   status: "comingLater", cta: "waitlist" },
+      { id: "auto",        icon: Car,          accent: "var(--brand)", titleKey: "packAuto",        descKey: "packAutoDesc",        status: "beta",         cta: "activate", activatesVertical: "auto" },
+      { id: "medical",     icon: HeartPulse,   accent: "var(--risk)",  titleKey: "packMedical",     descKey: "packMedicalDesc",     status: "beta",         cta: "activate", activatesVertical: "medical" },
+      { id: "textile",     icon: Shirt,        accent: "var(--ok)",    titleKey: "packTextile",     descKey: "packTextileDesc",     status: "beta",         cta: "activate", activatesVertical: "textile" },
+      { id: "agrofood",    icon: Apple,        accent: "var(--ok)",    titleKey: "packAgrofood",    descKey: "packAgrofoodDesc",    status: "comingQ4",     cta: "waitlist" },
+      { id: "electronics", icon: Cpu,          accent: "var(--brand)", titleKey: "packElectronics", descKey: "packElectronicsDesc", status: "comingQ4",     cta: "waitlist" },
+      { id: "chemicals",   icon: FlaskConical, accent: "var(--warn)",  titleKey: "packChemicals",   descKey: "packChemicalsDesc",   status: "comingLater",  cta: "waitlist" },
+      { id: "cosmetics",   icon: Sparkles,     accent: "var(--accent)", titleKey: "packCosmetics",  descKey: "packCosmeticsDesc",   status: "comingLater",  cta: "waitlist" },
     ],
   },
   {
@@ -150,14 +155,32 @@ function statusMatchesFilter(status: Status, filter: FilterKey): boolean {
 export function MarketplacePage() {
   const { lang } = useLang();
   const toaster = useToast();
+  const workspace = useWorkspace();
   const [filter, setFilter] = useState<FilterKey>("all");
 
   /* Each CTA dispatches a toast — the user sees confirmation, the team can wire real
-   * Stripe / waitlist persistence later. Honest demo behavior: never auto-activate. */
+   * Stripe / waitlist persistence later. Industry Pack cards with activatesVertical also
+   * flip the workspace vertical on / off (honest activation — the only category that's
+   * actually wired into product behavior). */
   function handleCta(item: MarketplaceItem) {
     const title = t(item.titleKey, lang);
     const cta = CTA_META[item.cta];
     const ctaLabel = t(cta.labelKey, lang);
+
+    // Industry Pack activation flips the workspace vertical (real product effect).
+    if (item.activatesVertical && item.cta === "activate") {
+      const alreadyActive = workspace.vertical === item.activatesVertical;
+      workspace.setVertical(alreadyActive ? null : item.activatesVertical);
+      toaster.push({
+        tone: alreadyActive ? "warn" : "ok",
+        title: alreadyActive
+          ? t("workspaceVerticalRemovedToast", lang)
+          : t("workspaceVerticalSavedToast", lang),
+        detail: title,
+      });
+      return;
+    }
+
     const detail =
       item.cta === "activate"
         ? lang === "es" ? "Quedó registrada tu intención de activar este módulo."
@@ -256,8 +279,18 @@ export function MarketplacePage() {
                 const ItemIcon = item.icon;
                 const status = STATUS_META[item.status];
                 const cta = CTA_META[item.cta];
+                const isActiveVertical = !!item.activatesVertical && workspace.vertical === item.activatesVertical;
                 return (
-                  <SectionCard key={item.id} className="flex flex-col gap-3 p-4" interactive>
+                  <SectionCard
+                    key={item.id}
+                    className="flex flex-col gap-3 p-4"
+                    interactive
+                    style={
+                      isActiveVertical
+                        ? { borderColor: item.accent, boxShadow: `inset 0 0 0 1px ${item.accent}, 0 0 24px color-mix(in oklch, ${item.accent} 22%, transparent)` }
+                        : undefined
+                    }
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div
                         className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl"
@@ -271,9 +304,13 @@ export function MarketplacePage() {
                       </div>
                       <span
                         className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wider"
-                        style={{ background: status.bg, color: status.color, border: `1px solid ${status.border}` }}
+                        style={
+                          isActiveVertical
+                            ? { background: `color-mix(in oklch, ${item.accent} 18%, transparent)`, color: item.accent, border: `1px solid color-mix(in oklch, ${item.accent} 50%, transparent)` }
+                            : { background: status.bg, color: status.color, border: `1px solid ${status.border}` }
+                        }
                       >
-                        {t(status.labelKey, lang)}
+                        {isActiveVertical ? t("workspaceVerticalActiveBadge", lang) : t(status.labelKey, lang)}
                       </span>
                     </div>
 
@@ -291,13 +328,17 @@ export function MarketplacePage() {
                       onClick={() => handleCta(item)}
                       className="btn btn-sm justify-center"
                       style={
-                        item.status === "available" || item.status === "beta"
+                        isActiveVertical
+                          ? { background: item.accent, color: "#0A0D12", borderColor: "transparent" }
+                          : item.status === "available" || item.status === "beta"
                           ? { background: "var(--brand)", color: "#0A0D12", borderColor: "transparent" }
                           : undefined
                       }
                     >
-                      {t(cta.labelKey, lang)}
-                      <ArrowRight size={11} strokeWidth={1.8} />
+                      {isActiveVertical
+                        ? (lang === "es" ? "Desactivar pack" : lang === "zh" ? "停用包" : "Deactivate pack")
+                        : t(cta.labelKey, lang)}
+                      {!isActiveVertical && <ArrowRight size={11} strokeWidth={1.8} />}
                     </button>
                   </SectionCard>
                 );

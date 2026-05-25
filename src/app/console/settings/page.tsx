@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Save, User, Bell, Globe, Database, Shield } from "lucide-react";
+import { Save, User, Bell, Globe, Database, Shield, Store } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useWorkspace, VERTICAL_META, ALL_VERTICALS, type Vertical } from "@/lib/workspace-context";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 
 const NOTIFICATION_KEYS = [
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const { lang, setLang } = useLang();
   const router = useRouter();
   const toaster = useToast();
+  const workspace = useWorkspace();
   const [email, setEmail] = useState("diegosolorzano@nextport.com");
   const [name, setName] = useState("Diego Solórzano");
   const [saved, setSaved] = useState(false);
@@ -135,6 +137,94 @@ export default function SettingsPage() {
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
             />
           </div>
+        </div>
+      ),
+    },
+    {
+      id: "workspace",
+      label: t("workspace", lang),
+      icon: Store,
+      content: (
+        <div className="space-y-3">
+          <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--ink-3)" }}>
+            {t("workspaceVerticalHint", lang)}
+          </p>
+          <div>
+            <label className="mb-1.5 block text-xs" style={{ color: "var(--ink-4)" }}>{t("workspaceVertical", lang)}</label>
+            <select
+              value={workspace.vertical ?? ""}
+              onChange={(e) => {
+                const next = e.target.value === "" ? null : (e.target.value as Vertical);
+                workspace.setVertical(next);
+                toaster.push({
+                  tone: next ? "ok" : "warn",
+                  title: next ? t("workspaceVerticalSavedToast", lang) : t("workspaceVerticalRemovedToast", lang),
+                  detail: next ? t(VERTICAL_META[next].nameKey, lang) : t("workspaceVerticalNone", lang),
+                });
+              }}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
+            >
+              <option value="">{t("workspaceVerticalNone", lang)}</option>
+              {ALL_VERTICALS.map((v) => (
+                <option key={v} value={v}>{t(VERTICAL_META[v].nameKey, lang)}</option>
+              ))}
+            </select>
+          </div>
+          {workspace.vertical && (() => {
+            const meta = VERTICAL_META[workspace.vertical];
+            const Icon = meta.icon;
+            return (
+              <div
+                className="flex items-start gap-3 rounded-lg p-3"
+                style={{
+                  background: `color-mix(in oklch, ${meta.accent} 10%, transparent)`,
+                  border: `1px solid color-mix(in oklch, ${meta.accent} 35%, transparent)`,
+                }}
+              >
+                <div
+                  className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl"
+                  style={{
+                    background: `color-mix(in oklch, ${meta.accent} 16%, transparent)`,
+                    border: `1px solid color-mix(in oklch, ${meta.accent} 40%, transparent)`,
+                    color: meta.accent,
+                  }}
+                >
+                  <Icon size={15} strokeWidth={1.7} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
+                      {t(meta.nameKey, lang)}
+                    </span>
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider"
+                      style={{ background: `color-mix(in oklch, ${meta.accent} 18%, transparent)`, color: meta.accent }}
+                    >
+                      {t("workspaceVerticalActiveBadge", lang)}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11.5px]" style={{ color: "var(--ink-3)" }}>
+                    {t(meta.descKey, lang)}
+                  </p>
+                  <p className="mt-2 text-[10.5px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
+                    {t("workspaceVerticalRegulators", lang)}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {meta.regulators.map((r) => (
+                      <span
+                        key={r}
+                        className="rounded-full px-2 py-0.5 font-mono text-[10px]"
+                        style={{ background: "var(--surface-2)", color: "var(--ink-2)" }}
+                      >
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ),
     },

@@ -6,6 +6,7 @@ import { TopBar } from "./TopBar";
 import { AssistantPanel } from "@/components/assistant/AssistantPanel";
 import { UploadModal } from "@/components/operations/UploadModal";
 import { LangProvider } from "@/lib/lang-context";
+import { WorkspaceProvider } from "@/lib/workspace-context";
 
 interface ConsoleShellProps {
   children: React.ReactNode;
@@ -17,15 +18,17 @@ export function ConsoleShell({ children }: ConsoleShellProps) {
 
   return (
     <LangProvider>
-      <div className="console-shell">
-        <Sidebar onAiClick={() => setAiOpen(true)} />
-        <TopBar onScan={() => setScanOpen(true)} />
-        <main className="console-main">
-          {children}
-        </main>
-        {aiOpen && <AssistantPanel onClose={() => setAiOpen(false)} />}
-        {scanOpen && <UploadModal onClose={() => setScanOpen(false)} />}
-      </div>
+      <WorkspaceProvider>
+        <div className="console-shell">
+          <Sidebar onAiClick={() => setAiOpen(true)} />
+          <TopBar onScan={() => setScanOpen(true)} />
+          <main className="console-main">
+            {children}
+          </main>
+          {aiOpen && <AssistantPanel onClose={() => setAiOpen(false)} />}
+          {scanOpen && <UploadModal onClose={() => setScanOpen(false)} />}
+        </div>
+      </WorkspaceProvider>
     </LangProvider>
   );
 }

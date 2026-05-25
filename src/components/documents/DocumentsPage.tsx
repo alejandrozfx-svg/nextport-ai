@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { formatDate, formatDateTime, cn } from "@/lib/utils";
 import { useLang } from "@/lib/lang-context";
+import { useWorkspace, VERTICAL_META } from "@/lib/workspace-context";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
 import { ActionButton, DocumentIcon, EmptyState, MetricCard, PageHeader, SectionCard } from "@/components/ui";
 import { CrossValidationIllustration } from "@/components/motion/ProductMotion";
@@ -372,7 +373,7 @@ function FragmentRow({ children }: { children: React.ReactNode }) {
  * encounters. Picking one immediately narrows the table so the user goes
  * from "open page → pick scenario → refine → export" in 3 clicks.
  * ────────────────────────────────────────────────────────────────────*/
-type PlaybookId = "sat" | "quarterly" | "supplier" | "soc2" | "qa";
+type PlaybookId = "sat" | "quarterly" | "supplier" | "soc2" | "qa" | "sector";
 
 interface PlaybookPreset {
   filter?: string;
@@ -967,6 +968,7 @@ function downloadAuditManifest(docs: DocumentItem[]) {
  * ════════════════════════════════════════════════════════════════════ */
 export function DocumentsPage() {
   const { lang } = useLang();
+  const workspace = useWorkspace();
   const searchParams = useSearchParams();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [filter, setFilter] = useState("all");
@@ -1179,12 +1181,43 @@ export function DocumentsPage() {
       {/* P1: Selection state transformation — hide playbook chips once the user is in
        * "review my selection" mode. They are starting points; once you have a selection,
        * they only add noise. */}
-      {selectedIds.size === 0 && (
+      {selectedIds.size === 0 && (() => {
+        /* Industry-pack-aware playbook list. If a vertical is active we expose
+         * an extra "Sector audit (last 90d)" preset that scopes to docs in the
+         * past 90d sorted by confidence ascending — the typical defensive
+         * routine for a sector-specific audit (COFEPRIS / IMMEX / T-MEC). */
+        const verticalMeta = workspace.vertical ? VERTICAL_META[workspace.vertical] : null;
+        const playbooksToShow: Playbook[] = verticalMeta
+          ? [
+              {
+                id: "sector",
+                icon: verticalMeta.icon,
+                accent: verticalMeta.accent,
+                titleKey: "playbookSectorAudit",
+                descKey: "playbookSectorAuditDesc",
+                preset: { period: "quarter", confFilter: "low", sortKey: "confAsc" },
+              },
+              ...PLAYBOOKS,
+            ]
+          : PLAYBOOKS;
+        return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
           {t("playbooksTitle", lang)}:
         </span>
-        {PLAYBOOKS.map((pb) => {
+        {verticalMeta && (
+          <span
+            className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wider"
+            style={{
+              background: `color-mix(in oklch, ${verticalMeta.accent} 16%, transparent)`,
+              border: `1px solid color-mix(in oklch, ${verticalMeta.accent} 40%, transparent)`,
+              color: verticalMeta.accent,
+            }}
+          >
+            {t(verticalMeta.nameKey, lang)} · {t("workspaceVerticalActiveBadge", lang)}
+          </span>
+        )}
+        {playbooksToShow.map((pb) => {
           const Icon = pb.icon;
           const isActive = activePlaybook === pb.id;
           // P1: show how many docs the preset would surface, computed from the live dataset.
@@ -1210,7 +1243,8 @@ export function DocumentsPage() {
           );
         })}
       </div>
-      )}
+        );
+      })()}
 
       {lastExport && exportState === "done" && (
         <div className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between"

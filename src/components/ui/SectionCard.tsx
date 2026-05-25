@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 interface SectionCardProps {
@@ -5,9 +6,10 @@ interface SectionCardProps {
   className?: string;
   interactive?: boolean;
   active?: boolean;
+  style?: CSSProperties;
 }
 
-export function SectionCard({ children, className, interactive, active }: SectionCardProps) {
+export function SectionCard({ children, className, interactive, active, style }: SectionCardProps) {
   return (
     <section
       className={cn(
@@ -16,6 +18,7 @@ export function SectionCard({ children, className, interactive, active }: Sectio
         active && "is-active",
         className
       )}
+      style={style}
     >
       {children}
     </section>
