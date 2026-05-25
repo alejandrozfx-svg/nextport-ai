@@ -9,7 +9,7 @@ import { DEMO_OPERATIONS } from "@/lib/demo-data";
 import type { DemoOperation } from "@/lib/demo-data";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { ActionButton, AppIcon as Icon, DocumentIcon, EmptyState, MetricCard, PageHeader, StatusChip } from "@/components/ui";
+import { AppIcon as Icon, DocumentIcon, EmptyState, MetricCard, PageHeader, StatusChip } from "@/components/ui";
 
 type TabKey = "all" | "risk" | "review" | "ready";
 
@@ -194,15 +194,12 @@ export function OperationsInbox() {
 
   return (
     <div className="space-y-5 px-4 py-5 sm:px-6 md:px-8 md:py-7">
+      {/* P3: "Filter" header button was a dead <ActionButton> with no handler — removed.
+       * The tab strip + search box already cover filtering. If we add an advanced filter
+       * drawer later, wire a real toggle here. */}
       <PageHeader
         title={t("operationsInbox", lang)}
         subtitle={t("controlTowerDesc", lang)}
-        actions={(
-          <ActionButton size="sm">
-            <Icon name="search" size={13} />
-            {t("filter", lang)}
-          </ActionButton>
-        )}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-5">

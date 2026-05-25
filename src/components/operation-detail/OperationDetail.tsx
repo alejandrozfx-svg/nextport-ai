@@ -83,7 +83,10 @@ function ExceptionCard({ flag, active, onClick }: {
 }
 
 /* ── NextBestAction ─────────────────────────────────────── */
-function NextBestAction({ action }: { action: NonNullable<DemoOperation["recommendedAction"]> }) {
+function NextBestAction({ action, onAct }: {
+  action: NonNullable<DemoOperation["recommendedAction"]>;
+  onAct: (labelKey: TranslationKey, kind: "primary" | "secondary") => void;
+}) {
   const { lang } = useLang();
 
   return (
@@ -99,13 +102,25 @@ function NextBestAction({ action }: { action: NonNullable<DemoOperation["recomme
       </div>
       <div className="text-[14px] leading-snug mb-1.5" style={{ color: "white" }}>{t(action.titleKey, lang)}</div>
       <div className="text-[12px] leading-snug mb-3" style={{ color: "var(--ink-3)" }}>{t(action.whyKey, lang)}</div>
-      <button className="btn btn-primary w-full justify-center mb-2">
+      <button
+        type="button"
+        onClick={() => onAct(action.primary, "primary")}
+        className="btn btn-primary w-full justify-center mb-2"
+      >
         <Icon name="arrow_right" size={13} />
         {t(action.primary, lang)}
       </button>
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${action.secondary.length}, 1fr)` }}>
         {action.secondary.map((s) => (
-          <button key={s} className="btn btn-sm justify-center" style={{ fontSize: 11, padding: "5px 8px" }}>{t(s, lang)}</button>
+          <button
+            key={s}
+            type="button"
+            onClick={() => onAct(s, "secondary")}
+            className="btn btn-sm justify-center"
+            style={{ fontSize: 11, padding: "5px 8px" }}
+          >
+            {t(s, lang)}
+          </button>
         ))}
       </div>
     </div>
@@ -386,6 +401,20 @@ function academyRecommendation(status: DemoOperation["status"]): { id: string; t
   return { id: "12", titleKey: "lessonHumanLoopApproval" };
 }
 
+/* Maps the demo doc-kind label to the sample PDF shipped in /public/sample-documents.
+ * Returns null for kinds we don't have a PDF for (CFDI, Carta Porte, COO etc.).
+ * Used by the Preview / Download buttons in the document preview header. */
+function docKindToPdf(kind: string): string | null {
+  const map: Record<string, string> = {
+    "Pedimento A1": "/sample-documents/04_pedimento_simplified_dummy.pdf",
+    "Invoice": "/sample-documents/01_commercial_invoice_dummy.pdf",
+    "BL": "/sample-documents/03_bill_of_lading_dummy.pdf",
+    "Packing List": "/sample-documents/02_packing_list_dummy.pdf",
+    "MVE": "/sample-documents/05_manifestacion_valor_electronica_dummy.pdf",
+  };
+  return map[kind] ?? null;
+}
+
 type MobileDetailTab = "summary" | "docs" | "fields" | "risks" | "actions";
 
 /* ── Main component ─────────────────────────────────────── */
@@ -427,6 +456,28 @@ export function OperationDetail({ op }: OperationDetailProps) {
 
     toaster.push({
       tone: nextDecision === "approved" ? "ok" : nextDecision === "held" ? "risk" : "warn",
+      title,
+      detail,
+    });
+  }
+
+  /* P3: Next-best-action buttons used to be dead. They now record the action in the
+   * audit toast — same demo-quality feedback as recordDecision. Primary buttons are
+   * "ok" (the AI suggestion was acted on), secondary are "warn" (alternative path). */
+  function handleNba(labelKey: TranslationKey, kind: "primary" | "secondary") {
+    const actionLabel = t(labelKey, lang);
+    const title = lang === "es"
+      ? `Acción enviada: ${actionLabel}`
+      : lang === "zh"
+      ? `已发送操作: ${actionLabel}`
+      : `Action dispatched: ${actionLabel}`;
+    const detail = lang === "es"
+      ? "Se registró en la trazabilidad del expediente."
+      : lang === "zh"
+      ? "已记录在运营审计轨迹中。"
+      : "Logged in the operation audit trail.";
+    toaster.push({
+      tone: kind === "primary" ? "ok" : "warn",
       title,
       detail,
     });
@@ -511,8 +562,40 @@ export function OperationDetail({ op }: OperationDetailProps) {
             <div className="text-[11px]" style={{ color: "var(--ink-4)" }}>{t("owner", lang)}</div>
             <div className="text-[12px]" style={{ color: "white" }}>{op.owner.name}</div>
           </div>
-          <button className="btn btn-sm"><Icon name="history" size={13} /> {lang === "es" ? "Trazabilidad" : lang === "zh" ? "审计轨迹" : "Audit trail"}</button>
-          <button className="btn btn-sm"><Icon name="link" size={13} /> {lang === "es" ? "Compartir" : lang === "zh" ? "分享" : "Share"}</button>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof document === "undefined") return;
+              const el = document.getElementById("op-activity");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="btn btn-sm"
+          >
+            <Icon name="history" size={13} /> {lang === "es" ? "Trazabilidad" : lang === "zh" ? "审计轨迹" : "Audit trail"}
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (typeof window === "undefined") return;
+              try {
+                await navigator.clipboard.writeText(window.location.href);
+                toaster.push({
+                  tone: "ok",
+                  title: lang === "es" ? "Enlace copiado" : lang === "zh" ? "链接已复制" : "Link copied",
+                  detail: lang === "es" ? "Pega el enlace del expediente donde lo necesites." : lang === "zh" ? "在需要的地方粘贴运营链接。" : "Paste the operation link wherever you need it.",
+                });
+              } catch {
+                toaster.push({
+                  tone: "warn",
+                  title: lang === "es" ? "No se pudo copiar" : lang === "zh" ? "无法复制" : "Could not copy",
+                  detail: window.location.href,
+                });
+              }
+            }}
+            className="btn btn-sm"
+          >
+            <Icon name="link" size={13} /> {lang === "es" ? "Compartir" : lang === "zh" ? "分享" : "Share"}
+          </button>
           {/* P1: deep-link to /console/documents pre-filtered to this operation with all docs preselected.
            * Completes the Operations -> Documents integration referenced in ADR-0001. */}
           <Link href={`/console/documents?op=${op.id}`} className="btn btn-sm btn-primary">
@@ -559,7 +642,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
               <SectionTitle icon="sparkle">{t("aiSummary", lang)}</SectionTitle>
               <p className="text-[13px] leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>{op.summary}</p>
             </div>
-            {op.recommendedAction && <NextBestAction action={op.recommendedAction} />}
+            {op.recommendedAction && <NextBestAction action={op.recommendedAction} onAct={handleNba} />}
           </div>
         )}
 
@@ -663,7 +746,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
               <ApprovalRow label={lang === "es" ? "Revisión de cumplimiento" : lang === "zh" ? "合规审查" : "Compliance review"} who="Mariana López" status={op.status === "ready" ? "done" : "pending"} />
               <ApprovalRow label={lang === "es" ? "Aprobación del manager" : lang === "zh" ? "经理审批" : "Manager sign-off"} who="Sofía Galván" status={op.status === "ready" ? "queued" : "blocked"} />
             </div>
-            {op.recommendedAction && <NextBestAction action={op.recommendedAction} />}
+            {op.recommendedAction && <NextBestAction action={op.recommendedAction} onAct={handleNba} />}
           </div>
         )}
 
@@ -724,7 +807,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
             ))}
           </div>
 
-          <div className="divider my-4" />
+          <div className="divider my-4" id="op-activity" />
           <SectionTitle icon="history">{t("activityLabel", lang)}</SectionTitle>
           <div className="space-y-2.5 text-[12px]">
             {op.timeline.map((e, i) => (
@@ -753,8 +836,44 @@ export function OperationDetail({ op }: OperationDetailProps) {
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <button className="btn btn-sm btn-ghost"><Icon name="eye" size={13} /> Preview</button>
-                <button className="btn btn-sm btn-ghost"><Icon name="download" size={13} /></button>
+                {(() => {
+                  const pdfUrl = docKindToPdf(currentDoc);
+                  const noPdfLabel = lang === "es" ? "Sin PDF de muestra" : lang === "zh" ? "无样本 PDF" : "No sample PDF";
+                  if (!pdfUrl) {
+                    return (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        disabled
+                        title={noPdfLabel}
+                        style={{ opacity: 0.5, cursor: "not-allowed" }}
+                      >
+                        <Icon name="eye" size={13} /> Preview
+                      </button>
+                    );
+                  }
+                  return (
+                    <>
+                      <a
+                        href={pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-sm btn-ghost"
+                        aria-label={lang === "es" ? "Abrir PDF" : lang === "zh" ? "打开 PDF" : "Open PDF"}
+                      >
+                        <Icon name="eye" size={13} /> Preview
+                      </a>
+                      <a
+                        href={pdfUrl}
+                        download
+                        className="btn btn-sm btn-ghost"
+                        aria-label={lang === "es" ? "Descargar PDF" : lang === "zh" ? "下载 PDF" : "Download PDF"}
+                      >
+                        <Icon name="download" size={13} />
+                      </a>
+                    </>
+                  );
+                })()}
               </div>
             </div>
             <div className="p-4">
@@ -823,7 +942,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
           </div>
 
           {/* Next best action */}
-          {op.recommendedAction && <NextBestAction action={op.recommendedAction} />}
+          {op.recommendedAction && <NextBestAction action={op.recommendedAction} onAct={handleNba} />}
 
           {/* Academy link */}
           {op.status !== "ready" && (

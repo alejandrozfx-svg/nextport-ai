@@ -51,7 +51,7 @@ export function MetricCard({
     <div
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={cn("metric-card p-4", onClick && "cursor-pointer", active && "is-active", className)}
+      className={cn("metric-card p-4", onClick && "interactive cursor-pointer", active && "is-active", className)}
       onClick={onClick}
       onKeyDown={(event) => {
         if (!onClick) return;

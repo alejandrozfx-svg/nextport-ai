@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   PieChart,
   Pie,
@@ -69,6 +70,7 @@ const DEMO_INTEL: IntelData = {
 
 export function IntelligencePage() {
   const { lang } = useLang();
+  const router = useRouter();
   const [data, setData] = useState<IntelData>(DEMO_INTEL);
 
   useEffect(() => {
@@ -86,12 +88,37 @@ export function IntelligencePage() {
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title={t("dataIntelligence", lang)} subtitle={t("aiPerformanceSubtitle", lang)} />
 
-      {/* KPIs */}
+      {/* KPIs — clickable, deep-link to Documents with the right filter applied. */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label={t("kpiDocumentsClassified", lang)} value={kpis.documentsClassified} icon={<FileText size={14} strokeWidth={1.5} />} color="var(--brand)" />
-        <MetricCard label={t("kpiFieldsExtracted", lang)} value={kpis.fieldsExtracted} icon={<Cpu size={14} strokeWidth={1.5} />} color="var(--brand)" />
-        <MetricCard label={t("kpiValidationsRun", lang)} value={kpis.validationsRun} icon={<CheckCheck size={14} strokeWidth={1.5} />} color="var(--ok)" />
-        <MetricCard label={t("kpiAvgConfidence", lang)} value={`${(kpis.avgConfidence * 100).toFixed(1)}%`} icon={<TrendingUp size={14} strokeWidth={1.5} />} color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"} sub={`${(kpis.passRate * 100).toFixed(1)}${t("passRateSuffix", lang)}`} />
+        <MetricCard
+          label={t("kpiDocumentsClassified", lang)}
+          value={kpis.documentsClassified}
+          icon={<FileText size={14} strokeWidth={1.5} />}
+          color="var(--brand)"
+          onClick={() => router.push("/console/documents")}
+        />
+        <MetricCard
+          label={t("kpiFieldsExtracted", lang)}
+          value={kpis.fieldsExtracted}
+          icon={<Cpu size={14} strokeWidth={1.5} />}
+          color="var(--brand)"
+          onClick={() => router.push("/console/documents")}
+        />
+        <MetricCard
+          label={t("kpiValidationsRun", lang)}
+          value={kpis.validationsRun}
+          icon={<CheckCheck size={14} strokeWidth={1.5} />}
+          color="var(--ok)"
+          onClick={() => router.push("/console/security")}
+        />
+        <MetricCard
+          label={t("kpiAvgConfidence", lang)}
+          value={`${(kpis.avgConfidence * 100).toFixed(1)}%`}
+          icon={<TrendingUp size={14} strokeWidth={1.5} />}
+          color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"}
+          sub={`${(kpis.passRate * 100).toFixed(1)}${t("passRateSuffix", lang)}`}
+          onClick={() => router.push("/console/documents")}
+        />
       </div>
 
       {/* Charts */}

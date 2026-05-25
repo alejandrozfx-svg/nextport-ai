@@ -374,27 +374,35 @@ export default function LandingPage() {
       </section>
 
       <div className="relative z-10 hidden justify-center gap-3 pb-7 sm:flex sm:pb-10">
-        <button
-          type="button"
+        {/* P3: Were dead <button>s. Converted to anchors pointing at the public profiles.
+         * Use generic landing URLs since we don't have real handles wired yet — easy to swap. */}
+        <a
+          href="https://instagram.com/nextport.ai"
+          target="_blank"
+          rel="noreferrer"
           aria-label="Instagram"
           className="liquid-glass rounded-full p-3.5 text-white/75 transition-colors hover:text-white"
         >
           <Instagram size={18} strokeWidth={1.6} />
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
+          href="https://x.com/nextport_ai"
+          target="_blank"
+          rel="noreferrer"
           aria-label="X"
           className="liquid-glass rounded-full p-3.5 text-white/75 transition-colors hover:text-white"
         >
           <XIcon size={18} />
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
+          href="https://nextport-ai.vercel.app"
+          target="_blank"
+          rel="noreferrer"
           aria-label="Website"
           className="liquid-glass rounded-full p-3.5 text-white/75 transition-colors hover:text-white"
         >
           <Globe size={18} strokeWidth={1.6} />
-        </button>
+        </a>
       </div>
     </main>
   );

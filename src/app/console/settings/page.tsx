@@ -1,27 +1,97 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Save, User, Bell, Globe, Database, Shield } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { useToast } from "@/components/ui/ToastProvider";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
+
+const NOTIFICATION_KEYS = [
+  "notificationNewOps",
+  "notificationExceptions",
+  "notificationApprovals",
+  "notificationEta",
+  "notificationIntegrations",
+] as const satisfies readonly TranslationKey[];
+
+type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 
 export default function SettingsPage() {
   const { lang, setLang } = useLang();
+  const router = useRouter();
+  const toaster = useToast();
   const [email, setEmail] = useState("diegosolorzano@nextport.com");
   const [name, setName] = useState("Diego Solórzano");
   const [saved, setSaved] = useState(false);
+  const [databaseUrl, setDatabaseUrl] = useState("");
+  // P3: notifications toggles were decorative <div>s — now real state, persisted to localStorage.
+  // Default everything on so the first visit shows the intended demo state.
+  const [notifications, setNotifications] = useState<Record<NotificationKey, boolean>>(() => {
+    const initial = {} as Record<NotificationKey, boolean>;
+    NOTIFICATION_KEYS.forEach((k) => { initial[k] = true; });
+    return initial;
+  });
+  const [clearing, setClearing] = useState<"idle" | "confirm" | "done">("idle");
 
   // Load saved user from localStorage (populated by landing-page sign-in or previous Save).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const stored = localStorage.getItem("np_user");
-      if (!stored) return;
-      const parsed = JSON.parse(stored) as { name?: string; email?: string };
-      if (parsed.name)  setName(parsed.name);
-      if (parsed.email) setEmail(parsed.email);
+      if (stored) {
+        const parsed = JSON.parse(stored) as { name?: string; email?: string };
+        if (parsed.name)  setName(parsed.name);
+        if (parsed.email) setEmail(parsed.email);
+      }
+    } catch {}
+    try {
+      const storedNotifs = localStorage.getItem("np_notifications");
+      if (storedNotifs) {
+        const parsed = JSON.parse(storedNotifs) as Partial<Record<NotificationKey, boolean>>;
+        setNotifications((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+    try {
+      const storedDb = localStorage.getItem("np_database_url");
+      if (storedDb) setDatabaseUrl(storedDb);
     } catch {}
   }, []);
+
+  function toggleNotification(key: NotificationKey) {
+    setNotifications((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem("np_notifications", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  function handleClearDemoData() {
+    if (clearing === "idle") {
+      setClearing("confirm");
+      // Auto-dismiss the confirm state after 6s if user does nothing.
+      setTimeout(() => setClearing((c) => (c === "confirm" ? "idle" : c)), 6000);
+      return;
+    }
+    if (clearing === "confirm") {
+      try {
+        localStorage.removeItem("np_user");
+        localStorage.removeItem("np_notifications");
+        localStorage.removeItem("np_database_url");
+        sessionStorage.removeItem("np_evidence_exports");
+        sessionStorage.removeItem("np_ops_state");
+      } catch {}
+      setClearing("done");
+      toaster.push({
+        tone: "ok",
+        title: lang === "es" ? "Datos del demo limpiados" : lang === "zh" ? "演示数据已清除" : "Demo data cleared",
+        detail: lang === "es" ? "Volviendo al landing." : lang === "zh" ? "返回首页。" : "Returning to landing.",
+      });
+      setTimeout(() => router.push("/"), 900);
+    }
+  }
 
   function handleSave() {
     if (typeof window !== "undefined") {
@@ -30,6 +100,9 @@ export default function SettingsPage() {
         const prev = stored ? (JSON.parse(stored) as Record<string, unknown>) : {};
         const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "DS";
         localStorage.setItem("np_user", JSON.stringify({ ...prev, name, email, initials }));
+        // DATABASE_URL — demo only. Live demo doesn't actually connect; we just round-trip it.
+        if (databaseUrl) localStorage.setItem("np_database_url", databaseUrl);
+        else localStorage.removeItem("np_database_url");
       } catch {}
     }
     setSaved(true);
@@ -93,26 +166,30 @@ export default function SettingsPage() {
       icon: Bell,
       content: (
         <div className="space-y-3">
-          {[
-            "notificationNewOps",
-            "notificationExceptions",
-            "notificationApprovals",
-            "notificationEta",
-            "notificationIntegrations",
-          ].map((item) => (
-            <label key={item} className="flex items-center gap-3 cursor-pointer">
-              <div
-                className="w-8 h-4 rounded-full relative"
-                style={{ background: "var(--brand)" }}
+          {NOTIFICATION_KEYS.map((item) => {
+            const on = notifications[item];
+            return (
+              <button
+                key={item}
+                type="button"
+                role="switch"
+                aria-checked={on}
+                onClick={() => toggleNotification(item)}
+                className="flex w-full items-center gap-3 rounded-lg px-1 py-1 text-left hover:opacity-90"
               >
-                <div
-                  className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full"
-                  style={{ background: "#0A0D12" }}
-                />
-              </div>
-              <span className="text-sm" style={{ color: "var(--ink-2)" }}>{t(item as TranslationKey, lang)}</span>
-            </label>
-          ))}
+                <span
+                  className="relative h-4 w-8 rounded-full transition-colors"
+                  style={{ background: on ? "var(--brand)" : "var(--surface-3)" }}
+                >
+                  <span
+                    className="absolute top-0.5 h-3 w-3 rounded-full transition-all"
+                    style={{ background: on ? "#0A0D12" : "var(--ink-4)", right: on ? 2 : "calc(100% - 14px)" }}
+                  />
+                </span>
+                <span className="text-sm" style={{ color: "var(--ink-2)" }}>{t(item, lang)}</span>
+              </button>
+            );
+          })}
         </div>
       ),
     },
@@ -129,6 +206,8 @@ export default function SettingsPage() {
             <label className="block text-xs mb-1.5" style={{ color: "var(--ink-4)" }}>DATABASE_URL</label>
             <input
               type="password"
+              value={databaseUrl}
+              onChange={(e) => setDatabaseUrl(e.target.value)}
               placeholder="postgresql://user:password@host/db"
               className="w-full px-3 py-2 rounded-lg text-sm outline-none font-mono"
               style={{ background: "var(--bg)", border: "1px solid var(--hair-2)", color: "var(--ink)" }}
@@ -188,11 +267,31 @@ export default function SettingsPage() {
             {t("destructiveActions", lang)}
           </p>
           <button
-            className="px-3 py-2 rounded-lg text-sm font-medium"
-            style={{ border: "1px solid oklch(0.70 0.16 25 / 0.35)", color: "var(--risk)" }}
+            type="button"
+            onClick={handleClearDemoData}
+            disabled={clearing === "done"}
+            className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              border: "1px solid oklch(0.70 0.16 25 / 0.35)",
+              color: clearing === "confirm" ? "#0A0D12" : "var(--risk)",
+              background: clearing === "confirm" ? "var(--risk)" : "transparent",
+            }}
           >
-            {t("clearDemoData", lang)}
+            {clearing === "confirm"
+              ? (lang === "es" ? "Confirma — esto borra el demo" : lang === "zh" ? "确认 — 这将清除演示" : "Confirm — this wipes the demo")
+              : clearing === "done"
+              ? (lang === "es" ? "Listo" : lang === "zh" ? "完成" : "Done")
+              : t("clearDemoData", lang)}
           </button>
+          {clearing === "confirm" && (
+            <p className="text-xs" style={{ color: "var(--ink-4)" }}>
+              {lang === "es"
+                ? "Borra usuario, preferencias y exports locales. La sesión se cerrará."
+                : lang === "zh"
+                ? "清除用户、偏好和本地导出。会话将关闭。"
+                : "Wipes user, preferences and local exports. Session will end."}
+            </p>
+          )}
         </div>
       </div>
     </div>

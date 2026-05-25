@@ -244,7 +244,7 @@ body > * {
 }
 
 .interactive-surface:hover,
-.metric-card:hover,
+.metric-card.interactive:hover,
 .section-card.interactive:hover {
   border-color: var(--border-strong);
   background:
