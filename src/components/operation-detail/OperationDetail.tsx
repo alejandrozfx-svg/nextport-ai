@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { DemoOperation } from "@/lib/demo-data";
 import { useLang } from "@/lib/lang-context";
+import { useToast } from "@/components/ui/ToastProvider";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { AppIcon as Icon } from "@/components/ui/AppIcon";
 
@@ -393,9 +394,9 @@ interface OperationDetailProps {
 
 export function OperationDetail({ op }: OperationDetailProps) {
   const { lang } = useLang();
+  const toaster = useToast();
   const [activeDoc, setActiveDoc] = useState(0);
   const [decision, setDecision] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ kind: "ok" | "warn" | "risk"; title: string; detail: string } | null>(null);
   const [focusedFlag, setFocusedFlag] = useState<number | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileDetailTab>("summary");
 
@@ -423,13 +424,11 @@ export function OperationDetail({ op }: OperationDetailProps) {
       ? "Decision logged in the audit trail."
       : "Decision logged in the audit trail.";
 
-    setToast({
-      kind: nextDecision === "approved" ? "ok" : nextDecision === "held" ? "risk" : "warn",
+    toaster.push({
+      tone: nextDecision === "approved" ? "ok" : nextDecision === "held" ? "risk" : "warn",
       title,
       detail,
     });
-
-    window.setTimeout(() => setToast(null), 4000);
   }
 
   // When exception is clicked, jump to related doc
@@ -885,31 +884,7 @@ export function OperationDetail({ op }: OperationDetailProps) {
           </div>
         </aside>
       </div>
-      {toast && (
-        <div
-          className="glass-panel elev-3 fixed z-50 flex w-[min(360px,calc(100vw-32px))] items-start gap-3 p-3"
-          style={{ right: 16, bottom: "calc(16px + env(safe-area-inset-bottom))" }}
-          role="status"
-        >
-          <div
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-            style={{
-              background: toast.kind === "ok" ? "var(--ok-soft)" : toast.kind === "risk" ? "var(--risk-soft)" : "var(--warn-soft)",
-              color: toast.kind === "ok" ? "var(--ok)" : toast.kind === "risk" ? "var(--risk)" : "var(--warn)",
-              border: "1px solid var(--hair-2)",
-            }}
-          >
-            <Icon name={toast.kind === "risk" ? "flag" : "check"} size={14} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12.5px] font-medium" style={{ color: "var(--ink)" }}>{toast.title}</div>
-            <div className="text-[11.5px]" style={{ color: "var(--ink-3)" }}>{toast.detail}</div>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setToast(null)} aria-label="Dismiss">
-            <Icon name="x" size={12} />
-          </button>
-        </div>
-      )}
+      {/* Toast moved to global ToastProvider (ADR-0002 A1). Local UI removed. */}
     </div>
   );
 }

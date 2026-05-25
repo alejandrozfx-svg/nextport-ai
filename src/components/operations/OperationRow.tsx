@@ -40,7 +40,7 @@ export function OperationRow({ op, index = 0 }: { op: DemoOperation; index?: num
     <tr className={`row-link ${rule} ops-row-animate transition-colors`} style={{ cursor: "pointer", animationDelay: `${index * 45}ms` }}>
       <td style={{ paddingLeft: 16 }}>
         <Link href={`/console/operations/${op.id}`} className="block">
-          <StatusChip tone={chipKind[op.status]}>
+          <StatusChip tone={chipKind[op.status]} pulse={op.status === "risk"}>
             {chipLabel[op.status]}
           </StatusChip>
           <div className="font-mono text-[10.5px] mt-1" style={{ color: "var(--ink-4)" }}>{op.id}</div>

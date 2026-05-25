@@ -312,6 +312,35 @@ export default function LandingPage() {
       )}
       {!videoReady && videoEnabled && <HeroFallback />}
       <div className="hero-vignette" />
+      {/* Aurora mesh layer (ADR-0002 E1) — 3 soft blobs drifting slowly behind the hero.
+       * Sits on top of the video/fallback but below the vignette for depth. */}
+      <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden mix-blend-screen">
+        <div
+          className="absolute h-[60vmax] w-[60vmax] rounded-full opacity-30 blur-3xl"
+          style={{
+            top: "-20vmax", left: "-15vmax",
+            background: "radial-gradient(circle, oklch(0.78 0.09 235 / 0.55), transparent 70%)",
+            animation: "aurora-drift 28s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute h-[55vmax] w-[55vmax] rounded-full opacity-25 blur-3xl"
+          style={{
+            top: "20vmax", right: "-20vmax",
+            background: "radial-gradient(circle, oklch(0.82 0.13 195 / 0.55), transparent 70%)",
+            animation: "aurora-drift 34s ease-in-out infinite reverse",
+          }}
+        />
+        <div
+          className="absolute h-[45vmax] w-[45vmax] rounded-full opacity-20 blur-3xl"
+          style={{
+            bottom: "-15vmax", left: "30vmax",
+            background: "radial-gradient(circle, oklch(0.76 0.15 165 / 0.45), transparent 70%)",
+            animation: "aurora-drift 40s ease-in-out infinite",
+            animationDelay: "-12s",
+          }}
+        />
+      </div>
 
       <nav className="relative z-20 px-3 py-3 sm:px-6 sm:py-6">
         <div className="liquid-glass mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-full px-3 py-2.5 sm:px-5">

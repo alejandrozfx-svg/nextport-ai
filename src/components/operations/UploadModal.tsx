@@ -130,8 +130,29 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
               <div className="space-y-1.5">
                 {files.map((f) => (
                   <div key={f.name} className="glass-panel-tight flex flex-col items-stretch gap-3 px-3 py-2.5 sm:flex-row sm:items-center">
-                    <a href={f.href} target="_blank" rel="noreferrer" className="w-7 h-9 rounded-[3px] border flex-shrink-0 flex items-center justify-center" style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))", borderColor: "var(--hair-2)", color: "var(--brand)" }}>
+                    {/* PDF thumb with active scan-line during processing (ADR-0002 B1) */}
+                    <a
+                      href={f.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="relative w-7 h-9 rounded-[3px] border flex-shrink-0 flex items-center justify-center overflow-hidden"
+                      style={{
+                        background: "linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))",
+                        borderColor: "var(--hair-2)",
+                        color: "var(--brand)",
+                      }}
+                    >
                       <Icon name="file" size={13} />
+                      {!f.classified && f.progress > 0 && (
+                        <span
+                          className="scan-line absolute left-0 right-0 h-px"
+                          style={{
+                            background: "linear-gradient(90deg, transparent, var(--accent), transparent)",
+                            boxShadow: "0 0 6px var(--accent)",
+                          }}
+                          aria-hidden="true"
+                        />
+                      )}
                     </a>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
