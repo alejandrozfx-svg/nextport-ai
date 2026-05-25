@@ -12,7 +12,7 @@ interface BrandMarkProps {
 /**
  * Nextport AI brand mark.
  * A premium graphite mark inspired by customs seals and control-tower consoles:
- * deep black surface, crisp white N, and a small electric-teal AI signal.
+ * deep black surface, crisp white N, and a small ice-blue AI signal.
  *
  * Scales cleanly from 16px (favicon) up to 96px (marketing hero).
  */
@@ -43,8 +43,8 @@ export function BrandMark({
           <stop offset="1" stopColor="oklch(0.035 0.004 250)" />
         </linearGradient>
         <radialGradient id={id("halo")} cx="0.68" cy="0.22" r="0.72">
-          <stop offset="0" stopColor="oklch(0.78 0.14 195 / 0.32)" />
-          <stop offset="0.28" stopColor="oklch(0.62 0.12 215 / 0.14)" />
+          <stop offset="0" stopColor="oklch(0.84 0.05 235 / 0.22)" />
+          <stop offset="0.28" stopColor="oklch(0.62 0.06 235 / 0.10)" />
           <stop offset="1" stopColor="oklch(0.08 0.01 250 / 0)" />
         </radialGradient>
         <linearGradient id={id("glyph")} x1="9" y1="7" x2="22" y2="25" gradientUnits="userSpaceOnUse">
@@ -53,9 +53,9 @@ export function BrandMark({
           <stop offset="1" stopColor="oklch(0.82 0.05 230)" stopOpacity="0.82" />
         </linearGradient>
         <radialGradient id={id("accent")} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="oklch(0.98 0.12 185)" />
-          <stop offset="0.46" stopColor="oklch(0.86 0.15 190)" />
-          <stop offset="1" stopColor="oklch(0.64 0.14 205)" />
+          <stop offset="0" stopColor="oklch(0.97 0.03 235)" />
+          <stop offset="0.55" stopColor="oklch(0.82 0.06 235)" />
+          <stop offset="1" stopColor="oklch(0.58 0.07 235)" />
         </radialGradient>
         <linearGradient id={id("highlight")} x1="0" y1="0" x2="0" y2="14" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#ffffff" stopOpacity="0.15" />
@@ -78,9 +78,9 @@ export function BrandMark({
 
       {withAccent && (
         <>
-          <circle cx="24.2" cy="7.6" r="4.1" fill="oklch(0.72 0.14 195 / 0.16)" />
-          <circle cx="24.2" cy="7.6" r="2.7" fill={`url(#${id("accent")})`} />
-          <circle cx="24.2" cy="7.6" r="2.7" fill="none" stroke="oklch(0.96 0.11 190 / 0.72)" strokeWidth="0.55" />
+          <circle cx="24.2" cy="7.6" r="3.8" fill="oklch(0.78 0.06 235 / 0.12)" />
+          <circle cx="24.2" cy="7.6" r="2.45" fill={`url(#${id("accent")})`} />
+          <circle cx="24.2" cy="7.6" r="2.45" fill="none" stroke="oklch(0.96 0.03 235 / 0.62)" strokeWidth="0.5" />
         </>
       )}
 

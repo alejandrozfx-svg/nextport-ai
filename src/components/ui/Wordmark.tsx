@@ -9,26 +9,27 @@ interface WordmarkProps {
 }
 
 const SIZE_MAP = {
-  xs: { word: "text-[13px]",   ai: "text-[8.5px]",  gap: "ml-1",   lift: "mt-[1px]" },
-  sm: { word: "text-[15px]",   ai: "text-[9.5px]",  gap: "ml-1.5", lift: "mt-[2px]" },
-  md: { word: "text-[18px]",   ai: "text-[10.5px]", gap: "ml-1.5", lift: "mt-[3px]" },
-  lg: { word: "text-[24px]",   ai: "text-[12px]",   gap: "ml-2",   lift: "mt-[4px]" },
+  xs: { word: "text-[13px]",   ai: "text-[8px]",    gap: "ml-1",   lift: "mt-[1px]" },
+  sm: { word: "text-[15px]",   ai: "text-[9px]",    gap: "ml-1.5", lift: "mt-[2px]" },
+  md: { word: "text-[18px]",   ai: "text-[10px]",   gap: "ml-1.5", lift: "mt-[3px]" },
+  lg: { word: "text-[24px]",   ai: "text-[11.5px]", gap: "ml-2",   lift: "mt-[4px]" },
 };
 
 /**
  * Nextport AI wordmark with intentional typographic hierarchy:
  * - "Nextport" in Instrument Serif italic — the brand voice
- * - "AI" in JetBrains Mono small-caps with letter-spacing — the product/tech signal
+ * - "AI" in JetBrains Mono small-caps with restrained letter-spacing — the product signal
  *
  * Pairs with <BrandMark /> in the header lockup.
  */
 export function Wordmark({ size = "sm", className, color }: WordmarkProps) {
   const cfg = SIZE_MAP[size];
+  const ink = color ?? "var(--ink)";
 
   return (
     <span
       className={cn("inline-flex items-baseline leading-none", className)}
-      style={{ color: color ?? "var(--ink)" }}
+      style={{ color: ink }}
     >
       <span
         className={cn("font-display italic tracking-tight", cfg.word)}
@@ -39,8 +40,9 @@ export function Wordmark({ size = "sm", className, color }: WordmarkProps) {
       <span
         className={cn("font-mono font-semibold uppercase", cfg.ai, cfg.gap, cfg.lift)}
         style={{
-          letterSpacing: "0.16em",
-          color: "var(--accent)",
+          letterSpacing: "0.12em",
+          color: ink,
+          opacity: 0.86,
         }}
       >
         AI
