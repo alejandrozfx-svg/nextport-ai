@@ -16,8 +16,10 @@ import {
   Bar,
   ResponsiveContainer,
 } from "recharts";
-import { FileText, Cpu, CheckCheck, TrendingUp } from "lucide-react";
+import { FileText, Cpu, CheckCheck, TrendingUp, Sparkles } from "lucide-react";
 import { MetricCard, PageHeader, SectionCard } from "@/components/ui";
+import { CountUp } from "@/components/ui/CountUp";
+import { AISparkleBurst } from "@/components/motion/ProductMotion";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
 
@@ -88,32 +90,42 @@ export function IntelligencePage() {
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title={t("dataIntelligence", lang)} subtitle={t("aiPerformanceSubtitle", lang)} />
 
-      {/* KPIs — clickable, deep-link to Documents with the right filter applied. */}
+      {/* Wave 2 B5: AI-powered caption with sparkle burst above the KPI grid.
+       * Reinforces that the numbers below come from the AI pipeline. */}
+      <div className="relative inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] uppercase tracking-wider"
+           style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.3)", color: "var(--brand)" }}>
+        <Sparkles size={11} strokeWidth={1.8} />
+        {lang === "es" ? "Métricas generadas por IA" : lang === "zh" ? "AI 生成指标" : "AI-generated metrics"}
+        <AISparkleBurst className="-right-2 -top-2" />
+      </div>
+
+      {/* KPIs — clickable, deep-link to Documents with the right filter applied.
+       * Wave 2: CountUp on each numeric KPI for first-load reveal. */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <MetricCard
           label={t("kpiDocumentsClassified", lang)}
-          value={kpis.documentsClassified}
+          value={<CountUp to={kpis.documentsClassified} duration={900} />}
           icon={<FileText size={14} strokeWidth={1.5} />}
           color="var(--brand)"
           onClick={() => router.push("/console/documents")}
         />
         <MetricCard
           label={t("kpiFieldsExtracted", lang)}
-          value={kpis.fieldsExtracted}
+          value={<CountUp to={kpis.fieldsExtracted} duration={1100} />}
           icon={<Cpu size={14} strokeWidth={1.5} />}
           color="var(--brand)"
           onClick={() => router.push("/console/documents")}
         />
         <MetricCard
           label={t("kpiValidationsRun", lang)}
-          value={kpis.validationsRun}
+          value={<CountUp to={kpis.validationsRun} duration={1000} />}
           icon={<CheckCheck size={14} strokeWidth={1.5} />}
           color="var(--ok)"
           onClick={() => router.push("/console/security")}
         />
         <MetricCard
           label={t("kpiAvgConfidence", lang)}
-          value={`${(kpis.avgConfidence * 100).toFixed(1)}%`}
+          value={<CountUp to={kpis.avgConfidence * 100} duration={1000} decimals={1} suffix="%" />}
           icon={<TrendingUp size={14} strokeWidth={1.5} />}
           color={kpis.avgConfidence >= 0.85 ? "var(--ok)" : kpis.avgConfidence >= 0.70 ? "var(--warn)" : "var(--risk)"}
           sub={`${(kpis.passRate * 100).toFixed(1)}${t("passRateSuffix", lang)}`}

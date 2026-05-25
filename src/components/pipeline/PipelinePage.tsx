@@ -92,7 +92,7 @@ function WorkflowRibbon({ lang }: { lang: "en" | "es" | "zh" }) {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono" style={{ color: "var(--ink-4)" }}>
+                  <span className="pipeline-step-number text-[10px] font-mono" style={{ color: "var(--ink-4)" }}>
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className="text-[10px] rounded-full px-1.5 py-0.5 border" style={{ color, borderColor: `${color}66`, background: `${color}12` }}>

@@ -1585,13 +1585,33 @@ html.theme-light .skeleton-shimmer {
     animation: pipeline-line-flow 2.8s linear infinite;
   }
 
+  /* Wave 2 B2: sequential glow strengthened. The card's ::after pulses with a
+   * stronger inset ring + drop shadow during its active window. Cards stay subtly
+   * lit between cycles so the eye reads it as "active stage" not a flicker. */
   @keyframes pipeline-card-glow {
-    0%, 70%, 100% { opacity: 0; }
-    18%, 36% { opacity: 1; }
+    0%, 78%, 100% {
+      opacity: 0.18;
+      box-shadow: inset 0 0 0 1px oklch(0.78 0.09 235 / 0.18), 0 0 14px oklch(0.78 0.09 235 / 0.05);
+    }
+    16%, 38% {
+      opacity: 1;
+      box-shadow: inset 0 0 0 1.5px oklch(0.78 0.09 235 / 0.62), 0 0 38px oklch(0.78 0.09 235 / 0.30);
+    }
   }
   .pipeline-step-card::after {
-    animation: pipeline-card-glow 4.8s ease-in-out infinite;
+    animation: pipeline-card-glow 6.0s ease-in-out infinite;
     animation-delay: var(--step-delay, 0ms);
+  }
+  /* Number badge in the card glows on the same cycle for extra visual cue. */
+  @keyframes pipeline-step-number-glow {
+    0%, 78%, 100% { transform: scale(1); filter: brightness(1); }
+    16%, 38%      { transform: scale(1.08); filter: brightness(1.35); }
+  }
+  .pipeline-step-card .pipeline-step-number {
+    animation: pipeline-step-number-glow 6.0s ease-in-out infinite;
+    animation-delay: var(--step-delay, 0ms);
+    display: inline-block;
+    transform-origin: center;
   }
 
   @keyframes validation-pulse-travel {
