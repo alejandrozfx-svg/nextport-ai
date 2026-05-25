@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,7 +16,18 @@ import {
 import { BrandMark as RealBrandMark } from "@/components/ui/BrandMark";
 import { Wordmark } from "@/components/ui/Wordmark";
 
-const VIDEO_SOURCES = ["/assets/tracker.mp4"];
+const VIDEO_LAYERS = [
+  {
+    src: "/assets/control-tower.mp4",
+    label: "Control tower desk",
+    className: "hero-video-base",
+  },
+  {
+    src: "/assets/tracker.mp4",
+    label: "Global trade route tracker",
+    className: "hero-video-overlay",
+  },
+] as const;
 
 const MARKETING_ROUTES = {
   platform: "/platform",
@@ -185,11 +196,9 @@ function t(lang: Lang, key: string) {
 export default function LandingPage() {
   const router = useRouter();
   const [lang, setLang] = useState<Lang>("en");
-  const [videoEnabled, setVideoEnabled] = useState(true);
-  const [videoReady, setVideoReady] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const fadingOutRef = useRef(false);
+  const [loadedVideos, setLoadedVideos] = useState<Record<string, boolean>>({});
+  const [failedVideos, setFailedVideos] = useState<Record<string, boolean>>({});
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
 
   useEffect(() => {
     const savedLang = window.localStorage.getItem("np_lang");
@@ -204,90 +213,14 @@ export default function LandingPage() {
     document.documentElement.style.setProperty("--glass-tint", "14px");
   }, []);
 
-  const fadeVideoTo = useCallback((target: number, duration = 500, onDone?: () => void) => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-
-    const start = performance.now();
-    const from = Number.parseFloat(video.style.opacity || "1");
-    const step = (now: number) => {
-      const progress = Math.min(1, (now - start) / duration);
-      const eased =
-        progress < 0.5
-          ? 2 * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-      video.style.opacity = String(from + (target - from) * eased);
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(step);
-      } else {
-        rafRef.current = null;
-        onDone?.();
-      }
-    };
-    rafRef.current = requestAnimationFrame(step);
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoEnabled) return undefined;
-
-    const onLoaded = () => {
-      setVideoReady(true);
-      video.play().catch(() => undefined);
-      fadingOutRef.current = false;
-      fadeVideoTo(1, 500);
-    };
-
-    const onTimeUpdate = () => {
-      if (!video.duration) return;
-      const remaining = video.duration - video.currentTime;
-      if (remaining <= 0.55 && !fadingOutRef.current) {
-        fadingOutRef.current = true;
-        fadeVideoTo(0, 500);
-      }
-    };
-
-    const onEnded = () => {
-      video.style.opacity = "0";
-      window.setTimeout(() => {
-        try {
-          video.currentTime = 0;
-        } catch {
-          return;
-        }
-        video.play().catch(() => undefined);
-        fadingOutRef.current = false;
-        fadeVideoTo(1, 500);
-      }, 100);
-    };
-
-    const onError = () => {
-      setVideoEnabled(false);
-      setVideoReady(false);
-    };
-
-    video.addEventListener("loadeddata", onLoaded);
-    video.addEventListener("timeupdate", onTimeUpdate);
-    video.addEventListener("ended", onEnded);
-    video.addEventListener("error", onError);
-    if (video.readyState >= 2) onLoaded();
-
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      video.removeEventListener("loadeddata", onLoaded);
-      video.removeEventListener("timeupdate", onTimeUpdate);
-      video.removeEventListener("ended", onEnded);
-      video.removeEventListener("error", onError);
-    };
-  }, [fadeVideoTo, videoEnabled]);
-
   function enterConsole(user: DemoUser = DEFAULT_DEMO_USER) {
     window.localStorage.setItem("np_lang", lang);
     window.localStorage.setItem("np_user", JSON.stringify(user));
     router.push("/console");
   }
+
+  const videoReady = Object.values(loadedVideos).some(Boolean);
+  const allVideosFailed = VIDEO_LAYERS.every((layer) => failedVideos[layer.src]);
 
   return (
     <main
@@ -296,21 +229,39 @@ export default function LandingPage() {
       style={{ background: "#000" }}
       data-screen-label="01 Landing"
     >
-      {videoEnabled ? (
-        <video
-          ref={videoRef}
-          className="hero-vid"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          src={VIDEO_SOURCES[0]}
-          style={{ opacity: videoReady ? 1 : 0 }}
-        />
+      {!allVideosFailed ? (
+        <div className="hero-video-stack" aria-hidden="true">
+          {VIDEO_LAYERS.map((layer, index) => (
+            <video
+              key={layer.src}
+              ref={(node) => {
+                videoRefs.current[index] = node;
+              }}
+              className={`hero-vid hero-video-layer ${layer.className}`}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              src={layer.src}
+              title={layer.label}
+              onLoadedData={(event) => {
+                setLoadedVideos((prev) => ({ ...prev, [layer.src]: true }));
+                event.currentTarget.play().catch(() => undefined);
+              }}
+              onCanPlay={(event) => {
+                event.currentTarget.play().catch(() => undefined);
+              }}
+              onError={() => {
+                setFailedVideos((prev) => ({ ...prev, [layer.src]: true }));
+              }}
+            />
+          ))}
+        </div>
       ) : (
         <HeroFallback />
       )}
-      {!videoReady && videoEnabled && <HeroFallback />}
+      {!videoReady && !allVideosFailed && <HeroFallback />}
       <div className="hero-vignette" />
       {/* Aurora mesh layer (ADR-0002 E1) — 3 soft blobs drifting slowly behind the hero.
        * Sits on top of the video/fallback but below the vignette for depth. */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { createElement, useState, useRef, useEffect } from "react";
 import { X, Send, Bot, Sparkles } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t, type Lang, type TranslationKey } from "@/lib/i18n";
@@ -109,12 +109,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
         className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
         style={{ borderBottom: "1px solid var(--hair)" }}
       >
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ background: "var(--brand-soft)" }}
-        >
-          <Bot size={14} style={{ color: "var(--brand)" }} />
-        </div>
+        <TutorMotion size={34} />
         <div className="flex-1">
           <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
             Nextport Tutor
@@ -152,12 +147,7 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
         ))}
         {loading && (
           <div className="flex gap-2">
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--brand-soft)" }}
-            >
-              <Bot size={12} style={{ color: "var(--brand)" }} />
-            </div>
+            <TutorMotion size={28} compact />
             <div
               className="px-3 py-2 rounded-xl shimmer"
               style={{ width: 120, height: 36, borderRadius: 12 }}
@@ -221,6 +211,45 @@ export function AssistantPanel({ onClose, context }: AssistantPanelProps) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TutorMotion({ size, compact = false }: { size: number; compact?: boolean }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    import("@lottiefiles/dotlottie-wc")
+      .then(() => {
+        if (mounted) setReady(true);
+      })
+      .catch(() => {
+        if (mounted) setReady(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div
+      className={compact ? "tutor-motion tutor-motion-compact" : "tutor-motion"}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      {ready
+        ? createElement("dotlottie-wc", {
+            src: "/lotties/nextport-tutor.lottie",
+            autoplay: true,
+            loop: true,
+            speed: compact ? 0.9 : 0.82,
+            backgroundColor: "#00000000",
+            style: { width: "100%", height: "100%" },
+          })
+        : <Bot size={compact ? 12 : 15} style={{ color: "var(--brand)" }} />}
     </div>
   );
 }
