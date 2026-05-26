@@ -10,9 +10,9 @@
  * billing wiring (Stripe etc.) follows pilot — deferred deliberately.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, EyeOff, Filter as FilterIcon, RotateCcw, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ArrowRight, Filter as FilterIcon, Sparkles } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -46,8 +46,6 @@ const CTA_META: Record<CtaKind, { labelKey: TranslationKey; tone: "ok" | "brand"
 
 type FilterKey = "all" | "available" | "comingSoon" | "pilot";
 
-const MARKETPLACE_LAB_STORAGE_KEY = "np_marketplace_lab_hidden_sections";
-
 function statusMatchesFilter(status: Status, filter: FilterKey): boolean {
   if (filter === "all") return true;
   if (filter === "available") return status === "available" || status === "beta";
@@ -78,45 +76,6 @@ export function MarketplacePage() {
   const toaster = useToast();
   const workspace = useWorkspace();
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [labOpen, setLabOpen] = useState(false);
-  const [hiddenSectionIds, setHiddenSectionIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("marketplaceLab") === "1" || params.get("lab") === "marketplace") {
-        setLabOpen(true);
-      }
-
-      const stored = window.sessionStorage.getItem(MARKETPLACE_LAB_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          const validIds = new Set(SECTIONS.map((section) => section.id));
-          setHiddenSectionIds(parsed.filter((id): id is string => typeof id === "string" && validIds.has(id)));
-        }
-      }
-    } catch {}
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "m") {
-        event.preventDefault();
-        setLabOpen((open) => !open);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.sessionStorage.setItem(MARKETPLACE_LAB_STORAGE_KEY, JSON.stringify(hiddenSectionIds));
-    } catch {}
-  }, [hiddenSectionIds]);
 
   /* Industry Pack Activate is real product effect; all other CTAs are
    * intent-capture toasts. The detail page does the same — see
@@ -171,38 +130,11 @@ export function MarketplacePage() {
   ];
 
   const filteredSections = useMemo(() => {
-    return SECTIONS.filter((s) => !hiddenSectionIds.includes(s.id)).map((s) => ({
+    return SECTIONS.map((s) => ({
       ...s,
       items: s.items.filter((it) => statusMatchesFilter(it.status, filter)),
     })).filter((s) => s.items.length > 0);
-  }, [filter, hiddenSectionIds]);
-
-  function toggleLabSection(sectionId: string) {
-    setHiddenSectionIds((current) =>
-      current.includes(sectionId)
-        ? current.filter((id) => id !== sectionId)
-        : [...current, sectionId],
-    );
-  }
-
-  function resetLab() {
-    setHiddenSectionIds([]);
-    toaster.push({
-      tone: "ok",
-      title:
-        lang === "es"
-          ? "Marketplace Lab reiniciado"
-          : lang === "zh"
-          ? "Marketplace Lab 已重置"
-          : "Marketplace Lab reset",
-      detail:
-        lang === "es"
-          ? "Todas las secciones vuelven a mostrarse en esta sesión."
-          : lang === "zh"
-          ? "本会话中的所有部分都已恢复显示。"
-          : "All sections are visible again in this session.",
-    });
-  }
+  }, [filter]);
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -236,75 +168,6 @@ export function MarketplacePage() {
           ))}
         </div>
       </div>
-
-      {labOpen && (
-        <section
-          className="glass-panel-tight space-y-3 p-3"
-          style={{ borderColor: "oklch(0.78 0.09 235 / 0.35)" }}
-        >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-2.5">
-              <div
-                className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-xl"
-                style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.35)", color: "var(--brand)" }}
-              >
-                <SlidersHorizontal size={14} strokeWidth={1.6} />
-              </div>
-              <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
-                  Marketplace Lab
-                </p>
-                <p className="mt-0.5 text-[11.5px] leading-snug" style={{ color: "var(--ink-4)" }}>
-                  {lang === "es"
-                    ? "Feature flag de sesión: oculta secciones para validar foco sin borrar datos reales. Atajo: Ctrl+Shift+M."
-                    : lang === "zh"
-                    ? "会话级功能开关：临时隐藏部分以验证焦点，不删除真实数据。快捷键：Ctrl+Shift+M。"
-                    : "Session feature flag: hide sections to test focus without deleting real data. Shortcut: Ctrl+Shift+M."}
-                </p>
-              </div>
-            </div>
-            <button type="button" onClick={resetLab} className="btn btn-sm justify-center">
-              <RotateCcw size={12} strokeWidth={1.7} />
-              {lang === "es" ? "Restaurar" : lang === "zh" ? "恢复" : "Reset"}
-            </button>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {SECTIONS.map((section) => {
-              const hidden = hiddenSectionIds.includes(section.id);
-              const SectionIcon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => toggleLabSection(section.id)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-all"
-                  style={{
-                    background: hidden ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)",
-                    border: hidden ? "1px dashed var(--hair-2)" : "1px solid var(--hair-2)",
-                    color: hidden ? "var(--ink-4)" : "var(--ink-2)",
-                    opacity: hidden ? 0.72 : 1,
-                  }}
-                >
-                  <SectionIcon size={13} strokeWidth={1.6} />
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium">{t(section.titleKey, lang)}</span>
-                  {hidden && <EyeOff size={12} strokeWidth={1.6} />}
-                </button>
-              );
-            })}
-          </div>
-
-          {hiddenSectionIds.length > 0 && (
-            <p className="text-[11px]" style={{ color: "var(--ink-4)" }}>
-              {lang === "es"
-                ? `${hiddenSectionIds.length} sección(es) ocultas solo en esta sesión.`
-                : lang === "zh"
-                ? `本会话中已隐藏 ${hiddenSectionIds.length} 个部分。`
-                : `${hiddenSectionIds.length} section(s) hidden in this session only.`}
-            </p>
-          )}
-        </section>
-      )}
 
       {filteredSections.map((section) => {
         const SectionIcon = section.icon;
