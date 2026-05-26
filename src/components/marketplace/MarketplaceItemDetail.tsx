@@ -213,6 +213,36 @@ function MarketplaceItemDetailInner({ item }: { item: MarketplaceItem }) {
               </div>
             </section>
           )}
+
+          {/* How it works — numbered steps. Surfaces the transaction flow for
+           * commission-based items (brokers / insurance / factoring) and the
+           * operational flow for everything else. */}
+          {item.howItWorksKeys && item.howItWorksKeys.length > 0 && (
+            <section className="glass-panel p-5">
+              <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--ink-4)" }}>
+                {t("marketplaceDetailHowItWorks", lang)}
+              </h2>
+              <ol className="space-y-3">
+                {item.howItWorksKeys.map((stepKey, i) => (
+                  <li key={stepKey} className="flex gap-3">
+                    <span
+                      className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full font-mono text-[11px] font-semibold"
+                      style={{
+                        background: `color-mix(in oklch, ${item.accent} 16%, transparent)`,
+                        border: `1px solid color-mix(in oklch, ${item.accent} 40%, transparent)`,
+                        color: item.accent,
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <p className="flex-1 pt-0.5 text-[13px] leading-relaxed" style={{ color: "var(--ink-2)" }}>
+                      {t(stepKey, lang)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </div>
 
         {/* Right column — Pricing card */}
