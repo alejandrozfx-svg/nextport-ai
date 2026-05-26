@@ -32,6 +32,8 @@ export type RecommendedActionCopyKey =
   | "actionTitleObtainNom"
   | "actionWhyNom";
 
+export type DemoVertical = "auto" | "medical" | "textile" | "agrofood" | "electronics" | "chemicals" | "cosmetics";
+
 export interface DemoOperation {
   id: string;
   supplier: string;
@@ -61,11 +63,15 @@ export interface DemoOperation {
   };
   summary: string;
   timeline: DemoTimeline[];
+  /** Industry pack this op belongs to (D-006 / PRD-14). Used by Operations
+   * Inbox to highlight ops matching the workspace's active pack. */
+  vertical?: DemoVertical;
 }
 
 export const DEMO_OPERATIONS: DemoOperation[] = [
   {
     id: "NP-2026-001847",
+    vertical: "electronics",
     supplier: "Shenzhen Lumitech Optics Co., Ltd.",
     supplierShort: "Lumitech Optics",
     origin: "Shanghai, CN",
@@ -128,6 +134,7 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
   },
   {
     id: "NP-2026-001846",
+    vertical: "chemicals",
     supplier: "TaegukChem Industrial Co.",
     supplierShort: "TaegukChem",
     origin: "Busan, KR",
@@ -172,6 +179,7 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
   },
   {
     id: "NP-2026-001845",
+    vertical: "auto",
     supplier: "Hannover Präzisionsteile GmbH",
     supplierShort: "Hannover Präzision",
     origin: "Hamburg, DE",
@@ -201,6 +209,7 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
   },
   {
     id: "NP-2026-001844",
+    vertical: "auto",
     supplier: "Vértice Componentes S.A. de C.V.",
     supplierShort: "Vértice Componentes",
     origin: "Laredo, US",
@@ -225,6 +234,7 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
   },
   {
     id: "NP-2026-001843",
+    vertical: "auto",
     supplier: "Guangzhou Aero Plastics Ltd.",
     supplierShort: "Aero Plastics",
     origin: "Yantian, CN",
@@ -262,6 +272,7 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
   },
   {
     id: "NP-2026-001842",
+    vertical: "electronics",
     supplier: "Korea Display Tech Co.",
     supplierShort: "Korea Display",
     origin: "Incheon, KR",
@@ -306,6 +317,7 @@ export const DEMO_OPERATIONS: DemoOperation[] = [
   },
   {
     id: "NP-2026-001841",
+    vertical: "chemicals",
     supplier: "Mexichem Soluciones S.A. de C.V.",
     supplierShort: "Mexichem",
     origin: "Houston, US",

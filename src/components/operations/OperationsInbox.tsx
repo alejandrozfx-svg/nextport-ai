@@ -8,6 +8,7 @@ import { UploadModal } from "./UploadModal";
 import { DEMO_OPERATIONS } from "@/lib/demo-data";
 import type { DemoOperation } from "@/lib/demo-data";
 import { useLang } from "@/lib/lang-context";
+import { useWorkspace, VERTICAL_META } from "@/lib/workspace-context";
 import { t } from "@/lib/i18n";
 import { AppIcon as Icon, DocumentIcon, EmptyState, MetricCard, PageHeader, StatusChip } from "@/components/ui";
 
@@ -110,11 +111,15 @@ function OperationMobileCard({ op }: { op: DemoOperation }) {
 
 export function OperationsInbox() {
   const { lang } = useLang();
+  const workspace = useWorkspace();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
   const [filter, setFilter] = useState<TabKey>("all");
   const [search, setSearch] = useState(initialQuery);
   const [openUpload, setOpenUpload] = useState(false);
+  /* When an Industry Pack is active, the inbox surfaces ops matching that
+   * vertical first. Toggle on by default, can be cleared by the user. */
+  const [packFilter, setPackFilter] = useState<"matching" | "all">("matching");
 
   // Sync URL ?q= → local search state when the user navigates from TopBar
   useEffect(() => {
@@ -147,9 +152,16 @@ export function OperationsInbox() {
     sessionStorage.setItem("np_ops_state", JSON.stringify({ filter, search }));
   }, [filter, search]);
 
+  /* Pack-aware filtering:
+   * - When a vertical is active AND packFilter === "matching", only show ops
+   *   tagged with that vertical (the analyst is focusing on their sector).
+   * - When packFilter === "all", show everything regardless. */
   const filtered = useMemo(() => {
     return OPERATIONS.filter((op) => {
       if (filter !== "all" && op.status !== filter) return false;
+      if (workspace.vertical && packFilter === "matching" && op.vertical !== workspace.vertical) {
+        return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -162,7 +174,11 @@ export function OperationsInbox() {
       }
       return true;
     });
-  }, [filter, search]);
+  }, [filter, search, workspace.vertical, packFilter]);
+
+  const packMatchCount = workspace.vertical
+    ? OPERATIONS.filter((op) => op.vertical === workspace.vertical).length
+    : 0;
 
   const counts = {
     all: OPERATIONS.length,
@@ -241,6 +257,62 @@ export function OperationsInbox() {
           />
         </div>
       </div>
+
+      {/* Industry-pack-aware focus chip. Only renders when a vertical is on,
+       * so the general workspace stays exactly as before. */}
+      {workspace.vertical && (() => {
+        const meta = VERTICAL_META[workspace.vertical];
+        const PackIcon = meta.icon;
+        return (
+          <div
+            className="flex flex-col gap-2 rounded-xl px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+            style={{
+              background: `color-mix(in oklch, ${meta.accent} 10%, transparent)`,
+              border: `1px solid color-mix(in oklch, ${meta.accent} 35%, transparent)`,
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg"
+                style={{
+                  background: `color-mix(in oklch, ${meta.accent} 16%, transparent)`,
+                  border: `1px solid color-mix(in oklch, ${meta.accent} 40%, transparent)`,
+                  color: meta.accent,
+                }}
+              >
+                <PackIcon size={13} strokeWidth={1.7} />
+              </div>
+              <div className="min-w-0 text-[12.5px]" style={{ color: "var(--ink-2)" }}>
+                {t("workspaceVerticalActiveBadge", lang)}:{" "}
+                <span className="font-medium" style={{ color: meta.accent }}>{t(meta.nameKey, lang)}</span>{" "}
+                <span style={{ color: "var(--ink-4)" }}>
+                  · {packMatchCount} {lang === "es" ? "operaciones en este sector" : lang === "zh" ? "个该行业的运营" : "ops in this sector"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {(["matching", "all"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setPackFilter(key)}
+                  className="rounded-md px-2.5 py-1 text-[11.5px] transition-all"
+                  style={{
+                    background: packFilter === key ? "rgba(255,255,255,0.08)" : "transparent",
+                    color: packFilter === key ? "var(--ink)" : "var(--ink-4)",
+                    boxShadow: packFilter === key ? "inset 0 0 0 1px var(--hair-2)" : undefined,
+                    fontWeight: packFilter === key ? 600 : 400,
+                  }}
+                >
+                  {key === "matching"
+                    ? lang === "es" ? "Solo mi pack" : lang === "zh" ? "仅我的包" : "Only my pack"
+                    : lang === "es" ? "Todas" : lang === "zh" ? "全部" : "All"}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="space-y-3 md:hidden">
         {filtered.length === 0 ? (
