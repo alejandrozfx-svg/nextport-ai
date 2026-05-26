@@ -1,54 +1,29 @@
 "use client";
 
 /* Marketplace surface (D-006 Camino A revenue plays + D-007 honesty applied).
- * Showcases the 8 revenue features from Roadmap/revenue-roadmap-2026 with clear status,
- * honest CTAs (no fake activation — calls toaster), and i18n EN/ES/zh.
+ * Showcases the 8 revenue features from Roadmap/revenue-roadmap-2026 with clear
+ * status, pricing hint, and per-card link to the detail page where the user can
+ * pick a billing cadence (monthly / annual / on-demand).
  *
- * NOT a real billing surface yet — every CTA fires a toast and surfaces the user's
- * interest. Production hookup (Stripe checkout, real activation) lands with pilot.
+ * Activation is honest: clicking a CTA toasts intent. Industry Pack "Activate"
+ * also flips the workspace vertical (the only real product effect). Production
+ * billing wiring (Stripe etc.) follows pilot — deferred deliberately.
  */
 
 import { useMemo, useState } from "react";
-import {
-  Car, HeartPulse, Shirt, Apple, Cpu, FlaskConical, Sparkles,
-  MessageCircle, Send, Mail, Database,
-  Shield, Gavel,
-  Users, Umbrella, Banknote,
-  Code2, BarChart3,
-  Store, Package,
-  ArrowRight, Filter as FilterIcon,
-  type LucideIcon,
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Filter as FilterIcon, Sparkles } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useWorkspace, type Vertical } from "@/lib/workspace-context";
+import { useWorkspace } from "@/lib/workspace-context";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { PageHeader, SectionCard } from "@/components/ui";
-
-type Status = "available" | "beta" | "comingQ3" | "comingQ4" | "comingLater" | "pilot";
-type CtaKind = "activate" | "waitlist" | "request" | "contact";
-
-interface MarketplaceItem {
-  id: string;
-  icon: LucideIcon;
-  accent: string;
-  titleKey: TranslationKey;
-  descKey: TranslationKey;
-  status: Status;
-  cta: CtaKind;
-  /** Optional small caption rendered under the title (e.g. price hint, regulators). */
-  caption?: string;
-  /** When set, clicking the CTA also activates this vertical in the workspace. */
-  activatesVertical?: Vertical;
-}
-
-interface MarketplaceSection {
-  id: string;
-  icon: LucideIcon;
-  titleKey: TranslationKey;
-  descKey: TranslationKey;
-  items: MarketplaceItem[];
-}
+import {
+  SECTIONS,
+  type MarketplaceItem,
+  type Status,
+  type CtaKind,
+} from "@/lib/marketplace-data";
 
 const STATUS_META: Record<
   Status,
@@ -69,79 +44,6 @@ const CTA_META: Record<CtaKind, { labelKey: TranslationKey; tone: "ok" | "brand"
   contact:  { labelKey: "marketplaceCtaContact",  tone: "brand" },
 };
 
-const SECTIONS: MarketplaceSection[] = [
-  {
-    id: "packs",
-    icon: Package,
-    titleKey: "marketplaceSectionPacks",
-    descKey: "marketplaceSectionPacksDesc",
-    /* All 3 priority packs (auto, medical, textile) are now Beta — Activate flips
-     * the workspace vertical (D-006 Camino A). The other 4 stay on waitlist. */
-    items: [
-      { id: "auto",        icon: Car,          accent: "var(--brand)", titleKey: "packAuto",        descKey: "packAutoDesc",        status: "beta",         cta: "activate", activatesVertical: "auto" },
-      { id: "medical",     icon: HeartPulse,   accent: "var(--risk)",  titleKey: "packMedical",     descKey: "packMedicalDesc",     status: "beta",         cta: "activate", activatesVertical: "medical" },
-      { id: "textile",     icon: Shirt,        accent: "var(--ok)",    titleKey: "packTextile",     descKey: "packTextileDesc",     status: "beta",         cta: "activate", activatesVertical: "textile" },
-      { id: "agrofood",    icon: Apple,        accent: "var(--ok)",    titleKey: "packAgrofood",    descKey: "packAgrofoodDesc",    status: "comingQ4",     cta: "waitlist" },
-      { id: "electronics", icon: Cpu,          accent: "var(--brand)", titleKey: "packElectronics", descKey: "packElectronicsDesc", status: "comingQ4",     cta: "waitlist" },
-      { id: "chemicals",   icon: FlaskConical, accent: "var(--warn)",  titleKey: "packChemicals",   descKey: "packChemicalsDesc",   status: "comingLater",  cta: "waitlist" },
-      { id: "cosmetics",   icon: Sparkles,     accent: "var(--accent)", titleKey: "packCosmetics",  descKey: "packCosmeticsDesc",   status: "comingLater",  cta: "waitlist" },
-    ],
-  },
-  {
-    id: "channels",
-    icon: MessageCircle,
-    titleKey: "marketplaceSectionChannels",
-    descKey: "marketplaceSectionChannelsDesc",
-    items: [
-      { id: "whatsapp", icon: MessageCircle, accent: "var(--ok)",    titleKey: "channelWhatsapp",  descKey: "channelWhatsappDesc",  status: "comingQ4", cta: "waitlist" },
-      { id: "telegram", icon: Send,          accent: "var(--brand)", titleKey: "channelTelegram",  descKey: "channelTelegramDesc",  status: "beta",     cta: "activate" },
-      { id: "email",    icon: Mail,          accent: "var(--brand)", titleKey: "channelEmailPlus", descKey: "channelEmailPlusDesc", status: "available", cta: "activate" },
-      { id: "erp",      icon: Database,      accent: "var(--warn)",  titleKey: "channelERP",       descKey: "channelERPDesc",       status: "pilot",    cta: "contact" },
-    ],
-  },
-  {
-    id: "compliance",
-    icon: Shield,
-    titleKey: "marketplaceSectionCompliance",
-    descKey: "marketplaceSectionComplianceDesc",
-    items: [
-      { id: "sanctions", icon: Shield, accent: "var(--risk)",  titleKey: "complianceSanctions", descKey: "complianceSanctionsDesc", status: "comingQ4", cta: "request" },
-      { id: "audit",     icon: Gavel,  accent: "var(--brand)", titleKey: "complianceCustoms",   descKey: "complianceCustomsDesc",   status: "available", cta: "activate" },
-    ],
-  },
-  {
-    id: "network",
-    icon: Users,
-    titleKey: "marketplaceSectionNetwork",
-    descKey: "marketplaceSectionNetworkDesc",
-    items: [
-      { id: "brokers",   icon: Users,    accent: "var(--brand)", titleKey: "networkBrokers",   descKey: "networkBrokersDesc",   status: "comingLater", cta: "waitlist" },
-      { id: "insurance", icon: Umbrella, accent: "var(--ok)",    titleKey: "networkInsurance", descKey: "networkInsuranceDesc", status: "comingLater", cta: "waitlist" },
-      { id: "factoring", icon: Banknote, accent: "var(--warn)",  titleKey: "networkFactoring", descKey: "networkFactoringDesc", status: "comingLater", cta: "waitlist" },
-    ],
-  },
-  {
-    id: "apis",
-    icon: Code2,
-    titleKey: "marketplaceSectionApis",
-    descKey: "marketplaceSectionApisDesc",
-    items: [
-      { id: "hs-api",    icon: Code2,     accent: "var(--brand)", titleKey: "apiHs",    descKey: "apiHsDesc",    status: "comingLater", cta: "waitlist" },
-      { id: "intel",     icon: BarChart3, accent: "var(--accent)", titleKey: "apiIntel", descKey: "apiIntelDesc", status: "comingLater", cta: "waitlist" },
-    ],
-  },
-  {
-    id: "partner",
-    icon: Store,
-    titleKey: "marketplaceSectionPartner",
-    descKey: "marketplaceSectionPartnerDesc",
-    items: [
-      { id: "white-label", icon: Store,  accent: "var(--brand)", titleKey: "partnerBroker", descKey: "partnerBrokerDesc", status: "pilot",       cta: "contact" },
-      { id: "embed-sdk",   icon: Code2,  accent: "var(--accent)", titleKey: "partnerEmbed",  descKey: "partnerEmbedDesc",  status: "comingLater", cta: "request" },
-    ],
-  },
-];
-
 type FilterKey = "all" | "available" | "comingSoon" | "pilot";
 
 function statusMatchesFilter(status: Status, filter: FilterKey): boolean {
@@ -152,22 +54,37 @@ function statusMatchesFilter(status: Status, filter: FilterKey): boolean {
   return true;
 }
 
+/** Renders the "from $X/mo" pill on each card — drives clicks to the detail page. */
+function PricingHint({ item }: { item: MarketplaceItem }) {
+  const { lang } = useLang();
+  const { pricing } = item;
+  if (!pricing.startingAtKey) return null;
+  const amount = pricing.startingAtAmount ?? "";
+  const label = t(pricing.startingAtKey, lang).replace("{amount}", amount);
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px]"
+      style={{ background: "var(--surface-2)", color: "var(--ink-2)", border: "1px solid var(--hair-2)" }}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function MarketplacePage() {
   const { lang } = useLang();
   const toaster = useToast();
   const workspace = useWorkspace();
   const [filter, setFilter] = useState<FilterKey>("all");
 
-  /* Each CTA dispatches a toast — the user sees confirmation, the team can wire real
-   * Stripe / waitlist persistence later. Industry Pack cards with activatesVertical also
-   * flip the workspace vertical on / off (honest activation — the only category that's
-   * actually wired into product behavior). */
+  /* Industry Pack Activate is real product effect; all other CTAs are
+   * intent-capture toasts. The detail page does the same — see
+   * MarketplaceItemDetail. */
   function handleCta(item: MarketplaceItem) {
     const title = t(item.titleKey, lang);
     const cta = CTA_META[item.cta];
     const ctaLabel = t(cta.labelKey, lang);
 
-    // Industry Pack activation flips the workspace vertical (real product effect).
     if (item.activatesVertical && item.cta === "activate") {
       const alreadyActive = workspace.vertical === item.activatesVertical;
       workspace.setVertical(alreadyActive ? null : item.activatesVertical);
@@ -212,7 +129,6 @@ export function MarketplacePage() {
     { key: "pilot",       labelKey: "marketplaceFilterPilot" },
   ];
 
-  /* Filter each section's items; sections with 0 visible items are hidden entirely. */
   const filteredSections = useMemo(() => {
     return SECTIONS.map((s) => ({
       ...s,
@@ -279,7 +195,8 @@ export function MarketplacePage() {
                 const ItemIcon = item.icon;
                 const status = STATUS_META[item.status];
                 const cta = CTA_META[item.cta];
-                const isActiveVertical = !!item.activatesVertical && workspace.vertical === item.activatesVertical;
+                const isActiveVertical =
+                  !!item.activatesVertical && workspace.vertical === item.activatesVertical;
                 return (
                   <SectionCard
                     key={item.id}
@@ -291,37 +208,53 @@ export function MarketplacePage() {
                         : undefined
                     }
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div
-                        className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl"
-                        style={{
-                          background: `color-mix(in oklch, ${item.accent} 14%, transparent)`,
-                          border: `1px solid color-mix(in oklch, ${item.accent} 35%, transparent)`,
-                          color: item.accent,
-                        }}
-                      >
-                        <ItemIcon size={16} strokeWidth={1.6} />
+                    {/* The whole body (icon + text + pricing) navigates to the detail
+                     * page. The CTA button is a separate click target so it doesn't
+                     * trigger navigation accidentally. */}
+                    <Link href={`/console/marketplace/${item.id}`} className="flex flex-col gap-3 group">
+                      <div className="flex items-start justify-between gap-3">
+                        <div
+                          className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl"
+                          style={{
+                            background: `color-mix(in oklch, ${item.accent} 14%, transparent)`,
+                            border: `1px solid color-mix(in oklch, ${item.accent} 35%, transparent)`,
+                            color: item.accent,
+                          }}
+                        >
+                          <ItemIcon size={16} strokeWidth={1.6} />
+                        </div>
+                        <span
+                          className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wider"
+                          style={
+                            isActiveVertical
+                              ? { background: `color-mix(in oklch, ${item.accent} 18%, transparent)`, color: item.accent, border: `1px solid color-mix(in oklch, ${item.accent} 50%, transparent)` }
+                              : { background: status.bg, color: status.color, border: `1px solid ${status.border}` }
+                          }
+                        >
+                          {isActiveVertical ? t("workspaceVerticalActiveBadge", lang) : t(status.labelKey, lang)}
+                        </span>
                       </div>
-                      <span
-                        className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wider"
-                        style={
-                          isActiveVertical
-                            ? { background: `color-mix(in oklch, ${item.accent} 18%, transparent)`, color: item.accent, border: `1px solid color-mix(in oklch, ${item.accent} 50%, transparent)` }
-                            : { background: status.bg, color: status.color, border: `1px solid ${status.border}` }
-                        }
-                      >
-                        {isActiveVertical ? t("workspaceVerticalActiveBadge", lang) : t(status.labelKey, lang)}
-                      </span>
-                    </div>
 
-                    <div className="min-w-0">
-                      <h3 className="text-[14px] font-semibold" style={{ color: "var(--ink)" }}>
-                        {t(item.titleKey, lang)}
-                      </h3>
-                      <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--ink-4)" }}>
-                        {t(item.descKey, lang)}
-                      </p>
-                    </div>
+                      <div className="min-w-0">
+                        <h3 className="text-[14px] font-semibold transition-colors group-hover:text-[color:var(--brand)]" style={{ color: "var(--ink)" }}>
+                          {t(item.titleKey, lang)}
+                        </h3>
+                        <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--ink-4)" }}>
+                          {t(item.descKey, lang)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <PricingHint item={item} />
+                        <span
+                          className="inline-flex items-center gap-1 text-[10.5px] uppercase tracking-wider opacity-60 transition-opacity group-hover:opacity-100"
+                          style={{ color: "var(--ink-3)" }}
+                        >
+                          {lang === "es" ? "Detalle" : lang === "zh" ? "详情" : "Details"}
+                          <ArrowRight size={10} strokeWidth={1.8} />
+                        </span>
+                      </div>
+                    </Link>
 
                     <button
                       type="button"
@@ -348,7 +281,7 @@ export function MarketplacePage() {
         );
       })}
 
-      {/* Footer CTA — talk to sales for custom / enterprise */}
+      {/* Footer CTA strip */}
       <div
         className="flex flex-col gap-3 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between"
         style={{
@@ -361,7 +294,7 @@ export function MarketplacePage() {
             className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full"
             style={{ background: "var(--brand-soft)", border: "1px solid oklch(0.78 0.09 235 / 0.4)", color: "var(--brand)" }}
           >
-            <Store size={16} strokeWidth={1.6} />
+            <Sparkles size={16} strokeWidth={1.6} />
           </div>
           <div className="min-w-0">
             <p className="text-[14px] font-semibold" style={{ color: "var(--ink)" }}>
