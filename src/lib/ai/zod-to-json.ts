@@ -63,9 +63,12 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
     case "ZodDefault":  return zodToJsonSchema(def.innerType as z.ZodTypeAny);
     case "ZodEnum":     return { type: "string", enum: def.values ?? [] };
     case "ZodRecord": {
-      // Gemini wants additionalProperties with a schema for value type.
-      const valueSchema = def.valueType ? zodToJsonSchema(def.valueType) : { type: "string" };
-      return { type: "object", additionalProperties: valueSchema };
+      // Gemini's response_schema doesn't support additionalProperties (rejects with 400
+      // "Unknown name 'additionalProperties'"). We drop the constraint and pass `type:
+      // "object"` alone — the model still emits keys/values it inferred from the prompt,
+      // and our Zod validator on the response side enforces the per-value type. This is
+      // the documented workaround per Gemini API restrictions on JSON Schema features.
+      return { type: "object" };
     }
     case "ZodNullable":
     case "ZodUnion":
