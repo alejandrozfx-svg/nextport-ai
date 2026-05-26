@@ -7,6 +7,17 @@ import { AppIcon as Icon } from "@/components/ui/AppIcon";
 import { Modal } from "@/components/ui/Modal";
 import { DocumentScanIllustration } from "@/components/motion/ProductMotion";
 
+/* Maps the human label in sampleDocuments to the AI provider's DocKind + the
+ * sampleId expected by /api/ai/extract. Files outside the map are skipped
+ * (the guide PDF doesn't go through extraction). */
+const KIND_MAP: Record<string, { docKind: string; sampleId: string }> = {
+  "Invoice":        { docKind: "invoice",      sampleId: "invoice" },
+  "Packing List":   { docKind: "packing_list", sampleId: "packing" },
+  "Bill of Lading": { docKind: "bl",           sampleId: "bl" },
+  "Pedimento":      { docKind: "pedimento",    sampleId: "pedimento" },
+  "MVE":            { docKind: "mve",          sampleId: "mve" },
+};
+
 export function UploadModal({ onClose }: { onClose: () => void }) {
   const { lang } = useLang();
   const [phase, setPhase] = useState<"idle" | "scanning" | "done">("idle");
@@ -19,6 +30,9 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
     progress: number;
     classified: boolean;
     extracted: number;
+    /** Set once the /api/ai/extract call resolves. Surfaces model attribution
+     * per honesty contract in D-007 (e.g. "by gemini-2.5-flash" or "by mock-v1"). */
+    extractedBy?: string;
   }>>([]);
 
   function startScan() {
@@ -34,6 +48,34 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
     })));
     setPhase("scanning");
     animateScan(sampleDocuments.length);
+    // Fire real extract calls in parallel with the animation. The animation
+    // simulates progress; the real call populates `extractedBy` when it resolves.
+    runRealExtraction();
+  }
+
+  /* Fires /api/ai/extract for each file with a known doc kind. Updates each
+   * row's `extractedBy` so the UI can render "by <model>". Failures are
+   * silent — the animation continues regardless (the demo never breaks). */
+  function runRealExtraction() {
+    sampleDocuments.forEach((d) => {
+      const mapping = KIND_MAP[d.type];
+      if (!mapping) return;
+      fetch("/api/ai/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sampleId: mapping.sampleId, docKind: mapping.docKind }),
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`http_${r.status}`))))
+        .then((json: { model?: string }) => {
+          if (!json?.model) return;
+          setFiles((prev) =>
+            prev.map((f) => (f.name === d.name ? { ...f, extractedBy: json.model } : f)),
+          );
+        })
+        .catch(() => {
+          /* keep the animation flowing — mock fallback already happened server-side */
+        });
+    });
   }
 
   function animateScan(count: number) {
@@ -171,6 +213,12 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                             <>
                               <span className="chip chip-brand"><span className="dot" />{f.type}</span>
                               <span className="text-[10.5px] font-mono tabular" style={{ color: "var(--ink-4)" }}>{f.confidence} · {f.extracted} {lang === "es" ? "campos" : lang === "zh" ? "字段" : "fields"}</span>
+                              {f.extractedBy && (
+                                /* Honest model attribution per D-007 / D-003. */
+                                <span className="text-[10px] font-mono" style={{ color: "var(--ink-4)" }}>
+                                  · by {f.extractedBy}
+                                </span>
+                              )}
                             </>
                           ) : (
                             <span className="text-[10.5px] font-mono tabular" style={{ color: "var(--ink-4)" }}>{Math.round(f.progress * 100)}%</span>
