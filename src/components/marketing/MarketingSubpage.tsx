@@ -14,6 +14,7 @@ import {
 import { SplineBackground } from "./SplineBackground";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { PlatformWorkflowLottie } from "./PlatformWorkflowLottie";
 
 type Metric = {
   value: string;
@@ -173,6 +174,8 @@ export function MarketingSubpage({ page, splineScene }: MarketingSubpageProps) {
           </div>
         </div>
       </section>
+
+      {page.navKey === "platform" && <PlatformWorkflowLottie />}
 
       <section className="mx-auto grid max-w-6xl gap-3 px-4 pb-12 sm:px-6 sm:pb-16 lg:grid-cols-3 lg:gap-4">
         {page.sections.map((section, index) => {
