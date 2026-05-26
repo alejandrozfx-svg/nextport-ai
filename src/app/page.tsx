@@ -291,6 +291,8 @@ export default function LandingPage() {
             animationDelay: "-12s",
           }}
         />
+        {/* Wave 2 E3 — drifting noise overlay for analog texture. */}
+        <div className="noise-overlay" aria-hidden="true" />
       </div>
 
       <nav className="relative z-20 px-3 py-3 sm:px-6 sm:py-6">
