@@ -160,9 +160,9 @@ const masterClassCopy = {
 
 const instructors = [
   {
-    name: "Diego Solórzano",
-    role: "Founder & CEO Desteia",
-    bio: "Maestría en IA en Stanford. Profesor invitado de IA en el programa de logística de MIT. Fundador de Desteia, plataforma de IA para importaciones y visibilidad logística global.",
+    name: "Equipo Desteia",
+    role: "Instructores invitados",
+    bio: "Especialistas en implementación de IA para importaciones, visibilidad logística global y automatización práctica para equipos de comercio exterior.",
   },
   {
     name: "José Luis Sabau",

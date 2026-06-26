@@ -23,8 +23,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const toaster = useToast();
   const workspace = useWorkspace();
-  const [email, setEmail] = useState("diegosolorzano@nextport.com");
-  const [name, setName] = useState("Diego Solórzano");
+  const [email, setEmail] = useState("alejandro@nextport.ai");
+  const [name, setName] = useState("Alejandro Zarraga");
   const [saved, setSaved] = useState(false);
   const [databaseUrl, setDatabaseUrl] = useState("");
   // P3: notifications toggles were decorative <div>s — now real state, persisted to localStorage.
@@ -43,6 +43,10 @@ export default function SettingsPage() {
       const stored = localStorage.getItem("np_user");
       if (stored) {
         const parsed = JSON.parse(stored) as { name?: string; email?: string };
+        if (parsed.email === "diegosolorzano@nextport.com" || parsed.name === "Diego Solórzano") {
+          localStorage.removeItem("np_user");
+          return;
+        }
         if (parsed.name)  setName(parsed.name);
         if (parsed.email) setEmail(parsed.email);
       }
@@ -100,7 +104,7 @@ export default function SettingsPage() {
       try {
         const stored = localStorage.getItem("np_user");
         const prev = stored ? (JSON.parse(stored) as Record<string, unknown>) : {};
-        const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "DS";
+        const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AZ";
         localStorage.setItem("np_user", JSON.stringify({ ...prev, name, email, initials }));
         // DATABASE_URL — demo only. Live demo doesn't actually connect; we just round-trip it.
         if (databaseUrl) localStorage.setItem("np_database_url", databaseUrl);

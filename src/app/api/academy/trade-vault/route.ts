@@ -56,7 +56,7 @@ export async function GET() {
     return NextResponse.json({
       channel: {
         id: CHANNEL_ID,
-        title: getTag(xml, "title") || "Del Barco al Algoritmo con Diego Solorzano",
+        title: getTag(xml, "title") || "Del Barco al Algoritmo",
         url: `https://www.youtube.com/channel/${CHANNEL_ID}`,
         handleUrl: "https://www.youtube.com/@delbarcoalalgoritmo",
       },

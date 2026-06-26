@@ -46,7 +46,19 @@ export function Sidebar({ onAiClick }: SidebarProps) {
     if (typeof window !== "undefined") {
       try {
         const u = localStorage.getItem("np_user");
-        if (u) setUser(JSON.parse(u));
+        if (u) {
+          const parsed = JSON.parse(u) as { name?: string; initials?: string; role?: string; photo?: string; email?: string };
+          if (parsed.email === "diegosolorzano@nextport.com" || parsed.name === "Diego Solórzano") {
+            localStorage.removeItem("np_user");
+            return;
+          }
+          setUser({
+            name: parsed.name ?? "Alejandro Zarraga",
+            initials: parsed.initials ?? "AZ",
+            role: parsed.role ?? "Product Demo Owner",
+            photo: parsed.photo,
+          });
+        }
       } catch {}
     }
   }, []);
@@ -197,14 +209,14 @@ export function Sidebar({ onAiClick }: SidebarProps) {
         style={{ borderTop: "1px solid var(--hair)" }}
       >
         <Avatar
-          initials={user?.initials ?? "DS"}
-          src={user ? user.photo : "/users/diego-solorzano.jpg"}
+          initials={user?.initials ?? "AZ"}
+          src={user?.photo}
           size="sm"
-          alt={user?.name ?? "Diego Solórzano"}
+          alt={user?.name ?? "Alejandro Zarraga"}
         />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate" style={{ color: "var(--ink)" }}>
-            {user?.name ?? "Diego Solórzano"}
+            {user?.name ?? "Alejandro Zarraga"}
           </p>
           <p className="text-xs truncate" style={{ color: "var(--ink-4)" }}>
             {user?.role ?? "Product Demo Owner"}

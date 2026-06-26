@@ -55,21 +55,18 @@ type DemoUser = {
 type DemoLoginUser = DemoUser & { password: string };
 
 const DEFAULT_DEMO_USER: DemoUser = {
-  name: "Diego Solórzano",
-  initials: "DS",
+  name: "Alejandro Zarraga",
+  initials: "AZ",
   role: "Product Demo Owner",
-  email: "diegosolorzano@nextport.com",
-  photo: "/users/diego-solorzano.jpg",
+  email: "alejandro@nextport.ai",
 };
 
 const DEMO_LOGIN_USERS: DemoLoginUser[] = [
-  { ...DEFAULT_DEMO_USER, password: "123456" },
   {
-    name: "Diego Solórzano",
-    initials: "DS",
+    name: "Nextport Demo",
+    initials: "ND",
     role: "Product Demo Owner",
     email: "demo@nextport.ai",
-    photo: "/users/diego-solorzano.jpg",
     password: "demo123",
   },
   {
@@ -114,7 +111,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     reset_sent_hint: "Check {email} for instructions.",
     reset_back: "Back to sign in",
     reset_resend: "Didn't arrive? Resend in 30s",
-    welcome: "Welcome back, Diego",
+    welcome: "Welcome back",
     loading: "Loading your console...",
   },
   es: {
@@ -149,7 +146,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     reset_sent_hint: "Revisa {email} para ver las instrucciones.",
     reset_back: "Volver a iniciar sesión",
     reset_resend: "¿No llegó? Reenviar en 30s",
-    welcome: "Bienvenido de vuelta, Diego",
+    welcome: "Bienvenido de vuelta",
     loading: "Cargando tu consola...",
   },
   zh: {
@@ -184,7 +181,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     reset_sent_hint: "请查看 {email} 获取说明。",
     reset_back: "返回登录",
     reset_resend: "没收到？30 秒后重发",
-    welcome: "欢迎回来，Diego",
+    welcome: "欢迎回来",
     loading: "正在加载控制台...",
   },
 };
@@ -536,10 +533,10 @@ function SignInCard({
         <div className="text-left">
           <div className="text-[14px] text-white">
             {lang === "es"
-              ? `Bienvenido de vuelta, ${signedInUser?.name.split(" ")[0] ?? "Diego"}`
+              ? `Bienvenido de vuelta, ${signedInUser?.name.split(" ")[0] ?? "Alejandro"}`
               : lang === "zh"
-              ? `欢迎回来，${signedInUser?.name.split(" ")[0] ?? "Diego"}`
-              : `Welcome back, ${signedInUser?.name.split(" ")[0] ?? "Diego"}`}
+              ? `欢迎回来，${signedInUser?.name.split(" ")[0] ?? "Alejandro"}`
+              : `Welcome back, ${signedInUser?.name.split(" ")[0] ?? "Alejandro"}`}
           </div>
           <div className="text-[12px] text-white/60">{t(lang, "loading")}</div>
         </div>
